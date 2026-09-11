@@ -7,13 +7,17 @@ import { KTText } from '@/components/ui/Text';
 import { KTCard } from '@/components/ui/Card';
 import { KTButton } from '@/components/ui/Button';
 import { useTournamentStore } from '@/stores/tournamentStore';
-import { useBlindsStore } from '@/stores/blindsStore';
+import { useBlindsTimer } from '@/hooks/useBlindsTimer';
 
 const { width } = Dimensions.get('window');
 
 export default function Dashboard() {
   const { tournaments, activeTournamentId, setActive } = useTournamentStore();
-  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsStore();
+  /* `useBlindsTimer` e não o store direto: é o hook que sincroniza o relógio
+     com a hora real e redesenha a cada segundo. Lendo o store cru, o card do
+     torneio ao vivo mostraria o tempo do último quadro desenhado antes de o
+     app ser fechado — parado, e errado. */
+  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer();
 
   const activeTournament = tournaments.find((t) => t.id === activeTournamentId);
   const upcomingTournaments = tournaments.filter((t) => t.status === 'upcoming');

@@ -15,6 +15,7 @@ import { KTText } from '@/components/ui/Text';
 import { KTCard } from '@/components/ui/Card';
 import { KTButton } from '@/components/ui/Button';
 import { useTournamentStore } from '@/stores/tournamentStore';
+import { distribuirPremios, entriesOf, payoutLabel, prizePool } from '@/lib/payouts';
 import type { TournamentPlayer } from '@/types';
 
 type ProofState = 'idle' | 'analyzing' | 'done';
@@ -22,7 +23,8 @@ type ProofState = 'idle' | 'analyzing' | 'done';
 export default function TournamentDetailsScreen() {
   const params = useLocalSearchParams<{ id?: string }>();
   const tournamentId = typeof params.id === 'string' ? params.id : '';
-  const { tournaments, addPlayer, updatePlayer, setActive } = useTournamentStore();
+  const { tournaments, addPlayer, updatePlayer, setActive, eliminatePlayer, undoElimination } =
+    useTournamentStore();
   const [playerName, setPlayerName] = useState('');
   const [proofStates, setProofStates] = useState<Record<string, ProofState>>({});
 
@@ -30,12 +32,13 @@ export default function TournamentDetailsScreen() {
 
   const prizeSummary = useMemo(() => {
     if (!tournament) return null;
-    const entries = tournament.players.reduce(
-      (sum, player) => sum + player.buyIns + player.reEntries + player.addOns,
-      0
-    );
-    const pool = entries * tournament.buyIn;
-    const payouts = getPayouts(pool, tournament.players.length);
+    const entries = tournament.players.reduce((sum, player) => sum + entriesOf(player), 0);
+    const pool = prizePool(tournament);
+    /* `distribuirPremios` e não `getPayouts`: é a distribuição COM a sobra de
+       arredondamento resolvida, a mesma que o encerramento grava no jogador.
+       Mostrar uma e pagar outra é como se paga um campeão diferente do que
+       esteve escrito na tela a noite inteira. */
+    const payouts = distribuirPremios(pool, tournament.players.length);
     const paidCount = tournament.players.filter((player) => player.paymentStatus === 'confirmed').length;
     return {
       entries,
@@ -45,6 +48,20 @@ export default function TournamentDetailsScreen() {
       pendingCount: tournament.players.length - paidCount,
     };
   }, [tournament]);
+
+  /* Ordem da lista: quem está de pé primeiro, na ordem em que sentou, e os
+     eliminados embaixo já na ordem de classificação. No fim da noite a metade
+     de baixo vira o resultado final, lido de cima pra baixo. */
+  const ordenados = useMemo(() => {
+    if (!tournament) return [];
+    const vivos = tournament.players.filter((p) => !p.position);
+    const caidos = tournament.players
+      .filter((p) => p.position)
+      .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    return [...vivos, ...caidos];
+  }, [tournament]);
+
+  const emPe = ordenados.filter((p) => !p.position).length;
 
   if (!tournament || !prizeSummary) {
     return (
@@ -136,6 +153,22 @@ export default function TournamentDetailsScreen() {
             <SummaryCell label="Entradas" value={String(prizeSummary.entries)} sub={`${tournament.players.length} jogadores`} />
             <SummaryCell label="Prize pool" value={formatMoney(prizeSummary.pool)} sub={payoutLabel(prizeSummary.payouts.length)} />
             <SummaryCell label="Pagos" value={`${prizeSummary.paidCount}/${tournament.players.length}`} sub="buy-ins confirmados" />
+            {/* Enquanto roda, o que interessa é quanta gente sobrou. Quando
+                acaba, é quem ganhou. A mesma célula serve às duas perguntas,
+                porque nunca são feitas ao mesmo tempo. */}
+            {tournament.status === 'finished' ? (
+              <SummaryCell
+                label="Campeão"
+                value={tournament.players.find((p) => p.position === 1)?.name.split(' ')[0] ?? '—'}
+                sub={formatMoney(tournament.players.find((p) => p.position === 1)?.prize ?? 0)}
+              />
+            ) : (
+              <SummaryCell
+                label="De pé"
+                value={`${emPe}/${tournament.players.length}`}
+                sub={emPe <= 1 ? 'aguardando o fim' : 'ainda na mesa'}
+              />
+            )}
           </View>
         </KTCard>
 
@@ -170,14 +203,20 @@ export default function TournamentDetailsScreen() {
           </KTCard>
         ) : (
           <View style={{ gap: 12 }}>
-            {tournament.players.map((player, index) => {
+            {ordenados.map((player, index) => {
               const proofState = proofStates[player.id] ?? 'idle';
               return (
                 <KTCard key={player.id} level={2} style={styles.playerCard}>
                   <View style={styles.playerTop}>
                     <View style={styles.playerIdentity}>
-                      <View style={styles.playerIndex}>
-                        <KTText variant="monoBold" size={12} color={Colors.gold300}>{index + 1}</KTText>
+                      <View style={[styles.playerIndex, player.position ? styles.playerIndexOut : null]}>
+                        <KTText
+                          variant="monoBold"
+                          size={12}
+                          color={player.position ? Colors.text2 : Colors.gold300}
+                        >
+                          {player.position ? `${player.position}º` : index + 1}
+                        </KTText>
                       </View>
                       <View>
                         <KTText variant="uiSemiBold" size={16} color={Colors.text0}>{player.name}</KTText>
@@ -207,6 +246,45 @@ export default function TournamentDetailsScreen() {
                       onMinus={() => updateEntryCount(player, 'addOns', -1)}
                       onPlus={() => updateEntryCount(player, 'addOns', 1)}
                     />
+                  </View>
+
+                  {/* Eliminar / desfazer. É o que faz a noite andar: cada
+                      queda registrada define uma posição, e a última fecha o
+                      torneio e distribui os prêmios sozinha. */}
+                  <View style={styles.outRow}>
+                    {player.position ? (
+                      <>
+                        <View style={{ flex: 1 }}>
+                          <KTText variant="uiSemiBold" size={13} color={Colors.text1}>
+                            {player.position}º lugar
+                          </KTText>
+                          <KTText variant="ui" size={12} color={Colors.text2} style={{ marginTop: 2 }}>
+                            {player.prize ? `Prêmio ${formatMoney(player.prize)}` : 'Fora do ITM'}
+                          </KTText>
+                        </View>
+                        <TouchableOpacity
+                          style={styles.undoBtn}
+                          onPress={() => undoElimination(tournament.id, player.id)}
+                        >
+                          <KTText variant="uiSemiBold" size={13} color={Colors.text1}>Desfazer</KTText>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <KTText variant="ui" size={12} color={Colors.text2} style={{ flex: 1 }}>
+                          {emPe <= 1
+                            ? 'Último de pé. O torneio fecha quando o penúltimo cair.'
+                            : `Cai agora em ${emPe}º lugar`}
+                        </KTText>
+                        <TouchableOpacity
+                          style={[styles.outBtn, emPe <= 1 && { opacity: 0.35 }]}
+                          disabled={emPe <= 1}
+                          onPress={() => eliminatePlayer(tournament.id, player.id)}
+                        >
+                          <KTText variant="uiSemiBold" size={13} color={Colors.red}>Eliminar</KTText>
+                        </TouchableOpacity>
+                      </>
+                    )}
                   </View>
 
                   <View style={styles.analysisRow}>
@@ -317,18 +395,7 @@ function CounterChip({
   );
 }
 
-function getPayouts(pool: number, playerCount: number) {
-  const percents = playerCount <= 5 ? [65, 35] : playerCount <= 9 ? [50, 30, 20] : [40, 30, 20, 10];
-  return percents.map((percent, index) => ({
-    place: index + 1,
-    percent,
-    amount: Math.round((pool * percent) / 100),
-  }));
-}
 
-function payoutLabel(length: number) {
-  return length === 1 ? '1 faixa ITM' : `${length} faixas ITM`;
-}
 
 function labelForFormat(format: string) {
   const labels: Record<string, string> = {
@@ -449,6 +516,23 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.bg3,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  playerIndexOut: { backgroundColor: 'transparent', borderWidth: 1, borderColor: Colors.border },
+  /* A linha de eliminação fica separada por um filete: ela é a única ação do
+     card que muda o resultado do torneio, e não pode ficar no meio dos
+     contadores de reentrada, onde o dedo passa o tempo todo. */
+  outRow: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    gap: 12, marginTop: 12, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: Colors.border,
+  },
+  outBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.full,
+    borderWidth: 1, borderColor: 'rgba(200, 90, 90, 0.35)',
+  },
+  undoBtn: {
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: Radius.full,
+    borderWidth: 1, borderColor: Colors.border,
   },
   statusBadge: {
     alignSelf: 'flex-start',

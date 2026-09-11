@@ -1,50 +1,44 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useBlindsStore } from '@/stores/blindsStore';
 
+/**
+ * Mantém o relógio de blinds em dia enquanto a tela estiver montada.
+ *
+ * O intervalo de 1s aqui existe só para REDESENHAR: quem sabe que horas são é
+ * a âncora dentro do store (ver lib/timer.ts). Por isso voltar do segundo
+ * plano é uma única chamada a `sync()`, e não a repetição de um tique por
+ * segundo decorrido — trinta minutos de tela bloqueada eram 1.800 atualizações
+ * de estado em sequência.
+ */
 export function useBlindsTimer() {
-  const { isRunning, tick } = useBlindsStore();
+  const isRunning = useBlindsStore((s) => s.isRunning);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const backgroundedAt = useRef<number | null>(null);
 
-  const clearTimer = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  }, []);
-
-  const startTimer = useCallback(() => {
-    clearTimer();
-    intervalRef.current = setInterval(() => {
-      useBlindsStore.getState().tick();
-    }, 1000);
-  }, [clearTimer]);
-
-  // Start/stop based on running state
   useEffect(() => {
-    if (isRunning) {
-      startTimer();
-    } else {
-      clearTimer();
-    }
-    return clearTimer;
-  }, [isRunning, startTimer, clearTimer]);
+    const limpar = () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+    };
 
-  // Compensate for time spent in background (RNF-01, RNF-03)
+    if (isRunning) {
+      /* Sincroniza já ao montar: a tela pode ter sido aberta muito depois de o
+         nível começar. */
+      useBlindsStore.getState().sync();
+      limpar();
+      intervalRef.current = setInterval(() => useBlindsStore.getState().sync(), 1000);
+    } else {
+      limpar();
+    }
+
+    return limpar;
+  }, [isRunning]);
+
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'background' || state === 'inactive') {
-        backgroundedAt.current = Date.now();
-      } else if (state === 'active' && backgroundedAt.current !== null) {
-        const elapsed = Math.floor((Date.now() - backgroundedAt.current) / 1000);
-        backgroundedAt.current = null;
-        if (useBlindsStore.getState().isRunning) {
-          for (let i = 0; i < elapsed; i++) {
-            useBlindsStore.getState().tick();
-          }
-        }
-      }
+      if (state === 'active') useBlindsStore.getState().sync();
     });
     return () => sub.remove();
   }, []);

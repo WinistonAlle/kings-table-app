@@ -6,7 +6,8 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web"
+    "web": "expo start --web",
+    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
@@ -32,6 +33,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "tsx": "^4.23.13",
     "typescript": "~5.9.2"
   },
   "private": true

@@ -1,5 +1,8 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { BlindLevel } from '@/types';
+import { armazenamento } from '@/lib/armazenamento';
+import { iniciar, irParaNivel, pausar, sincronizar, type EstadoRelogio } from '@/lib/timer';
 
 const DEFAULT_STRUCTURE: BlindLevel[] = [
   { level: 1,  smallBlind: 25,   bigBlind: 50,   ante: 0,    durationMinutes: 20 },
@@ -19,16 +22,15 @@ const DEFAULT_STRUCTURE: BlindLevel[] = [
   { level: 15, smallBlind: 3000, bigBlind: 6000, ante: 1000, durationMinutes: 10 },
 ];
 
-interface BlindsStore {
+interface BlindsStore extends EstadoRelogio {
   structure: BlindLevel[];
-  currentLevel: number;
-  secondsRemaining: number;
-  isRunning: boolean;
-  totalElapsed: number;
 
   setStructure: (s: BlindLevel[]) => void;
   start: () => void;
   pause: () => void;
+  /** Recalcula a partir do relógio. Substituiu o antigo `tick` de -1s. */
+  sync: () => void;
+  /** Mantido pelo nome antigo: a tela chama isto uma vez por segundo. */
   tick: () => void;
   nextLevel: () => void;
   prevLevel: () => void;
@@ -36,64 +38,54 @@ interface BlindsStore {
   setLevel: (level: number) => void;
 }
 
-export const useBlindsStore = create<BlindsStore>((set, get) => ({
-  structure: DEFAULT_STRUCTURE,
-  currentLevel: 0,
-  secondsRemaining: DEFAULT_STRUCTURE[0].durationMinutes * 60,
-  isRunning: false,
-  totalElapsed: 0,
+/* O tempo restante é sempre derivado da âncora (`levelEndsAt`). O campo
+   `secondsRemaining` existe pra tela ter o que desenhar e pra guardar a
+   verdade enquanto está pausado — nunca é decrementado na mão. */
+export const useBlindsStore = create<BlindsStore>()(
+  persist(
+    (set, get) => ({
+      structure: DEFAULT_STRUCTURE,
+      currentLevel: 0,
+      secondsRemaining: DEFAULT_STRUCTURE[0].durationMinutes * 60,
+      levelEndsAt: null,
+      isRunning: false,
 
-  setStructure: (structure) =>
-    set({ structure, currentLevel: 0, secondsRemaining: structure[0].durationMinutes * 60, isRunning: false }),
-
-  start: () => set({ isRunning: true }),
-  pause: () => set({ isRunning: false }),
-
-  tick: () => {
-    const { secondsRemaining, currentLevel, structure, totalElapsed, isRunning } = get();
-    if (!isRunning) return;
-    if (secondsRemaining > 0) {
-      set({ secondsRemaining: secondsRemaining - 1, totalElapsed: totalElapsed + 1 });
-    } else {
-      const nextLevel = currentLevel + 1;
-      if (nextLevel < structure.length) {
+      setStructure: (structure) =>
         set({
-          currentLevel: nextLevel,
-          secondsRemaining: structure[nextLevel].durationMinutes * 60,
-          totalElapsed: totalElapsed + 1,
-        });
-      } else {
-        set({ isRunning: false });
-      }
-    }
-  },
+          structure,
+          currentLevel: 0,
+          secondsRemaining: (structure[0]?.durationMinutes ?? 0) * 60,
+          levelEndsAt: null,
+          isRunning: false,
+        }),
 
-  nextLevel: () => {
-    const { currentLevel, structure } = get();
-    const next = currentLevel + 1;
-    if (next < structure.length) {
-      set({ currentLevel: next, secondsRemaining: structure[next].durationMinutes * 60 });
-    }
-  },
+      start: () => set(iniciar(get())),
+      pause: () => set(pausar(get().structure, get())),
+      sync: () => set(sincronizar(get().structure, get())),
+      tick: () => set(sincronizar(get().structure, get())),
 
-  prevLevel: () => {
-    const { currentLevel, structure } = get();
-    const prev = Math.max(0, currentLevel - 1);
-    set({ currentLevel: prev, secondsRemaining: structure[prev].durationMinutes * 60 });
-  },
+      nextLevel: () => set(irParaNivel(get().structure, get(), get().currentLevel + 1)),
+      prevLevel: () => set(irParaNivel(get().structure, get(), get().currentLevel - 1)),
+      setLevel: (level) => set(irParaNivel(get().structure, get(), level)),
 
-  reset: () => {
-    const { structure } = get();
-    set({ currentLevel: 0, secondsRemaining: structure[0].durationMinutes * 60, isRunning: false, totalElapsed: 0 });
-  },
-
-  setLevel: (level) => {
-    const { structure } = get();
-    if (level >= 0 && level < structure.length) {
-      set({ currentLevel: level, secondsRemaining: structure[level].durationMinutes * 60 });
-    }
-  },
-}));
+      reset: () =>
+        set({
+          currentLevel: 0,
+          secondsRemaining: (get().structure[0]?.durationMinutes ?? 0) * 60,
+          levelEndsAt: null,
+          isRunning: false,
+        }),
+    }),
+    {
+      name: 'kt-blinds',
+      storage: armazenamento,
+      /* Ao voltar do disco, o que estava guardado é de antes de o app fechar.
+         Sincronizar aqui é o que faz reabrir o app no meio do torneio cair no
+         nível certo, em vez de retomar de onde o último quadro parou. */
+      onRehydrateStorage: () => (estado) => estado?.sync(),
+    },
+  ),
+);
 
 export const BLIND_PRESETS: Record<string, BlindLevel[]> = {
   deep: DEFAULT_STRUCTURE.map(l => ({ ...l, durationMinutes: 30 })),
