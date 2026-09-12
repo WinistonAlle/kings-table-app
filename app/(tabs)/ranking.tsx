@@ -1,135 +1,192 @@
 import { useMemo } from 'react';
-import { ScrollView, View, StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ScrollView, View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Colors, Radius } from '@/constants/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Elevacao, Radius, Space } from '@/constants/tokens';
+import { KTScreen } from '@/components/ui/Screen';
+import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
-import { KTCard } from '@/components/ui/Card';
 import { KTButton } from '@/components/ui/Button';
+import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
-import { calcularClassificacao } from '@/lib/standings';
+import { calcularClassificacao, type Standing } from '@/lib/standings';
 
-/* O ranking era uma lista de oito nomes escritos à mão no código. Bonito e
-   inútil: o pódio não mudava depois de jogar. Agora vem dos torneios que
-   terminaram de verdade, e a fórmula de pontos está em lib/standings.ts. */
+/* A liga.
+ *
+ * O pódio antigo eram três blocos cinzas de alturas diferentes, com um naipe
+ * solto em cima. Aqui ele vira o que um pódio é: uma peça só, com o primeiro
+ * lugar maior, mais claro e com coroa, e os outros dois recuando em tamanho e
+ * em brilho. Hierarquia por três canais ao mesmo tempo (altura, cor e corpo) é
+ * o que faz ler o campeão antes de ler o nome.
+ */
 
-const RANK_COLORS: Record<number, string> = {
-  1: Colors.gold200,
-  2: '#c0c0c0',
-  3: '#cd7f32',
+const METAL: Record<number, readonly [string, string]> = {
+  1: [Colors.gold100, Colors.gold400],
+  2: ['#d8d8d8', '#8e8e8e'],
+  3: ['#d9a273', '#8a5a33'],
 };
 
-/* Naipe só pra dar rosto a quem não tem avatar. É derivado do nome, e não
-   sorteado, senão o mesmo jogador trocaria de símbolo a cada render. */
-const NAIPES = ['♠', '♥', '♦', '♣'];
+const dinheiro = (v: number) =>
+  `${v < 0 ? '−' : ''}R$ ${Math.abs(v).toLocaleString('pt-BR')}`;
+
+const NAIPES = ['espada', 'copas', 'ouros', 'paus'] as const;
+/* Naipe derivado do nome, não sorteado: o mesmo jogador tem que ter sempre a
+   mesma marca, ou o ranking pisca de identidade a cada render. */
 function naipeDe(nome: string) {
   let soma = 0;
   for (let i = 0; i < nome.length; i++) soma += nome.charCodeAt(i);
   return NAIPES[soma % NAIPES.length];
 }
 
-const dinheiro = (v: number) =>
-  `${v < 0 ? '-' : ''}R$ ${Math.abs(v).toLocaleString('pt-BR')}`;
-
-export default function Ranking() {
+export default function Liga() {
   const tournaments = useTournamentStore((s) => s.tournaments);
-  const standings = useMemo(() => calcularClassificacao(tournaments), [tournaments]);
+  const classificacao = useMemo(() => calcularClassificacao(tournaments), [tournaments]);
+  const noites = tournaments.filter((t) => t.status === 'finished').length;
 
-  const finalizados = tournaments.filter((t) => t.status === 'finished').length;
-  const top3 = standings.slice(0, 3);
-  const rest = standings.slice(3);
-
-  if (standings.length === 0) {
-    /* Vazio com explicação, não pódio com dado falso: a tela precisa dizer o
-       que falta acontecer pra ela ter conteúdo. */
+  if (classificacao.length === 0) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <KTScreen>
         <View style={styles.vazio}>
-          <KTText variant="display" size={28} color={Colors.gold200}>Ranking</KTText>
-          <KTText variant="ui" size={14} color={Colors.text2} style={styles.vazioTexto}>
-            A classificação aparece quando o primeiro torneio terminar. Ela é
-            montada a partir dos resultados, então não tem nada a mostrar antes
-            de alguém ganhar uma noite.
+          <Coroa tamanho={34} cor={Colors.gold500} />
+          <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: Space.lg }}>
+            A liga ainda não começou
           </KTText>
-          <KTButton label="Criar torneio" onPress={() => router.push('/tournament/create' as any)} />
+          <KTText papel="corpo" color={Colors.text2} style={styles.vazioTexto}>
+            A classificação é montada a partir dos resultados. Ela aparece
+            quando a primeira noite terminar e alguém levantar da mesa campeão.
+          </KTText>
+          <KTButton
+            label="Abrir a primeira mesa"
+            onPress={() => router.push('/tournament/create' as any)}
+            style={{ marginTop: Space.xl }}
+          />
         </View>
-      </SafeAreaView>
+      </KTScreen>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <KTText variant="display" size={28} color={Colors.gold200} style={{ marginBottom: 4 }}>Ranking</KTText>
-        <KTText variant="ui" size={13} color={Colors.text2} style={{ marginBottom: 28 }}>
-          {standings.length} {standings.length === 1 ? 'jogador' : 'jogadores'} ·{' '}
-          {finalizados} {finalizados === 1 ? 'torneio' : 'torneios'}
-        </KTText>
+  const [primeiro, segundo, terceiro] = classificacao;
+  const resto = classificacao.slice(3);
 
-        {/* Pódio. Com menos de três jogadores mostra só quem existe, em vez de
-            desenhar degrau vazio. */}
-        <View style={styles.podium}>
-          {[top3[1], top3[0], top3[2]].map((p, i) => {
-            if (!p) return <View key={`vazio-${i}`} style={{ flex: 1 }} />;
-            const heights = [100, 130, 80];
-            const rank = p.rank;
-            return (
-              <View key={p.name} style={[styles.podiumCol, { height: heights[i] + 60 }]}>
-                <KTText variant="display" size={28}>{p.avatar ?? naipeDe(p.name)}</KTText>
-                <KTText variant="uiSemiBold" size={13} color={RANK_COLORS[rank] ?? Colors.text1} style={{ textAlign: 'center', marginTop: 4 }}>
-                  {p.name.split(' ')[0]}
+  return (
+    <KTScreen>
+      <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
+        <View style={styles.cabecalho}>
+          <KTText papel="rotulo" color={Colors.gold500}>Temporada</KTText>
+          <KTText papel="titulo" color={Colors.gold100}>Liga do Rei</KTText>
+          <KTText papel="apoio" color={Colors.text2} style={{ marginTop: 2 }}>
+            {classificacao.length} {classificacao.length === 1 ? 'jogador' : 'jogadores'} ·{' '}
+            {noites} {noites === 1 ? 'noite' : 'noites'}
+          </KTText>
+          <View style={{ marginTop: Space.lg }}>
+            <Filete largura={92} />
+          </View>
+        </View>
+
+        {/* ------------------------------------------------------- pódio */}
+        <View style={styles.podio}>
+          <Degrau lugar={2} pessoa={segundo} />
+          <Degrau lugar={1} pessoa={primeiro} />
+          <Degrau lugar={3} pessoa={terceiro} />
+        </View>
+
+        {/* ------------------------------------------------- o resto da liga */}
+        {resto.length ? (
+          <View style={{ gap: Space.sm }}>
+            {resto.map((p) => (
+              <KTSurface key={p.name} nivel="card" padding={Space.lg} style={styles.linha}>
+                <KTText papel="numero" color={Colors.text3} style={styles.posicao}>
+                  {p.rank}
                 </KTText>
-                <KTText variant="monoBold" size={16} color={RANK_COLORS[rank] ?? Colors.text1}>
-                  {p.points}
-                </KTText>
-                <View style={[styles.podiumBlock, { height: heights[i], backgroundColor: rank === 1 ? Colors.gold700 : Colors.bg3 }]}>
-                  <KTText variant="monoBold" size={20} color={RANK_COLORS[rank] ?? Colors.text2}>
-                    {rank}
+                <Naipe tipo={naipeDe(p.name)} tamanho={15} cor={Colors.gold600} />
+                <View style={{ flex: 1 }}>
+                  <KTText papel="corpoForte" color={Colors.text0} numberOfLines={1}>{p.name}</KTText>
+                  <KTText papel="apoio" color={Colors.text2}>
+                    {p.tournamentsPlayed} {p.tournamentsPlayed === 1 ? 'noite' : 'noites'} · {dinheiro(p.saldo)}
                   </KTText>
                 </View>
-              </View>
-            );
-          })}
-        </View>
+                <KTText papel="numero" size={17} color={Colors.gold300}>{p.points}</KTText>
+              </KTSurface>
+            ))}
+          </View>
+        ) : null}
 
-        <View style={{ gap: 8 }}>
-          {rest.map(p => (
-            <KTCard key={p.name} level={2} style={styles.row}>
-              <KTText variant="monoMedium" size={15} color={Colors.text2} style={{ width: 28 }}>
-                {p.rank}
-              </KTText>
-              <KTText variant="display" size={22} style={{ width: 32 }}>{p.avatar ?? naipeDe(p.name)}</KTText>
-              <View style={{ flex: 1 }}>
-                <KTText variant="uiMedium" size={15} color={Colors.text0}>{p.name}</KTText>
-                <KTText variant="ui" size={12} color={Colors.text2}>
-                  {p.tournamentsPlayed} {p.tournamentsPlayed === 1 ? 'torneio' : 'torneios'} ·{' '}
-                  {p.wins} {p.wins === 1 ? 'vitória' : 'vitórias'} · {dinheiro(p.saldo)}
-                </KTText>
-              </View>
-              <KTText variant="monoBold" size={16} color={Colors.gold300}>{p.points}</KTText>
-            </KTCard>
-          ))}
-        </View>
-
-        <View style={{ height: 32 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
-    </SafeAreaView>
+    </KTScreen>
+  );
+}
+
+/** Um degrau do pódio. O primeiro lugar é maior por todos os canais de uma vez. */
+function Degrau({ lugar, pessoa }: { lugar: 1 | 2 | 3; pessoa?: Standing }) {
+  if (!pessoa) return <View style={{ flex: 1 }} />;
+
+  const rei = lugar === 1;
+  const alturas = { 1: 132, 2: 100, 3: 82 };
+  const [claro, escuro] = METAL[lugar];
+
+  return (
+    <View style={styles.degrau}>
+      {rei ? <Coroa tamanho={24} cor={Colors.gold100} /> : null}
+
+      <View style={[styles.medalha, rei && styles.medalhaRei]}>
+        <Naipe tipo={naipeDe(pessoa.name)} tamanho={rei ? 22 : 17} cor={claro} />
+      </View>
+
+      <KTText
+        papel="corpoForte"
+        size={rei ? 15 : 13}
+        color={rei ? Colors.text0 : Colors.text1}
+        numberOfLines={1}
+        style={styles.nomeDegrau}
+      >
+        {pessoa.name.split(' ')[0]}
+      </KTText>
+      <KTText papel="numeroForte" size={rei ? 22 : 17} color={claro}>
+        {pessoa.points}
+      </KTText>
+
+      {/* O bloco. Degradê de metal e fio de luz no topo, como as outras
+          superfícies do app: pódio chapado parecia gráfico de barras. */}
+      <View style={[styles.bloco, { height: alturas[lugar] }, rei && Elevacao.ouro]}>
+        <LinearGradient
+          colors={rei ? [Colors.gold700, Colors.gold800] : [Colors.bg3, Colors.bg1]}
+          style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
+        />
+        <View style={[styles.blocoLuz, { backgroundColor: rei ? 'rgba(236,217,165,0.35)' : Colors.luzTopo }]} />
+        <KTText papel="numeroForte" size={rei ? 30 : 22} color={rei ? Colors.gold100 : escuro}>
+          {lugar}
+        </KTText>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg0 },
-  content: { padding: 20 },
-  vazio: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },
-  vazioTexto: { textAlign: 'center', lineHeight: 21 },
-  podium: {
-    flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center',
-    gap: 8, marginBottom: 32,
-  },
-  podiumCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end', gap: 0 },
-  podiumBlock: {
-    width: '100%', borderTopLeftRadius: Radius.sm, borderTopRightRadius: Radius.sm,
+  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xxl },
+  cabecalho: { alignItems: 'flex-start' },
+
+  vazio: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xxl },
+  vazioTexto: { textAlign: 'center', marginTop: Space.md, maxWidth: 290 },
+
+  podio: { flexDirection: 'row', alignItems: 'flex-end', gap: Space.md },
+  degrau: { flex: 1, alignItems: 'center', gap: Space.xs },
+  medalha: {
+    width: 44, height: 44, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    backgroundColor: Colors.bg2,
+    marginBottom: 2,
   },
-  row: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  medalhaRei: { width: 54, height: 54, borderColor: Colors.borderHot, backgroundColor: Colors.gold800 },
+  nomeDegrau: { maxWidth: '100%' },
+  bloco: {
+    width: '100%', marginTop: Space.sm,
+    borderTopLeftRadius: Radius.sm, borderTopRightRadius: Radius.sm,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+  },
+  blocoLuz: { position: 'absolute', top: 0, left: 6, right: 6, height: 1 },
+
+  linha: { flexDirection: 'row', alignItems: 'center', gap: Space.md },
+  posicao: { width: 24 },
 });

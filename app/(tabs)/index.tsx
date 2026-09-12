@@ -1,257 +1,277 @@
-import { ScrollView, View, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useMemo } from 'react';
+import { ScrollView, View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Radius } from '@/constants/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Elevacao, Radius, Space } from '@/constants/tokens';
+import { KTScreen } from '@/components/ui/Screen';
+import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
-import { KTCard } from '@/components/ui/Card';
 import { KTButton } from '@/components/ui/Button';
+import { Anel } from '@/components/ui/Anel';
+import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsTimer } from '@/hooks/useBlindsTimer';
+import { calcularClassificacao } from '@/lib/standings';
+import { prizePool } from '@/lib/payouts';
 
-const { width } = Dimensions.get('window');
+/* A mesa (home).
+ *
+ * A tela antiga tratava tudo com o mesmo peso: o torneio ao vivo era um
+ * retângulo cinza igual aos quatro atalhos abaixo dele. Mas essas coisas não
+ * têm a mesma importância — durante a noite, a única pergunta é "quanto falta
+ * pro próximo nível". Aqui o relógio é o herói, com anel, brilho e corpo
+ * grande, e tudo o mais recua para apoio.
+ */
 
-export default function Dashboard() {
+const hora = (s: number) =>
+  `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+const dinheiro = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`;
+
+export default function Mesa() {
   const { tournaments, activeTournamentId, setActive } = useTournamentStore();
-  /* `useBlindsTimer` e não o store direto: é o hook que sincroniza o relógio
-     com a hora real e redesenha a cada segundo. Lendo o store cru, o card do
-     torneio ao vivo mostraria o tempo do último quadro desenhado antes de o
-     app ser fechado — parado, e errado. */
   const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer();
 
-  const activeTournament = tournaments.find((t) => t.id === activeTournamentId);
-  const upcomingTournaments = tournaments.filter((t) => t.status === 'upcoming');
+  const ativo = tournaments.find((t) => t.id === activeTournamentId && t.status !== 'finished');
+  const proximos = tournaments.filter((t) => t.status === 'upcoming' && t.id !== activeTournamentId);
+  const nivel = structure[currentLevel];
+  const proximo = structure[currentLevel + 1];
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
+  const temporada = useMemo(() => calcularClassificacao(tournaments), [tournaments]);
+  const minhaLinha = temporada[0];
 
-  const currentBlind = structure[currentLevel];
+  /* Fração já corrida do nível, para o anel. */
+  const progresso = nivel ? 1 - secondsRemaining / (nivel.durationMinutes * 60) : 0;
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* Header */}
-        <View style={styles.header}>
+    <KTScreen>
+      <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
+        {/* ---------------------------------------------------- cabeçalho */}
+        <View style={styles.topo}>
           <View>
-            <KTText variant="display" size={32} color={Colors.gold200}>King's Table</KTText>
-            <KTText variant="ui" size={13} color={Colors.text2} style={{ marginTop: 2 }}>
-              Bem-vindo de volta
+            <KTText papel="rotulo" color={Colors.gold500}>Clube privado</KTText>
+            <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: 2 }}>
+              King&apos;s Table
             </KTText>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push('/tournament/create')}
-            style={styles.newBtn}
+          <Pressable
+            style={styles.botaoTopo}
+            onPress={() => router.push('/tournament/create' as any)}
           >
-            <Ionicons name="add" size={22} color={Colors.gold200} />
-          </TouchableOpacity>
+            <Ionicons name="add" size={20} color={Colors.gold200} />
+          </Pressable>
         </View>
 
-        {/* Active tournament + blinds clock card */}
-        {activeTournament ? (
-          <TouchableOpacity onPress={() => router.push(`/blinds/${activeTournament.id}`)}>
-            <KTCard level={2} borderHot style={styles.activeCard}>
-              <View style={styles.activeHeader}>
-                <View style={styles.liveBadge}>
-                  <View style={[styles.liveDot, isRunning && styles.liveDotPulsing]} />
-                  <KTText variant="label" color={isRunning ? Colors.ok : Colors.text2}>
-                    {isRunning ? 'AO VIVO' : 'PAUSADO'}
+        <Filete largura={92} />
+
+        {/* ------------------------------------------------ torneio ao vivo */}
+        {ativo ? (
+          <Pressable onPress={() => router.push(`/blinds/${ativo.id}` as any)}>
+            <KTSurface nivel="alta" destaque padding={0} style={styles.palco}>
+              {/* Clarão atrás do relógio: é o que faz a peça "acender". */}
+              <LinearGradient
+                colors={['rgba(232,213,160,0.10)', 'transparent']}
+                style={styles.brilhoPalco}
+              />
+
+              <View style={styles.palcoTopo}>
+                <View style={styles.aoVivo}>
+                  <View style={[styles.ponto, !isRunning && { backgroundColor: Colors.text2 }]} />
+                  <KTText papel="rotulo" color={isRunning ? Colors.ok : Colors.text2}>
+                    {isRunning ? 'Ao vivo' : 'Pausado'}
                   </KTText>
                 </View>
-                <KTText variant="label" color={Colors.text2}>
-                  {activeTournament.name}
-                </KTText>
+                <KTText papel="rotulo" color={Colors.text2}>{ativo.name}</KTText>
               </View>
 
-              {/* Timer display */}
-              <View style={styles.timerRow}>
-                <KTText variant="monoBold" size={72} color={Colors.text0} style={styles.timerText}>
-                  {formatTime(secondsRemaining)}
+              {/* O relógio dentro do anel. */}
+              <View style={styles.relogio}>
+                <View style={StyleSheet.absoluteFill as never}>
+                  <View style={styles.anelWrap}>
+                    <Anel tamanho={268} progresso={progresso} />
+                  </View>
+                </View>
+                <KTText papel="rotulo" color={Colors.gold500}>Nível {currentLevel + 1}</KTText>
+                <KTText papel="hero" color={Colors.gold50} style={styles.horaTexto}>
+                  {hora(secondsRemaining)}
                 </KTText>
-              </View>
-
-              {/* Level info */}
-              <View style={styles.blindsRow}>
-                <View style={styles.blindStat}>
-                  <KTText variant="label" color={Colors.text2}>NÍVEL</KTText>
-                  <KTText variant="monoMedium" size={20} color={Colors.gold200}>
-                    {currentLevel + 1}
-                  </KTText>
-                </View>
-                <View style={styles.blindDivider} />
-                <View style={styles.blindStat}>
-                  <KTText variant="label" color={Colors.text2}>SMALL BLIND</KTText>
-                  <KTText variant="monoMedium" size={20} color={Colors.text0}>
-                    {currentBlind?.smallBlind?.toLocaleString() ?? '—'}
-                  </KTText>
-                </View>
-                <View style={styles.blindDivider} />
-                <View style={styles.blindStat}>
-                  <KTText variant="label" color={Colors.text2}>BIG BLIND</KTText>
-                  <KTText variant="monoMedium" size={20} color={Colors.text0}>
-                    {currentBlind?.bigBlind?.toLocaleString() ?? '—'}
-                  </KTText>
-                </View>
-                {currentBlind?.ante > 0 && (
+                {nivel ? (
                   <>
-                    <View style={styles.blindDivider} />
-                    <View style={styles.blindStat}>
-                      <KTText variant="label" color={Colors.text2}>ANTE</KTText>
-                      <KTText variant="monoMedium" size={20} color={Colors.warn}>
-                        {currentBlind.ante.toLocaleString()}
+                    <KTText papel="numero" size={17} color={Colors.text1}>
+                      {nivel.smallBlind} / {nivel.bigBlind}
+                    </KTText>
+                    {/* O ante desce para uma linha própria: junto dos blinds a
+                        frase ficava larga demais e encostava no anel. */}
+                    {nivel.ante ? (
+                      <KTText papel="rotulo" color={Colors.text3} style={{ marginTop: 5 }}>
+                        ante {nivel.ante}
+                      </KTText>
+                    ) : null}
+                  </>
+                ) : null}
+              </View>
+
+              {/* Rodapé do palco: o que vem depois e quanta gente resta. */}
+              <View style={styles.palcoRodape}>
+                <Rodape rotulo="De pé" valor={`${ativo.players.filter((p) => !p.position).length}/${ativo.players.length}`} />
+                <View style={styles.divisor} />
+                <Rodape rotulo="Bolo" valor={dinheiro(prizePool(ativo))} />
+                <View style={styles.divisor} />
+                <Rodape
+                  rotulo="Próximo"
+                  valor={proximo ? `${proximo.smallBlind}/${proximo.bigBlind}` : '—'}
+                />
+              </View>
+            </KTSurface>
+          </Pressable>
+        ) : (
+          <KTSurface nivel="card" padding={Space.xxl} style={styles.vazio}>
+            <Naipe tipo="espada" tamanho={30} cor={Colors.gold400} opacidade={0.55} />
+            <KTText papel="subtitulo" color={Colors.text0} style={{ marginTop: Space.lg }}>
+              Nenhuma mesa aberta
+            </KTText>
+            <KTText papel="apoio" color={Colors.text2} style={styles.vazioTexto}>
+              Crie um torneio para começar a noite. O relógio, a premiação e o
+              ranking saem daí.
+            </KTText>
+            <KTButton
+              label="Abrir mesa"
+              onPress={() => router.push('/tournament/create' as any)}
+              style={{ marginTop: Space.xl }}
+            />
+          </KTSurface>
+        )}
+
+        {/* --------------------------------------------- gerenciar a mesa */}
+        {ativo ? (
+          <Pressable
+            style={styles.gerenciar}
+            onPress={() => {
+              setActive(ativo.id);
+              router.push(`/tournament/${ativo.id}` as any);
+            }}
+          >
+            <View style={{ flex: 1 }}>
+              <KTText papel="corpoForte" color={Colors.text0}>Gerenciar a mesa</KTText>
+              <KTText papel="apoio" color={Colors.text2}>
+                Jogadores, eliminações e premiação
+              </KTText>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={Colors.gold400} />
+          </Pressable>
+        ) : null}
+
+        {/* -------------------------------------------------- a temporada */}
+        {minhaLinha ? (
+          <>
+            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>A temporada</KTText>
+            <KTSurface nivel="card">
+              <View style={styles.lider}>
+                <Coroa tamanho={22} />
+                <View style={{ flex: 1 }}>
+                  <KTText papel="corpoForte" color={Colors.text0}>{minhaLinha.name}</KTText>
+                  <KTText papel="apoio" color={Colors.text2}>
+                    {minhaLinha.tournamentsPlayed} {minhaLinha.tournamentsPlayed === 1 ? 'noite' : 'noites'} ·{' '}
+                    {minhaLinha.wins} {minhaLinha.wins === 1 ? 'vitória' : 'vitórias'}
+                  </KTText>
+                </View>
+                <KTText papel="numeroForte" color={Colors.gold200}>{minhaLinha.points}</KTText>
+              </View>
+              <Pressable style={styles.verTudo} onPress={() => router.push('/ranking' as any)}>
+                <KTText papel="apoio" color={Colors.gold400}>Ver a liga inteira</KTText>
+                <Ionicons name="arrow-forward" size={13} color={Colors.gold400} />
+              </Pressable>
+            </KTSurface>
+          </>
+        ) : null}
+
+        {/* --------------------------------------------------- as próximas */}
+        {proximos.length ? (
+          <>
+            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Marcadas</KTText>
+            <View style={{ gap: Space.md }}>
+              {proximos.map((t) => (
+                <Pressable key={t.id} onPress={() => { setActive(t.id); router.push(`/tournament/${t.id}` as any); }}>
+                  <KTSurface nivel="card" style={styles.marcada}>
+                    <Naipe tipo="ouros" tamanho={14} cor={Colors.gold500} />
+                    <View style={{ flex: 1 }}>
+                      <KTText papel="corpoForte">{t.name}</KTText>
+                      <KTText papel="apoio" color={Colors.text2}>
+                        {dinheiro(t.buyIn)} · {t.players.length} inscritos
                       </KTText>
                     </View>
-                  </>
-                )}
-              </View>
-
-              <KTText variant="label" color={Colors.gold400} style={{ marginTop: 12, textAlign: 'center' }}>
-                TOQUE PARA ABRIR O RELÓGIO ↗
-              </KTText>
-            </KTCard>
-          </TouchableOpacity>
-        ) : (
-          /* Empty state — no active tournament */
-          <KTCard level={2} style={styles.emptyCard}>
-            <KTText variant="display" size={40} style={{ textAlign: 'center' }}>♠</KTText>
-            <KTText variant="uiMedium" size={16} color={Colors.text1} style={{ textAlign: 'center', marginTop: 8 }}>
-              Nenhum torneio ativo
-            </KTText>
-            <KTText variant="ui" size={13} color={Colors.text2} style={{ textAlign: 'center', marginTop: 4 }}>
-              Crie um torneio para começar a jogar
-            </KTText>
-            <KTButton
-              label="Criar torneio"
-              onPress={() => router.push('/tournament/create')}
-              style={{ marginTop: 20, alignSelf: 'center' }}
-            />
-          </KTCard>
-        )}
-
-        {/* Quick actions */}
-        <KTText variant="label" color={Colors.text2} style={styles.sectionLabel}>
-          AÇÕES RÁPIDAS
-        </KTText>
-        <View style={styles.quickGrid}>
-          {QUICK_ACTIONS.map(action => (
-            <TouchableOpacity
-              key={action.id}
-              style={styles.quickBtn}
-              onPress={() => router.push(action.route as any)}
-            >
-              <KTCard level={3} padding={16} style={styles.quickCard}>
-                <Ionicons name={action.icon as any} size={24} color={Colors.gold300} />
-                <KTText variant="uiMedium" size={13} color={Colors.text1} style={{ marginTop: 8 }}>
-                  {action.label}
-                </KTText>
-              </KTCard>
-            </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* Upcoming tournaments */}
-        {upcomingTournaments.length > 0 && (
-          <>
-            <KTText variant="label" color={Colors.text2} style={styles.sectionLabel}>
-              PRÓXIMOS TORNEIOS
-            </KTText>
-            {upcomingTournaments.map((t) => (
-              <TouchableOpacity
-                key={t.id}
-                onPress={() => {
-                  setActive(t.id);
-                  router.push(`/tournament/${t.id}` as any);
-                }}
-              >
-                <KTCard level={2} style={styles.tournamentRow}>
-                  <View style={styles.tournamentInfo}>
-                    <KTText variant="uiSemiBold" size={15} color={Colors.text0}>{t.name}</KTText>
-                    <KTText variant="ui" size={12} color={Colors.text2} style={{ marginTop: 2 }}>
-                      Buy-in: R$ {t.buyIn} · {t.players.length} jogadores
-                    </KTText>
-                  </View>
-                  <View style={styles.formatBadge}>
-                    <KTText variant="label" color={Colors.gold400}>{t.format.toUpperCase()}</KTText>
-                  </View>
-                </KTCard>
-              </TouchableOpacity>
-            ))}
+                    <Ionicons name="chevron-forward" size={16} color={Colors.text3} />
+                  </KTSurface>
+                </Pressable>
+              ))}
+            </View>
           </>
-        )}
+        ) : null}
 
-        {activeTournament && (
-          <>
-            <KTText variant="label" color={Colors.text2} style={styles.sectionLabel}>
-              OPERAÇÃO DA MESA
-            </KTText>
-            <KTButton
-              label="Gerenciar jogadores, premiação e pagamentos"
-              variant="ghost"
-              fullWidth
-              onPress={() => router.push(`/tournament/${activeTournament.id}` as any)}
-            />
-          </>
-        )}
-
-        <View style={{ height: 32 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
-    </SafeAreaView>
+    </KTScreen>
   );
 }
 
-const QUICK_ACTIONS = [
-  { id: 'create', label: 'Novo torneio',  icon: 'add-circle-outline',  route: '/tournament/create' },
-  { id: 'ranking', label: 'Ranking',      icon: 'trophy-outline',       route: '/(tabs)/ranking' },
-  { id: 'ai',      label: 'Chat IA',      icon: 'sparkles-outline',     route: '/(tabs)/ai' },
-  { id: 'study',   label: 'Estudar',      icon: 'book-outline',         route: '/(tabs)/ai' },
-];
+function Rodape({ rotulo, valor }: { rotulo: string; valor: string }) {
+  return (
+    <View style={styles.rodapeCel}>
+      <KTText papel="rotulo" color={Colors.text3}>{rotulo}</KTText>
+      <KTText papel="numero" color={Colors.text0} style={{ marginTop: 3 }}>{valor}</KTText>
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg0 },
-  scroll: { flex: 1 },
-  content: { padding: 20 },
+  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xl },
 
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
-  newBtn: {
-    width: 44, height: 44, borderRadius: 22,
-    backgroundColor: Colors.bg2,
-    borderWidth: 1, borderColor: Colors.borderStrong,
+  topo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
+  botaoTopo: {
+    width: 42, height: 42, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderStrong,
+    backgroundColor: Colors.bg1,
   },
 
-  activeCard: { marginBottom: 24 },
-  activeHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  liveBadge: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  liveDot: { width: 7, height: 7, borderRadius: 4, backgroundColor: Colors.text2 },
-  liveDotPulsing: { backgroundColor: Colors.ok },
+  palco: { overflow: 'hidden' },
+  brilhoPalco: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
+  palcoTopo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Space.lg, paddingTop: Space.lg,
+  },
+  aoVivo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
+  ponto: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.ok },
 
-  timerRow: { alignItems: 'center', paddingVertical: 8 },
-  timerText: { letterSpacing: -2 },
+  relogio: { alignItems: 'center', paddingVertical: Space.xxl, minHeight: 286, justifyContent: 'center' },
+  anelWrap: { alignItems: 'center', justifyContent: 'center', flex: 1 },
+  horaTexto: { marginVertical: Space.xs },
 
-  blindsRow: { flexDirection: 'row', justifyContent: 'center', gap: 8, flexWrap: 'wrap' },
-  blindStat: { alignItems: 'center', gap: 4 },
-  blindDivider: { width: 1, backgroundColor: Colors.border, alignSelf: 'stretch', marginHorizontal: 4 },
-
-  emptyCard: { alignItems: 'center', paddingVertical: 40, marginBottom: 24 },
-
-  sectionLabel: { marginBottom: 12 },
-
-  quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 28 },
-  quickBtn: { width: (width - 52) / 2 },
-  quickCard: { gap: 0 },
-
-  tournamentRow: {
+  palcoRodape: {
     flexDirection: 'row', alignItems: 'center',
-    justifyContent: 'space-between', marginBottom: 10,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
   },
-  tournamentInfo: { flex: 1 },
-  formatBadge: {
-    paddingHorizontal: 10, paddingVertical: 4,
-    backgroundColor: Colors.gold800,
-    borderRadius: Radius.xs,
-    borderWidth: 1, borderColor: Colors.borderStrong,
+  rodapeCel: { flex: 1, alignItems: 'center', paddingVertical: Space.lg },
+  divisor: { width: StyleSheet.hairlineWidth, height: 30, backgroundColor: Colors.border },
+
+  vazio: { alignItems: 'center' },
+  vazioTexto: { textAlign: 'center', marginTop: Space.sm, maxWidth: 260 },
+
+  gerenciar: {
+    flexDirection: 'row', alignItems: 'center', gap: Space.md,
+    paddingVertical: Space.lg, paddingHorizontal: Space.lg,
+    borderRadius: Radius.lg,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    backgroundColor: 'rgba(255,250,235,0.02)',
   },
+
+  secao: { marginBottom: -Space.md },
+  lider: { flexDirection: 'row', alignItems: 'center', gap: Space.md },
+  verTudo: {
+    flexDirection: 'row', alignItems: 'center', gap: Space.sm,
+    marginTop: Space.lg, paddingTop: Space.md,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
+  },
+  marcada: { flexDirection: 'row', alignItems: 'center', gap: Space.md },
 });

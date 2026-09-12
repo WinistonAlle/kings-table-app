@@ -1,315 +1,235 @@
-import { useState } from 'react';
-import { ScrollView, View, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRef, useState } from 'react';
+import { ScrollView, View, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Radius } from '@/constants/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Radius, Space } from '@/constants/tokens';
+import { KTScreen } from '@/components/ui/Screen';
+import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
-import { KTCard } from '@/components/ui/Card';
+import { Filete, Naipe } from '@/components/ui/Ornamento';
+import { semAnelDeFoco } from '@/components/ui/campo';
 
-type Mode = 'chat' | 'train' | 'trail';
+/* A Rainha.
+ *
+ * Antes eram três abas dentro de uma aba (chat, treino, trilha), com o treino
+ * e a trilha cheios de progresso inventado: "485 XP", "streak de 14 dias",
+ * "nível 4". Três telas rasas em vez de uma boa, e duas delas mentindo.
+ *
+ * Aqui sobra a que tem função hoje: a conversa. E ela é honesta sobre o que é
+ * — as respostas ainda não passam por modelo nenhum, então a tela diz isso em
+ * vez de fingir inteligência. Treino e trilha voltam quando existirem de fato.
+ */
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+type Mensagem = { de: 'rainha' | 'eu'; texto: string };
 
-const INITIAL_MESSAGES: Message[] = [
+const ABERTURA: Mensagem[] = [
   {
-    id: '1',
-    role: 'assistant',
-    content: 'Olá! Sou a Rainha ♛, sua assistente de poker GTO. Posso te ajudar com dúvidas de regras, estratégias, análise de mãos e conceitos de GTO. Como posso te ajudar hoje?',
+    de: 'rainha',
+    texto:
+      'Sou a Rainha. Pergunte sobre ranges, posição, pote odds ou a mão que você não conseguiu esquecer no caminho de casa.',
   },
 ];
 
-export default function AIScreen() {
-  const [mode, setMode] = useState<Mode>('chat');
-  const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
+const SUGESTOES = [
+  'Como defender o big blind?',
+  'Ranges de abertura por posição',
+  'O que é minimum defense frequency?',
+  'Quando dar 3-bet por valor?',
+];
 
-  const sendMessage = async () => {
-    if (!input.trim() || loading) return;
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', content: input.trim() };
-    setMessages(m => [...m, userMsg]);
-    setInput('');
-    setLoading(true);
+/* Base local. É o que existe enquanto a Rainha não fala com um modelo de
+   verdade, e o rodapé da tela avisa isso sem rodeio. */
+const BASE: { chaves: string[]; resposta: string }[] = [
+  {
+    chaves: ['posição', 'posicao', 'position'],
+    resposta:
+      'Posição é a variável mais barata do poker: custa nada e vale muito. Agindo por último você decide com informação que o outro não teve. Na prática: abra mais mãos no botão e no cutoff, e seja bem mais seletivo no small blind, onde você joga fora de posição o resto da mão.',
+  },
+  {
+    chaves: ['big blind', 'bb', 'defender'],
+    resposta:
+      'Defender o big blind é matemática de desconto: você já tem uma aposta no pote, então precisa de menos equidade para continuar. Contra um open de 2,5bb no botão, dá para defender uma faixa larga — conectores, suited gappers, ases pequenos suited. O erro comum não é defender demais, é defender e depois desistir no primeiro flop que não acerta.',
+  },
+  {
+    chaves: ['mdf', 'minimum defense', 'defense frequency'],
+    resposta:
+      'Minimum defense frequency é o quanto você precisa continuar para o vilão não lucrar apostando qualquer coisa. A conta: MDF = pote ÷ (pote + aposta). Numa aposta de meio pote, você precisa seguir com uns 67% da sua faixa. Abaixo disso, o bluff dele passa a pagar sozinho.',
+  },
+  {
+    chaves: ['3-bet', '3bet', 'três aposta'],
+    resposta:
+      'Dê 3-bet por valor com as mãos que seguem bem contra a faixa que paga, e por bluff com as que têm potencial de bloquear as mãos fortes dele. O tamanho muda com a posição: em posição, 3x o open resolve; fora de posição, suba para 4x, porque você vai jogar o resto da mão em desvantagem e precisa cobrar por isso.',
+  },
+  {
+    chaves: ['pote odds', 'pot odds', 'odds'],
+    resposta:
+      'Pote odds é comparar o que você paga com o que pode levar. Pagar 50 num pote de 150 custa 25% — então você precisa de 25% de chance de ganhar. Com flush draw depois do flop você tem uns 36% até o river: paga. Com gutshot, uns 16%: não paga, a não ser que haja implícito o suficiente atrás.',
+  },
+];
 
-    // Simulated response — replace with Claude API call
-    await new Promise(r => setTimeout(r, 1200));
-    const reply: Message = {
-      id: (Date.now() + 1).toString(),
-      role: 'assistant',
-      content: getSimulatedResponse(userMsg.content),
-    };
-    setMessages(m => [...m, reply]);
-    setLoading(false);
+function responder(pergunta: string) {
+  const q = pergunta.toLowerCase();
+  const achou = BASE.find((b) => b.chaves.some((c) => q.includes(c)));
+  return (
+    achou?.resposta ??
+    'Essa eu ainda não sei responder bem. Minha base de agora cobre posição, defesa de big blind, MDF, 3-bet e pote odds. Quando eu estiver ligada a um modelo de verdade, respondo qualquer mão que você trouxer.'
+  );
+}
+
+export default function Rainha() {
+  const [mensagens, setMensagens] = useState<Mensagem[]>(ABERTURA);
+  const [texto, setTexto] = useState('');
+  const rolagem = useRef<ScrollView>(null);
+
+  const enviar = (pergunta: string) => {
+    const limpo = pergunta.trim();
+    if (!limpo) return;
+    setMensagens((m) => [...m, { de: 'eu', texto: limpo }, { de: 'rainha', texto: responder(limpo) }]);
+    setTexto('');
+    requestAnimationFrame(() => rolagem.current?.scrollToEnd({ animated: true }));
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      {/* Mode tabs */}
-      <View style={styles.modeTabs}>
-        {([['chat', 'Chat · Rainha'], ['train', 'Treino GTO'], ['trail', 'Trilha']] as [Mode, string][]).map(([m, label]) => (
-          <TouchableOpacity key={m} style={[styles.modeTab, mode === m && styles.modeTabActive]} onPress={() => setMode(m)}>
-            <KTText variant="uiMedium" size={13} color={mode === m ? Colors.gold200 : Colors.text2}>
-              {label}
-            </KTText>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      {mode === 'chat' && (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={90}>
-          <ScrollView style={styles.msgs} contentContainerStyle={styles.msgsContent}>
-            {messages.map(msg => (
-              <View key={msg.id} style={[styles.bubble, msg.role === 'user' ? styles.bubbleUser : styles.bubbleAssistant]}>
-                {msg.role === 'assistant' && (
-                  <KTText variant="label" color={Colors.gold400} style={{ marginBottom: 4 }}>RAINHA ♛</KTText>
-                )}
-                <KTText variant="ui" size={15} color={msg.role === 'user' ? '#1a1206' : Colors.text0} style={{ lineHeight: 22 }}>
-                  {msg.content}
-                </KTText>
-              </View>
-            ))}
-            {loading && (
-              <View style={styles.bubbleAssistant}>
-                <KTText variant="label" color={Colors.gold400} style={{ marginBottom: 4 }}>RAINHA ♛</KTText>
-                <KTText variant="ui" size={15} color={Colors.text2}>Analisando...</KTText>
-              </View>
-            )}
-          </ScrollView>
-
-          <View style={styles.inputRow}>
-            <TextInput
-              style={styles.input}
-              placeholder="Pergunta sobre poker, GTO, hands..."
-              placeholderTextColor={Colors.text3}
-              value={input}
-              onChangeText={setInput}
-              multiline
-              onSubmitEditing={sendMessage}
-              returnKeyType="send"
+    <KTScreen>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+        {/* ---------------------------------------------------- cabeçalho */}
+        <View style={styles.topo}>
+          <View style={styles.retrato}>
+            {/* zIndex negativo: sem ele a camada absoluta cobre o ícone no web. */}
+            <LinearGradient
+              colors={[Colors.gold700, Colors.gold800]}
+              style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
             />
-            <TouchableOpacity style={[styles.sendBtn, !input.trim() && styles.sendBtnDisabled]} onPress={sendMessage} disabled={!input.trim() || loading}>
-              <Ionicons name="arrow-up" size={20} color={input.trim() ? '#1a1206' : Colors.text3} />
-            </TouchableOpacity>
+            <View style={styles.retratoLuz} />
+            <Naipe tipo="copas" tamanho={19} cor={Colors.gold100} />
           </View>
-        </KeyboardAvoidingView>
-      )}
-
-      {mode === 'train' && <TrainScreen />}
-      {mode === 'trail' && <TrailScreen />}
-    </SafeAreaView>
-  );
-}
-
-// ─── GTO Training screen ──────────────────────────────────────
-function TrainScreen() {
-  const [action, setAction] = useState<string | null>(null);
-  return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <KTText variant="display" size={24} color={Colors.gold200} style={{ marginBottom: 4 }}>Treino GTO</KTText>
-      <KTText variant="ui" size={13} color={Colors.text2} style={{ marginBottom: 20 }}>Tome uma decisão. A IA joga com base em GTO.</KTText>
-
-      {/* Table visualization */}
-      <KTCard level={2} style={{ alignItems: 'center', paddingVertical: 32, marginBottom: 20 }}>
-        <View style={styles.tableOval}>
-          <KTText variant="display" size={16} color={Colors.gold500}>MESA</KTText>
-        </View>
-        {/* Community cards */}
-        <View style={styles.boardCards}>
-          {['A♠', 'K♥', '7♦', '—', '—'].map((c, i) => (
-            <View key={i} style={[styles.card, c === '—' && styles.cardBack]}>
-              <KTText variant="monoBold" size={14} color={c.includes('♥') || c.includes('♦') ? Colors.red : Colors.text0}>{c}</KTText>
-            </View>
-          ))}
-        </View>
-        <KTText variant="label" color={Colors.text2} style={{ marginTop: 12 }}>POT: 680</KTText>
-      </KTCard>
-
-      {/* Hero hand */}
-      <KTCard level={3} style={{ marginBottom: 20 }}>
-        <KTText variant="label" color={Colors.text2} style={{ marginBottom: 12 }}>SUA MÃO · POSIÇÃO: BTN</KTText>
-        <View style={{ flexDirection: 'row', gap: 12, justifyContent: 'center' }}>
-          {['K♠', 'Q♠'].map((c, i) => (
-            <View key={i} style={[styles.card, styles.cardLarge]}>
-              <KTText variant="monoBold" size={20} color={Colors.text0}>{c}</KTText>
-            </View>
-          ))}
-        </View>
-        <KTText variant="ui" size={12} color={Colors.text2} style={{ marginTop: 12, textAlign: 'center' }}>
-          Vilão fez bet de 340 no flop A♠ K♥ 7♦
-        </KTText>
-      </KTCard>
-
-      {/* Action buttons */}
-      {!action ? (
-        <View style={styles.actions}>
-          {[
-            { label: 'FOLD',    color: Colors.danger  },
-            { label: 'CALL',    color: Colors.text1   },
-            { label: 'RAISE',   color: Colors.gold200 },
-          ].map(a => (
-            <TouchableOpacity key={a.label} style={[styles.actionBtn, { borderColor: a.color }]} onPress={() => setAction(a.label)}>
-              <KTText variant="uiBold" size={14} color={a.color}>{a.label}</KTText>
-            </TouchableOpacity>
-          ))}
-        </View>
-      ) : (
-        <KTCard level={3} borderHot style={{ marginTop: 8 }}>
-          <KTText variant="label" color={Colors.gold300} style={{ marginBottom: 8 }}>ANÁLISE GTO</KTText>
-          <KTText variant="uiMedium" size={14} color={Colors.ok} style={{ marginBottom: 8 }}>
-            {action === 'RAISE' ? '✓ Jogada ótima!' : action === 'CALL' ? '◈ Jogada aceitável' : '✗ Fora do range GTO'}
-          </KTText>
-          <KTText variant="ui" size={13} color={Colors.text1} style={{ lineHeight: 20 }}>
-            Com K♠Q♠ no BTN contra bet do flop em A♠K♥7♦, RAISE é a jogada de maior EV. Você tem top pair com boa kicker e backdoor flush draw. GTO recomenda raise 2.5x com ~40% de frequência neste spot.
-          </KTText>
-          <TouchableOpacity onPress={() => setAction(null)} style={{ marginTop: 16 }}>
-            <KTText variant="uiMedium" size={13} color={Colors.gold300}>→ Próxima mão</KTText>
-          </TouchableOpacity>
-        </KTCard>
-      )}
-    </ScrollView>
-  );
-}
-
-// ─── Study Trail screen ───────────────────────────────────────
-const MODULES = [
-  { id: 1, title: 'Fundamentos',     icon: '♠', xp: 200,  done: true  },
-  { id: 2, title: 'Posição',         icon: '♦', xp: 300,  done: true  },
-  { id: 3, title: 'Pot Odds',        icon: '♣', xp: 400,  done: false, active: true },
-  { id: 4, title: 'Range Building',  icon: '♥', xp: 500,  done: false },
-  { id: 5, title: 'GTO Básico',      icon: '♛', xp: 800,  done: false, boss: true },
-  { id: 6, title: 'Bluff & Valor',   icon: '♠', xp: 600,  done: false },
-];
-
-function TrailScreen() {
-  return (
-    <ScrollView contentContainerStyle={{ padding: 20 }}>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
-        <View>
-          <KTText variant="display" size={24} color={Colors.gold200}>Trilha GTO</KTText>
-          <KTText variant="ui" size={13} color={Colors.text2} style={{ marginTop: 2 }}>2 lições concluídas</KTText>
-        </View>
-        <KTCard level={3} padding={10}>
-          <KTText variant="label" color={Colors.warn}>🔥 STREAK</KTText>
-          <KTText variant="monoBold" size={22} color={Colors.warn} style={{ textAlign: 'center' }}>7</KTText>
-        </KTCard>
-      </View>
-
-      {/* XP bar */}
-      <View style={{ marginBottom: 28 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-          <KTText variant="label" color={Colors.text2}>XP TOTAL</KTText>
-          <KTText variant="monoMedium" size={12} color={Colors.gold300}>500 / 1400</KTText>
-        </View>
-        <View style={{ height: 6, backgroundColor: Colors.bg3, borderRadius: 3 }}>
-          <View style={{ width: '35%', height: '100%', backgroundColor: Colors.gold400, borderRadius: 3 }} />
-        </View>
-      </View>
-
-      {/* Zigzag trail */}
-      <View style={{ alignItems: 'center', gap: 8 }}>
-        {MODULES.map((m, i) => (
-          <View key={m.id} style={[styles.trailNode, i % 2 === 0 ? { alignSelf: 'flex-start', marginLeft: 24 } : { alignSelf: 'flex-end', marginRight: 24 }]}>
-            <TouchableOpacity
-              style={[
-                styles.nodeBtn,
-                m.done && styles.nodeDone,
-                m.active && styles.nodeActive,
-                m.boss && styles.nodeBoss,
-                !m.done && !m.active && styles.nodeLocked,
-              ]}
-            >
-              <KTText variant="display" size={m.boss ? 28 : 22}>{m.icon}</KTText>
-            </TouchableOpacity>
-            <KTText variant="label" size={9} color={m.done ? Colors.ok : m.active ? Colors.gold300 : Colors.text3} style={{ marginTop: 4, textAlign: 'center' }}>
-              {m.title}
-            </KTText>
-            {m.done && <KTText variant="label" size={8} color={Colors.ok}>+{m.xp} XP</KTText>}
+          <View style={{ flex: 1 }}>
+            <KTText papel="subtitulo" color={Colors.gold100}>A Rainha</KTText>
+            <KTText papel="rotulo" color={Colors.text3}>Conselheira de GTO</KTText>
           </View>
-        ))}
-      </View>
+        </View>
 
-      <View style={{ height: 32 }} />
-    </ScrollView>
+        <ScrollView
+          ref={rolagem}
+          contentContainerStyle={styles.conversa}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {mensagens.map((m, i) =>
+            m.de === 'rainha' ? (
+              <View key={i} style={styles.balaoRainha}>
+                <KTText papel="rotulo" color={Colors.gold500}>Rainha</KTText>
+                <KTText papel="corpo" color={Colors.text1} style={{ marginTop: 6 }}>{m.texto}</KTText>
+              </View>
+            ) : (
+              <View key={i} style={styles.balaoEu}>
+                <KTText papel="corpo" color="#1a1206">{m.texto}</KTText>
+              </View>
+            ),
+          )}
+
+          {mensagens.length <= 1 ? (
+            <View style={styles.sugestoes}>
+              <Filete largura={70} />
+              <KTText papel="rotulo" color={Colors.text3} style={{ marginVertical: Space.md }}>
+                Por onde começar
+              </KTText>
+              {SUGESTOES.map((s) => (
+                <Pressable key={s} onPress={() => enviar(s)} style={styles.sugestao}>
+                  <KTText papel="corpo" color={Colors.text1} style={{ flex: 1 }}>{s}</KTText>
+                  <Ionicons name="arrow-forward" size={14} color={Colors.gold500} />
+                </Pressable>
+              ))}
+            </View>
+          ) : null}
+
+          <KTText papel="apoio" color={Colors.text3} style={styles.aviso}>
+            As respostas vêm de uma base local, escrita à mão. A Rainha ainda não
+            está ligada a um modelo — quando estiver, ela lê a mão que você jogou
+            e responde sobre ela.
+          </KTText>
+        </ScrollView>
+
+        {/* ------------------------------------------------------- entrada */}
+        <View style={styles.entrada}>
+          <TextInput
+            value={texto}
+            onChangeText={setTexto}
+            placeholder="Pergunte sobre uma mão, um range, um spot"
+            placeholderTextColor={Colors.text3}
+            style={[styles.campo, semAnelDeFoco]}
+            onSubmitEditing={() => enviar(texto)}
+            returnKeyType="send"
+            multiline
+          />
+          <Pressable
+            onPress={() => enviar(texto)}
+            disabled={!texto.trim()}
+            style={[styles.enviar, !texto.trim() && { opacity: 0.35 }]}
+          >
+            <Ionicons name="arrow-up" size={19} color="#1a1206" />
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </KTScreen>
   );
-}
-
-// ─── Helpers ─────────────────────────────────────────────────
-function getSimulatedResponse(input: string): string {
-  const q = input.toLowerCase();
-  if (q.includes('bluff')) return 'Bluffar com equidade é fundamental no GTO. Em geral, você deve ter uma frequência de bluff proporcional ao pot odds que está oferecendo. Se você está apostando 1/2 pot, o vilão precisa acertar 33% das vezes para ser indiferente — então você deve bluffar ~33% das vezes em sua range de apostas.';
-  if (q.includes('pot odds') || q.includes('odds')) return 'Pot odds são a relação entre o tamanho da call e o pot total. Para calcular: divida o valor da call pelo pot total após a call. Se o pot é 100 e a bet é 50, você paga 50 para ganhar 150, portanto tem 33% de pot odds. Você precisa ter pelo menos 33% de equidade para fazer a call ser matematicamente correta.';
-  if (q.includes('posição') || q.includes('position')) return 'Posição é uma das variáveis mais importantes no poker. Jogar em posição (IP) permite que você aja por último pós-flop, o que lhe dá muito mais informação. Em geral, você pode jogar ranges mais amplas IP e deve ser mais conservador OOP.';
-  return 'Ótima pergunta! No poker GTO, cada situação tem múltiplas variáveis a considerar: posição, tamanho do stack, tendências do vilão e a textura do board. Pode me dar mais contexto sobre a situação específica que você está analisando?';
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: Colors.bg0 },
-  modeTabs: {
-    flexDirection: 'row',
-    borderBottomWidth: 1, borderBottomColor: Colors.border,
-    paddingHorizontal: 20,
+  topo: {
+    flexDirection: 'row', alignItems: 'center', gap: Space.md,
+    paddingHorizontal: Space.xl, paddingBottom: Space.lg,
+    borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: Colors.border,
   },
-  modeTab: { flex: 1, paddingVertical: 14, alignItems: 'center' },
-  modeTabActive: { borderBottomWidth: 2, borderBottomColor: Colors.gold300 },
-  msgs: { flex: 1 },
-  msgsContent: { padding: 16, gap: 12 },
-  bubble: { maxWidth: '85%', padding: 14, borderRadius: Radius.md },
-  bubbleUser: { alignSelf: 'flex-end', backgroundColor: Colors.gold200 },
-  bubbleAssistant: { alignSelf: 'flex-start', backgroundColor: Colors.bg2, borderWidth: 1, borderColor: Colors.border },
-  inputRow: {
-    flexDirection: 'row', gap: 10, padding: 16,
-    borderTopWidth: 1, borderTopColor: Colors.border, alignItems: 'flex-end',
+  retrato: {
+    width: 46, height: 46, borderRadius: Radius.full,
+    alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderHot,
   },
-  input: {
-    flex: 1, backgroundColor: Colors.bg2,
-    borderWidth: 1, borderColor: Colors.borderStrong,
-    borderRadius: Radius.lg, paddingHorizontal: 16, paddingVertical: 12,
-    fontFamily: Fonts.ui, fontSize: 15, color: Colors.text0,
-    maxHeight: 120,
+  retratoLuz: { position: 'absolute', top: 0, left: 10, right: 10, height: 1, backgroundColor: 'rgba(236,217,165,0.4)' },
+
+  conversa: { padding: Space.xl, gap: Space.lg, paddingBottom: Space.xxl },
+  balaoRainha: {
+    alignSelf: 'flex-start', maxWidth: '92%',
+    padding: Space.lg, borderRadius: Radius.lg, borderTopLeftRadius: Radius.xs,
+    backgroundColor: Colors.bg1,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
-  sendBtn: {
-    width: 44, height: 44, borderRadius: 22,
+  balaoEu: {
+    alignSelf: 'flex-end', maxWidth: '85%',
+    paddingHorizontal: Space.lg, paddingVertical: Space.md,
+    borderRadius: Radius.lg, borderBottomRightRadius: Radius.xs,
     backgroundColor: Colors.gold200,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  sendBtnDisabled: { backgroundColor: Colors.bg3 },
-
-  // Train
-  tableOval: {
-    width: 160, height: 90, borderRadius: 45,
-    borderWidth: 2, borderColor: Colors.accent,
-    backgroundColor: Colors.accentDim,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 20,
-  },
-  boardCards: { flexDirection: 'row', gap: 8 },
-  card: {
-    width: 44, height: 60, borderRadius: Radius.xs,
-    backgroundColor: Colors.bg0, borderWidth: 1, borderColor: Colors.borderStrong,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  cardBack: { backgroundColor: Colors.bg3 },
-  cardLarge: { width: 56, height: 78 },
-  actions: { flexDirection: 'row', gap: 10 },
-  actionBtn: {
-    flex: 1, height: 52, borderRadius: Radius.sm,
-    borderWidth: 1, alignItems: 'center', justifyContent: 'center',
-    backgroundColor: Colors.bg2,
   },
 
-  // Trail
-  trailNode: { alignItems: 'center', gap: 4 },
-  nodeBtn: {
-    width: 72, height: 72, borderRadius: 36,
-    backgroundColor: Colors.bg2, borderWidth: 2, borderColor: Colors.borderStrong,
-    alignItems: 'center', justifyContent: 'center',
+  sugestoes: { alignItems: 'center', marginTop: Space.md },
+  sugestao: {
+    flexDirection: 'row', alignItems: 'center', gap: Space.md,
+    alignSelf: 'stretch',
+    paddingVertical: Space.lg, paddingHorizontal: Space.lg,
+    borderRadius: Radius.md, marginBottom: Space.sm,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    backgroundColor: 'rgba(255,250,235,0.02)',
   },
-  nodeDone: { backgroundColor: Colors.gold800, borderColor: Colors.gold500 },
-  nodeActive: { backgroundColor: Colors.bg3, borderColor: Colors.gold200, shadowColor: Colors.gold200, shadowOpacity: 0.4, shadowRadius: 12 },
-  nodeBoss: { width: 84, height: 84, borderRadius: 42 },
-  nodeLocked: { opacity: 0.4 },
+  aviso: { textAlign: 'center', marginTop: Space.xl, lineHeight: 18, paddingHorizontal: Space.lg },
+
+  entrada: {
+    flexDirection: 'row', alignItems: 'flex-end', gap: Space.sm,
+    paddingHorizontal: Space.xl, paddingTop: Space.md, paddingBottom: Space.md,
+    borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
+    backgroundColor: 'rgba(10,8,7,0.92)',
+    marginBottom: 88,
+  },
+  campo: {
+    flex: 1, maxHeight: 120, minHeight: 46,
+    borderRadius: Radius.lg, paddingHorizontal: Space.lg, paddingTop: 13, paddingBottom: 13,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
+    backgroundColor: Colors.bg1, color: Colors.text0,
+    fontFamily: 'InterTight_400Regular', fontSize: 15,
+  },
+  enviar: {
+    width: 46, height: 46, borderRadius: Radius.full,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: Colors.gold200,
+  },
 });

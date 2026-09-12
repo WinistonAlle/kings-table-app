@@ -1,269 +1,269 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, TouchableOpacity, StyleSheet, Dimensions, Animated } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Pressable, StyleSheet, Dimensions, Animated, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Fonts, Radius } from '@/constants/tokens';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Colors, Radius, Space } from '@/constants/tokens';
 import { KTText } from '@/components/ui/Text';
+import { Anel } from '@/components/ui/Anel';
+import { Grao } from '@/components/ui/Screen';
+import { Filete, Naipe } from '@/components/ui/Ornamento';
 import { useBlindsTimer } from '@/hooks/useBlindsTimer';
 import { useTournamentStore } from '@/stores/tournamentStore';
 
-const { width, height } = Dimensions.get('window');
-const W = Math.max(width, height);
-const H = Math.min(width, height);
+/* Relógio de blinds, em paisagem.
+ *
+ * É a tela que fica horas de pé no meio da mesa, vista de longe e de lado,
+ * muitas vezes por alguém que já bebeu. Isso dita tudo:
+ *
+ * - Um único herói. O tempo é o maior elemento por larga margem; blinds e
+ *   nível são satélites. A versão antiga dava peso quase igual a seis números
+ *   ao mesmo tempo, e de longe nenhum deles lia.
+ * - Nada de toque preciso. Os alvos são grandes e ficam nas bordas, longe do
+ *   centro, onde a mão passa pra pegar ficha.
+ * - Aviso por COR e por TAMANHO. Nos últimos 60 segundos o relógio esquenta;
+ *   nos últimos 30, pulsa. Quem está de costas percebe pelo canto do olho.
+ */
 
-export default function BlindsScreen() {
+const formatar = (s: number) =>
+  `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+
+const curto = (n: number) =>
+  n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
+
+export default function Relogio() {
   const params = useLocalSearchParams<{ id?: string }>();
-  const tournamentId = typeof params.id === 'string' ? params.id : undefined;
-  const { structure, currentLevel, secondsRemaining, isRunning, start, pause, nextLevel, prevLevel, reset } = useBlindsTimer();
-  const activeTournament = useTournamentStore((s) =>
-    s.tournaments.find((t) => t.id === (tournamentId ?? s.activeTournamentId))
+  const id = typeof params.id === 'string' ? params.id : undefined;
+  const { structure, currentLevel, secondsRemaining, isRunning, start, pause, nextLevel, prevLevel } =
+    useBlindsTimer();
+  const torneio = useTournamentStore((s) =>
+    s.tournaments.find((t) => t.id === (id ?? s.activeTournamentId)),
   );
 
-  const current = structure[currentLevel];
-  const next = structure[currentLevel + 1];
-  const totalSeconds = current ? current.durationMinutes * 60 : 1;
-  const progress = 1 - secondsRemaining / totalSeconds;
+  const { width, height } = useWindowDimensions();
+  const L = Math.max(width, height);
+  const A = Math.min(width, height);
 
-  // Flash animation on level change
-  const flashAnim = useRef(new Animated.Value(0)).current;
-  const prevLevelRef = useRef(currentLevel);
-  const [showLevelUp, setShowLevelUp] = useState(false);
+  const atual = structure[currentLevel];
+  const proximo = structure[currentLevel + 1];
+  const total = atual ? atual.durationMinutes * 60 : 1;
+  const progresso = 1 - secondsRemaining / total;
 
+  const alerta = secondsRemaining <= 60;
+  const critico = secondsRemaining <= 30;
+  const corTempo = critico ? Colors.danger : alerta ? Colors.warn : Colors.gold50;
+
+  /* Pulso nos últimos 30s. Só a opacidade, não a escala: número que muda de
+     tamanho é ilegível de longe, que é justamente quando isto importa. */
+  const pulso = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (prevLevelRef.current !== currentLevel) {
-      prevLevelRef.current = currentLevel;
-      setShowLevelUp(true);
-      Animated.sequence([
-        Animated.timing(flashAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
-        Animated.timing(flashAnim, { toValue: 0, duration: 800, useNativeDriver: true }),
-      ]).start(() => setShowLevelUp(false));
+    if (!critico || !isRunning) {
+      pulso.setValue(1);
+      return;
     }
-  }, [currentLevel]);
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulso, { toValue: 0.45, duration: 500, useNativeDriver: true }),
+        Animated.timing(pulso, { toValue: 1, duration: 500, useNativeDriver: true }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, [critico, isRunning, pulso]);
 
-  // Warning colors
-  const isWarning = secondsRemaining <= 60;
-  const isDanger = secondsRemaining <= 30;
-  const timeColor = isDanger ? Colors.danger : isWarning ? Colors.warn : Colors.text0;
+  /* Clarão na virada de nível: a mesa inteira precisa perceber sem ninguém
+     avisar em voz alta. */
+  const [virou, setVirou] = useState(false);
+  const clarao = useRef(new Animated.Value(0)).current;
+  const nivelAnterior = useRef(currentLevel);
+  useEffect(() => {
+    if (currentLevel === nivelAnterior.current) return;
+    nivelAnterior.current = currentLevel;
+    setVirou(true);
+    clarao.setValue(0);
+    Animated.sequence([
+      Animated.timing(clarao, { toValue: 1, duration: 220, useNativeDriver: true }),
+      Animated.delay(900),
+      Animated.timing(clarao, { toValue: 0, duration: 600, useNativeDriver: true }),
+    ]).start(() => setVirou(false));
+  }, [currentLevel, clarao]);
 
-  const formatTime = (secs: number) => {
-    const m = Math.floor(secs / 60).toString().padStart(2, '0');
-    const s = (secs % 60).toString().padStart(2, '0');
-    return `${m}:${s}`;
-  };
-
-  const formatBlind = (n: number) => {
-    if (n >= 1000) return `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K`;
-    return n.toString();
-  };
-
-  // Radial progress ring (SVG-like via border trick)
-  const RING_SIZE = Math.min(H * 0.58, 260);
-  const ringProgress = progress;
+  /* O anel tem que caber ENTRE o cabeçalho e os controles, não na altura
+     inteira: com 0.74 ele subia por baixo do nome do torneio. */
+  const anel = Math.min(A * 0.66, 300);
 
   return (
-    <View style={styles.container}>
-      {/* Background vignette */}
-      <View style={styles.vignette} pointerEvents="none" />
+    <View style={styles.raiz}>
+      {/* Feltro: vinheta radial quente ao centro, escurecendo para as bordas. */}
+      <LinearGradient colors={['#191712', '#0b0a08', '#050403']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+      <Grao opacidade={0.045} />
 
-      {/* Level-up flash overlay */}
-      {showLevelUp && (
-        <Animated.View style={[styles.flashOverlay, { opacity: flashAnim }]} pointerEvents="none">
-          <KTText variant="display" size={48} color={Colors.gold200}>
-            Level {currentLevel + 1}
-          </KTText>
-        </Animated.View>
-      )}
-
-      {/* Close button */}
-      <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-        <Ionicons name="chevron-down" size={20} color={Colors.text2} />
-      </TouchableOpacity>
-
-      {/* Main 3-column layout */}
-      <View style={styles.main}>
-
-        {/* LEFT — current blinds */}
-        <View style={styles.sidePanel}>
-          <KTText variant="label" color={Colors.text2} style={styles.panelLabel}>NOW PLAYING</KTText>
-          <KTText variant="label" color={Colors.text2} style={{ marginTop: 16 }}>LEVEL</KTText>
-          <KTText variant="monoBold" size={40} color={Colors.gold200} style={{ marginTop: 2 }}>
-            {currentLevel + 1}
-          </KTText>
-          <View style={styles.dividerH} />
-          <KTText variant="label" color={Colors.text2}>SMALL BLIND</KTText>
-          <KTText variant="monoBold" size={28} color={Colors.text0} style={{ marginTop: 2 }}>
-            {current ? formatBlind(current.smallBlind) : '—'}
-          </KTText>
-          <View style={styles.dividerH} />
-          <KTText variant="label" color={Colors.text2}>BIG BLIND</KTText>
-          <KTText variant="monoBold" size={28} color={Colors.text0} style={{ marginTop: 2 }}>
-            {current ? formatBlind(current.bigBlind) : '—'}
-          </KTText>
-          {current?.ante > 0 && (
-            <>
-              <View style={styles.dividerH} />
-              <KTText variant="label" color={Colors.warn}>ANTE</KTText>
-              <KTText variant="monoBold" size={24} color={Colors.warn} style={{ marginTop: 2 }}>
-                {formatBlind(current.ante)}
-              </KTText>
-            </>
-          )}
-        </View>
-
-        {/* CENTER — clock */}
-        <View style={styles.center}>
-          {/* Ornamental top flourish */}
-          <KTText variant="display" size={20} color={Colors.gold600} style={{ letterSpacing: 8 }}>
-            ◆ ♠ ◆
-          </KTText>
-
-          {/* Time display */}
-          <KTText
-            variant="monoBold"
-            size={RING_SIZE * 0.42}
-            color={timeColor}
-            style={[styles.timerNum, isWarning && styles.timerWarn]}
-          >
-            {formatTime(secondsRemaining)}
-          </KTText>
-
-          {/* Progress bar */}
-          <View style={styles.progressTrack}>
-            <View style={[styles.progressFill, { width: `${progress * 100}%` as any, backgroundColor: isDanger ? Colors.danger : isWarning ? Colors.warn : Colors.gold400 }]} />
-          </View>
-
-          {/* Controls */}
-          <View style={styles.controls}>
-            <TouchableOpacity style={styles.controlBtn} onPress={prevLevel}>
-              <Ionicons name="play-skip-back" size={22} color={Colors.text1} />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.playBtn} onPress={isRunning ? pause : start}>
-              <Ionicons name={isRunning ? 'pause' : 'play'} size={32} color="#1a1206" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.controlBtn} onPress={nextLevel}>
-              <Ionicons name="play-skip-forward" size={22} color={Colors.text1} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Ornamental bottom */}
-          <KTText variant="display" size={20} color={Colors.gold600} style={{ letterSpacing: 8, marginTop: 8 }}>
-            ◆ ♥ ◆
-          </KTText>
-        </View>
-
-        {/* RIGHT — next level */}
-        <View style={[styles.sidePanel, styles.sidePanelRight]}>
-          <KTText variant="label" color={Colors.text2} style={styles.panelLabel}>COMING UP</KTText>
-          {next ? (
-            <>
-              <KTText variant="label" color={Colors.text2} style={{ marginTop: 16 }}>LEVEL</KTText>
-              <KTText variant="monoBold" size={40} color={Colors.text2} style={{ marginTop: 2 }}>
-                {currentLevel + 2}
-              </KTText>
-              <View style={styles.dividerH} />
-              <KTText variant="label" color={Colors.text2}>SMALL BLIND</KTText>
-              <KTText variant="monoBold" size={28} color={Colors.text2} style={{ marginTop: 2 }}>
-                {formatBlind(next.smallBlind)}
-              </KTText>
-              <View style={styles.dividerH} />
-              <KTText variant="label" color={Colors.text2}>BIG BLIND</KTText>
-              <KTText variant="monoBold" size={28} color={Colors.text2} style={{ marginTop: 2 }}>
-                {formatBlind(next.bigBlind)}
-              </KTText>
-              {next.ante > 0 && (
-                <>
-                  <View style={styles.dividerH} />
-                  <KTText variant="label" color={Colors.text2}>ANTE</KTText>
-                  <KTText variant="monoBold" size={24} color={Colors.text2} style={{ marginTop: 2 }}>
-                    {formatBlind(next.ante)}
-                  </KTText>
-                </>
-              )}
-            </>
-          ) : (
-            <KTText variant="ui" size={13} color={Colors.text3} style={{ marginTop: 16 }}>
-              Último nível
+      {/* ------------------------------------------------ barra de título */}
+      <View style={styles.topo}>
+        <Pressable style={styles.botaoCanto} onPress={() => router.back()} hitSlop={16}>
+          <Ionicons name="chevron-down" size={20} color={Colors.text2} />
+        </Pressable>
+        <View style={styles.tituloCentro}>
+          <KTText papel="subtitulo" color={Colors.gold200}>{torneio?.name ?? 'Mesa'}</KTText>
+          {torneio ? (
+            <KTText papel="rotulo" color={Colors.text3} style={{ marginTop: 2 }}>
+              {torneio.players.filter((p) => !p.position).length} de pé
             </KTText>
-          )}
+          ) : null}
         </View>
+        <View style={styles.botaoCanto} />
       </View>
 
-      {/* Tournament name footer */}
-      {activeTournament && (
-        <TouchableOpacity onPress={() => router.push(`/tournament/${activeTournament.id}` as any)}>
-          <KTText variant="label" color={Colors.text3} style={styles.footer}>
-            {activeTournament.name.toUpperCase()} · ABRIR MESA
+      {/* ------------------------------------------------------ o palco */}
+      <View style={styles.palco}>
+        {/* Esquerda: o nível corrente. */}
+        <Lado
+          rotulo="Agora"
+          nivel={currentLevel + 1}
+          sb={atual?.smallBlind}
+          bb={atual?.bigBlind}
+          ante={atual?.ante}
+          destaque
+        />
+
+        {/* Centro: o tempo. */}
+        <Pressable
+          style={[styles.centro, { width: anel, height: anel }]}
+          onPress={isRunning ? pause : start}
+        >
+          <View style={StyleSheet.absoluteFill}>
+            <Anel
+              tamanho={anel}
+              espessura={4}
+              progresso={progresso}
+              cor={critico ? Colors.danger : alerta ? Colors.warn : undefined}
+            />
+          </View>
+          <Animated.View style={{ opacity: pulso, alignItems: 'center' }}>
+            <KTText papel="rotulo" color={Colors.text3}>Tempo restante</KTText>
+            <KTText
+              papel="hero"
+              color={corTempo}
+              size={Math.min(anel * 0.30, 96)}
+              style={styles.tempo}
+            >
+              {formatar(secondsRemaining)}
+            </KTText>
+            <KTText papel="rotulo" color={Colors.text3}>
+              {isRunning ? 'toque para pausar' : 'toque para seguir'}
+            </KTText>
+          </Animated.View>
+        </Pressable>
+
+        {/* Direita: o que vem. */}
+        <Lado
+          rotulo="A seguir"
+          nivel={proximo ? currentLevel + 2 : undefined}
+          sb={proximo?.smallBlind}
+          bb={proximo?.bigBlind}
+          ante={proximo?.ante}
+        />
+      </View>
+
+      {/* ---------------------------------------------------- os controles */}
+      <View style={styles.rodape}>
+        <Pressable style={styles.passo} onPress={prevLevel} hitSlop={12}>
+          <Ionicons name="play-skip-back" size={15} color={Colors.text2} />
+          <KTText papel="rotulo" color={Colors.text2}>Anterior</KTText>
+        </Pressable>
+
+        <View style={styles.marcaCentro}>
+          <Filete largura={64} />
+          <Naipe tipo="espada" tamanho={11} cor={Colors.gold600} />
+        </View>
+
+        <Pressable style={styles.passo} onPress={nextLevel} hitSlop={12}>
+          <KTText papel="rotulo" color={Colors.text2}>Próximo</KTText>
+          <Ionicons name="play-skip-forward" size={15} color={Colors.text2} />
+        </Pressable>
+      </View>
+
+      {/* Clarão da virada, por cima de tudo. */}
+      {virou ? (
+        <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clarao, { opacity: clarao }]}>
+          <LinearGradient colors={['rgba(232,213,160,0.22)', 'transparent']} style={StyleSheet.absoluteFill} />
+          <KTText papel="titulo" color={Colors.gold100}>Nível {currentLevel + 1}</KTText>
+        </Animated.View>
+      ) : null}
+    </View>
+  );
+}
+
+/** Coluna lateral: nível, small, big e ante. */
+function Lado({
+  rotulo, nivel, sb, bb, ante, destaque = false,
+}: {
+  rotulo: string; nivel?: number; sb?: number; bb?: number; ante?: number; destaque?: boolean;
+}) {
+  const cor = destaque ? Colors.text0 : Colors.text2;
+  return (
+    <View style={styles.lado}>
+      <KTText papel="rotulo" color={destaque ? Colors.gold500 : Colors.text3}>{rotulo}</KTText>
+      {nivel ? (
+        <>
+          <KTText papel="subtitulo" color={destaque ? Colors.gold200 : Colors.text2} style={{ marginTop: 2 }}>
+            Nível {nivel}
           </KTText>
-        </TouchableOpacity>
+          <View style={{ marginTop: Space.lg }}>
+            {/* `numberOfLines` é rede de segurança: blind de cinco dígitos no
+                fim da estrutura ainda tem que caber numa linha só. */}
+            <KTText
+              papel="numeroForte"
+              size={destaque ? 30 : 22}
+              color={cor}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {curto(sb ?? 0)} / {curto(bb ?? 0)}
+            </KTText>
+            <KTText papel="rotulo" color={Colors.text3} style={{ marginTop: 6 }}>
+              {ante ? `ante ${curto(ante)}` : 'sem ante'}
+            </KTText>
+          </View>
+        </>
+      ) : (
+        <KTText papel="apoio" color={Colors.text3} style={{ marginTop: Space.md }}>
+          Fim da estrutura
+        </KTText>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, backgroundColor: Colors.bg0,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  vignette: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'transparent',
-  },
-  flashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(232,213,160,0.06)',
-    alignItems: 'center', justifyContent: 'center',
-    zIndex: 100,
-  },
-  closeBtn: {
-    position: 'absolute', top: 52, right: 24,
-    width: 36, height: 36, borderRadius: 18,
-    backgroundColor: Colors.bg2,
-    borderWidth: 1, borderColor: Colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  main: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingHorizontal: 24, gap: 24, width: '100%',
-  },
-  sidePanel: {
-    flex: 1, alignItems: 'flex-start',
-    paddingVertical: 8,
-  },
-  sidePanelRight: { alignItems: 'flex-end' },
-  panelLabel: { borderBottomWidth: 1, borderBottomColor: Colors.border, paddingBottom: 6, alignSelf: 'stretch' },
-  dividerH: { height: 1, backgroundColor: Colors.border, alignSelf: 'stretch', marginVertical: 12 },
+  raiz: { flex: 1, backgroundColor: '#050403' },
 
-  center: {
-    flex: 2, alignItems: 'center', justifyContent: 'center', gap: 4,
+  topo: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Space.xl, paddingTop: Space.lg,
   },
-  timerNum: { letterSpacing: -3, lineHeight: undefined },
-  timerWarn: {},
+  botaoCanto: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  tituloCentro: { alignItems: 'center' },
 
-  progressTrack: {
-    width: '80%', height: 3, backgroundColor: Colors.bg3,
-    borderRadius: 2, marginTop: 12, overflow: 'hidden',
+  palco: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Space.xxl, paddingTop: Space.sm,
   },
-  progressFill: { height: '100%', borderRadius: 2 },
+  lado: { width: 200 },
+  centro: { alignItems: 'center', justifyContent: 'center' },
+  tempo: { marginVertical: Space.xs },
 
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 20, marginTop: 20 },
-  controlBtn: {
-    width: 48, height: 48, borderRadius: 24,
-    backgroundColor: Colors.bg2,
-    borderWidth: 1, borderColor: Colors.borderStrong,
-    alignItems: 'center', justifyContent: 'center',
+  rodape: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: Space.xxl, paddingBottom: Space.xl,
   },
-  playBtn: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: Colors.gold200,
-    alignItems: 'center', justifyContent: 'center',
-    shadowColor: Colors.gold200, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 16,
+  passo: {
+    flexDirection: 'row', alignItems: 'center', gap: Space.sm,
+    paddingVertical: Space.md, paddingHorizontal: Space.lg,
+    borderRadius: Radius.full,
+    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
+  marcaCentro: { alignItems: 'center', gap: 5 },
 
-  footer: {
-    position: 'absolute', bottom: 28, letterSpacing: 3,
-  },
+  clarao: { alignItems: 'center', justifyContent: 'center' },
 });
