@@ -186,7 +186,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderHot,
   },
-  retratoLuz: { position: 'absolute', top: 0, left: 10, right: 10, height: 1, backgroundColor: 'rgba(236,217,165,0.4)' },
+  retratoLuz: { position: 'absolute', top: 0, left: 10, right: 10, height: 1, backgroundColor: 'rgba(231,208,172,0.4)' },
 
   conversa: { padding: Space.xl, gap: Space.lg, paddingBottom: Space.xxl },
   balaoRainha: {

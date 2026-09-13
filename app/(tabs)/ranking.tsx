@@ -153,7 +153,7 @@ function Degrau({ lugar, pessoa }: { lugar: 1 | 2 | 3; pessoa?: Standing }) {
           colors={rei ? [Colors.gold700, Colors.gold800] : [Colors.bg3, Colors.bg1]}
           style={[StyleSheet.absoluteFill, { zIndex: -1 }]}
         />
-        <View style={[styles.blocoLuz, { backgroundColor: rei ? 'rgba(236,217,165,0.35)' : Colors.luzTopo }]} />
+        <View style={[styles.blocoLuz, { backgroundColor: rei ? 'rgba(231,208,172,0.35)' : Colors.luzTopo }]} />
         <KTText papel="numeroForte" size={rei ? 30 : 22} color={rei ? Colors.gold100 : escuro}>
           {lugar}
         </KTText>

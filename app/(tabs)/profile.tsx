@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderHot,
   },
-  seloLuz: { position: 'absolute', top: 0, left: 18, right: 18, height: 1, backgroundColor: 'rgba(236,217,165,0.4)' },
+  seloLuz: { position: 'absolute', top: 0, left: 18, right: 18, height: 1, backgroundColor: 'rgba(231,208,172,0.4)' },
 
   grade: { flexDirection: 'row', alignItems: 'stretch' },
   cel: { flex: 1, alignItems: 'center', paddingVertical: Space.xl, paddingHorizontal: Space.sm },

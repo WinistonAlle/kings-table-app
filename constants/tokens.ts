@@ -28,15 +28,26 @@ export const Colors = {
   text2: '#7a7366',
   text3: '#4a463f',
 
-  gold50:  '#f8ecc8',
-  gold100: '#ecd9a5',
-  gold200: '#e8d5a0',
-  gold300: '#d4bc7e',
-  gold400: '#b89a5e',
-  gold500: '#8a723f',
-  gold600: '#5a4a28',
-  gold700: '#352c18',
-  gold800: '#1e1a10',
+  /* A escala inteira é ancorada na LOGO: `gold400` é exatamente o ouro do
+     leão (#c49c5c, matiz 37°), e todos os outros degraus são a mesma matiz em
+     luminosidades diferentes.
+
+     Antes a escala andava entre 40° e 45°, ou seja, de sete a oito graus mais
+     amarela que a marca. Sozinha ninguém notava; ao lado da logo, a interface
+     puxava para champagne enquanto o leão puxava para bronze, e ela lia como
+     se tivesse vindo de outro lugar.
+
+     As luminosidades são as mesmas de antes de propósito: só a temperatura
+     mudou, então nenhum contraste de texto quebrou. */
+  gold50:  '#f3e5cd',
+  gold100: '#e7d0ac',
+  gold200: '#e3cba6',
+  gold300: '#d3b27e',
+  gold400: '#c49c5c',
+  gold500: '#8b6d3c',
+  gold600: '#5b4829',
+  gold700: '#342918',
+  gold800: '#1e1910',
 
   /* Verde de pano de mesa. Entra como sugestão, nunca como área grande. */
   accent:    '#3d8a6a',
@@ -47,9 +58,9 @@ export const Colors = {
   warn:   '#d9a74a',
   danger: '#c85a5a',
 
-  border:       'rgba(232, 213, 160, 0.08)',
-  borderStrong: 'rgba(232, 213, 160, 0.18)',
-  borderHot:    'rgba(232, 213, 160, 0.32)',
+  border:       'rgba(227, 203, 166, 0.08)',
+  borderStrong: 'rgba(227, 203, 166, 0.18)',
+  borderHot:    'rgba(227, 203, 166, 0.32)',
 
   /* Fio de luz no topo de uma superfície elevada, e a sombra que o acompanha. */
   luzTopo: 'rgba(255, 250, 235, 0.07)',
@@ -144,5 +155,5 @@ export const Degrade = {
      em vez de retângulo amarelo. */
   ouro: [Colors.gold100, Colors.gold300] as const,
   /* Arco do relógio. */
-  arco: [Colors.gold50, '#d4b870', '#8a6d36'] as const,
+  arco: [Colors.gold50, Colors.gold400, Colors.gold600] as const,
 } as const;
