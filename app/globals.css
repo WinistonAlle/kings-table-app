@@ -1,26 +1,133 @@
-@import "tailwindcss";
+@import 'tailwindcss';
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Sistema visual do King's Table na web.
+ *
+ * As cores são as MESMAS do app, e as duas fontes também. Não é economia de
+ * esforço: é que a landing promete um produto, e a primeira coisa que a pessoa
+ * vê depois de assinar é o app. Se a página for de um tom e o produto de
+ * outro, a promessa começa a ruir no primeiro clique.
+ *
+ * A âncora de tudo é o ouro da logo, #c49c5c. Toda a escala é essa matiz (37°)
+ * em luminosidades diferentes.
+ */
+
+@theme {
+  --color-bg0: #0a0807;
+  --color-bg1: #11100e;
+  --color-bg2: #1a1816;
+  --color-bg3: #242220;
+
+  --color-text0: #f5ede0;
+  --color-text1: #c9bda6;
+  --color-text2: #7a7366;
+  --color-text3: #4a463f;
+
+  --color-gold50:  #f3e5cd;
+  --color-gold100: #e7d0ac;
+  --color-gold200: #e3cba6;
+  --color-gold300: #d3b27e;
+  --color-gold400: #c49c5c;
+  --color-gold500: #8b6d3c;
+  --color-gold600: #5b4829;
+  --color-gold700: #342918;
+  --color-gold800: #1e1910;
+
+  --color-ok: #78a885;
+  --color-danger: #c85a5a;
+
+  --color-line: rgba(227, 203, 166, 0.09);
+  --color-lineStrong: rgba(227, 203, 166, 0.18);
+
+  --font-display: var(--fonte-display);
+  --font-sans: var(--fonte-ui);
+  --font-mono: var(--fonte-mono);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  /* Nos dois, e não só no body: o valor do body propaga pra viewport quando o
+     html está `visible`, e aí o body para de cortar. Aprendido na marra. */
+  overflow-x: clip;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+  background: var(--color-bg0);
+  color: var(--color-text0);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Título: serifa, corpo grande, entreletra apertada. Grotesca aqui devolveria
+   painel de controle; a serifa é o que diz clube. */
+.titulo {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+/* Rótulo gravado: caixa alta, entreletra larga, corpo miúdo. */
+.rotulo {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* O grão. Preto liso lê como tela desligada; ruído sutil lê como superfície.
+   É SVG embutido pra não custar uma requisição. */
+.grao::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Botão de ouro: metal, não retângulo amarelo. Claro em cima, escuro embaixo,
+   com fio de luz na aresta superior. */
+.botao-ouro {
+  background: linear-gradient(180deg, var(--color-gold100), var(--color-gold400));
+  color: #1a1206;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.botao-ouro:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.botao-ouro:active { transform: translateY(1px) scale(0.99); }
+
+/* Superfície elevada: fio de luz na aresta de cima, sombra embaixo. */
+.superficie {
+  background: linear-gradient(180deg, var(--color-bg2), var(--color-bg1));
+  border: 1px solid var(--color-line);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+.superficie::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: rgba(255, 250, 235, 0.07);
 }
