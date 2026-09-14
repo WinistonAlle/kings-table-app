@@ -482,34 +482,55 @@ export function Ficha3D({
        e pousava visivelmente mais gorda que a pilha. Escala não-uniforme em
        grupo que contém objetos de proporção fixa é sempre essa armadilha. */
     mesa.scale.setScalar(MESA_RAIO);
+    /* Fixa. A mesa não cresce, não encolhe e não gira em nenhum momento: a
+       única coisa que se mexe nesta dobra são as FICHAS. Uma mesa que respira
+       junto com a rolagem tira o olho de onde a informação está. */
     mesa.visible = false;
     scene.add(mesa);
 
     /* O feltro. Verde de mesa mesmo, e bem fosco: feltro não tem brilho, e um
        verde com reflexo vira plástico na hora. Escuro o bastante para o texto
        branco que fica por cima continuar legível. */
-    const feltro = new THREE.Mesh(
-      new THREE.CylinderGeometry(1, 1, 0.035, 128),
-      new THREE.MeshStandardMaterial({ color: 0x16351f, roughness: 0.97, metalness: 0 }),
-    );
+    /* Os três materiais da mesa ficam guardados: eles são os únicos que a
+       dobra apaga e acende. As fichas usam os materiais COMPARTILHADOS com a
+       ficha viajante — mexer na opacidade deles apagaria a peça que atravessa
+       a página inteira. */
+    const materiaisMesa: THREE.MeshStandardMaterial[] = [];
+
+    const matFeltro = new THREE.MeshStandardMaterial({
+      color: 0x16351f,
+      roughness: 0.97,
+      metalness: 0,
+      transparent: true,
+    });
+    materiaisMesa.push(matFeltro);
+    const feltro = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.035, 128), matFeltro);
     feltro.scale.x = MESA_OVAL;
     mesa.add(feltro);
 
     /* O aro. Dois anéis: o de fora é o estofado, escuro e sem cor; o de
        dentro é o fio de ouro que separa o estofado do feltro, e é ele que
        amarra a mesa à marca. */
-    const estofado = new THREE.Mesh(
-      new THREE.TorusGeometry(1.045, 0.062, 14, 160),
-      new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.6, metalness: 0.05 }),
-    );
+    const matEstofado = new THREE.MeshStandardMaterial({
+      color: 0x121212,
+      roughness: 0.6,
+      metalness: 0.05,
+      transparent: true,
+    });
+    materiaisMesa.push(matEstofado);
+    const estofado = new THREE.Mesh(new THREE.TorusGeometry(1.045, 0.062, 14, 160), matEstofado);
     estofado.rotation.x = Math.PI / 2;
     estofado.scale.x = MESA_OVAL;
     mesa.add(estofado);
 
-    const fioDeOuro = new THREE.Mesh(
-      new THREE.TorusGeometry(0.985, 0.006, 8, 160),
-      new THREE.MeshStandardMaterial({ color: 0x8b6d3c, roughness: 0.45, metalness: 0.2 }),
-    );
+    const matFio = new THREE.MeshStandardMaterial({
+      color: 0x8b6d3c,
+      roughness: 0.45,
+      metalness: 0.2,
+      transparent: true,
+    });
+    materiaisMesa.push(matFio);
+    const fioDeOuro = new THREE.Mesh(new THREE.TorusGeometry(0.985, 0.006, 8, 160), matFio);
     fioDeOuro.rotation.x = Math.PI / 2;
     fioDeOuro.position.y = 0.019;
     fioDeOuro.scale.x = MESA_OVAL;
@@ -554,6 +575,11 @@ export function Ficha3D({
      * de um grupo que tem rotação e escala não-uniforme, e refazer essa conta
      * à mão é onde se erra por meio centímetro que na tela vira a ficha
      * flutuando ao lado da pilha. */
+    /* Quanto de cada pilha ainda está na mesa, de 1 a 0. É isto que é
+       animado: a pilha some encolhendo e afundando no feltro, em vez de
+       desaparecer de um quadro para o outro. */
+    const vivas = new Array(LUGARES_NA_MESA).fill(1);
+
     const pilhaVencedora = pilhasMesa[0];
     const topoDaPilha = new THREE.Vector3();
     const medirTopo = () => {
@@ -663,12 +689,21 @@ export function Ficha3D({
         : 0;
       mesa.visible = entradaMesa > 0.002;
       if (mesa.visible) {
-        mesa.scale.setScalar(MESA_RAIO * entradaMesa);
+        /* Acende e apaga, e só. O tamanho é o mesmo do primeiro ao último
+           quadro da dobra. */
+        for (const m of materiaisMesa) m.opacity = entradaMesa;
         const caidos = quedasEm(est.progresso);
         pilhasMesa.forEach((pilha, i) => {
           /* A pilha 0 é a do campeão e nunca some: é nela que a ficha pousa.
              As outras caem da última para a primeira. */
-          pilha.visible = i === 0 || i > caidos;
+          const alvoVivo = i === 0 || i > caidos ? 1 : 0;
+          vivas[i] += (alvoVivo - vivas[i]) * Math.min(1, dt * 7);
+          const v = vivas[i];
+          pilha.visible = v > 0.01;
+          pilha.scale.setScalar(v);
+          /* Afunda um pouco enquanto encolhe: a pilha é retirada da mesa, não
+             evaporada. */
+          pilha.position.y = 0.018 - (1 - v) * 0.06;
         });
         medirTopo();
       }

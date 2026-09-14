@@ -45,7 +45,10 @@ const CENAS = [
   },
 ];
 
-const PASSOS = [
+/* Exportado: os três passos foram para o MEIO DA MESA (`Mesa.tsx`), que é
+   onde eles acontecem. Descrever o laço da noite ao lado de um desenho dele é
+   redundante; descrever em cima do desenho é legenda. */
+export const PASSOS = [
   {
     n: '01',
     titulo: 'Abra a mesa',
@@ -94,24 +97,6 @@ export function AntesDepois() {
         </li>
       </ol>
 
-      <div className="mt-20 max-w-2xl lg:mt-24">
-        <Rotulo>Com o King&apos;s Table</Rotulo>
-        <Titulo>
-          Três passos, e a noite <Realce>cuida de si</Realce>.
-        </Titulo>
-      </div>
-
-      <div className="mt-14 grid gap-8 md:grid-cols-3 lg:gap-10">
-        {PASSOS.map((p) => (
-          <div key={p.n} className="relative">
-            <span aria-hidden className="titulo t-ornamento block text-gold700">
-              {p.n}
-            </span>
-            <h3 className="titulo mt-4 t-sub text-gold200">{p.titulo}</h3>
-            <p className="mt-3 t-apoio text-text2">{p.texto}</p>
-          </div>
-        ))}
-      </div>
     </Secao>
   );
 }
