@@ -99,7 +99,7 @@ export function Cena() {
         style={{
           zIndex: 4,
           opacity: visivel
-            ? Math.min(1, Math.max(0, progresso / 0.06)) * (1 - progresso * 0.55)
+            ? Math.min(1, Math.max(0, progresso / 0.05)) * (1 - progresso * 0.55)
             : 0,
           background:
             'radial-gradient(46% 42% at 50% 50%, rgba(196,156,92,0.22) 0%, rgba(150,110,60,0.10) 42%, transparent 72%)',

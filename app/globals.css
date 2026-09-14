@@ -11,16 +11,32 @@
  * em luminosidades diferentes.
  */
 
+/* Preto e OURO, e nada de marrom.
+ *
+ * Medido antes de mexer: `text0` tinha 51,2% de saturação, praticamente a
+ * mesma do ouro da logo (46,8%). Ou seja, o texto do site inteiro era um
+ * creme, não um branco — e como texto é o que cobre mais área de uma página,
+ * era ele que pintava tudo de marrom. Os fundos vinham no mesmo caminho: 17,6%
+ * no bg0, que é um preto amarronzado.
+ *
+ * Agora os fundos são neutros de verdade e os textos guardam só 4% de calor,
+ * o suficiente para não virarem azulados ao lado do ouro. A LUMINOSIDADE de
+ * cada um é exatamente a de antes, então nenhuma relação de contraste mudou:
+ * o que saiu foi a cor, não o peso.
+ *
+ * A escala de ouro fica intocada. Ela passa a ser a ÚNICA fonte de cor da
+ * interface, que é o ponto: num sistema preto e dourado, tudo que não é ouro
+ * deveria ser cinza. */
 @theme {
-  --color-bg0: #0a0807;
-  --color-bg1: #11100e;
-  --color-bg2: #1a1816;
-  --color-bg3: #242220;
+  --color-bg0: #080808;
+  --color-bg1: #101010;
+  --color-bg2: #181818;
+  --color-bg3: #222222;
 
-  --color-text0: #f5ede0;
-  --color-text1: #c9bda6;
-  --color-text2: #7a7366;
-  --color-text3: #4a463f;
+  --color-text0: #ebebea;
+  --color-text1: #bab8b5;
+  --color-text2: #74716c;
+  --color-text3: #474542;
 
   --color-gold50:  #f3e5cd;
   --color-gold100: #e7d0ac;
@@ -35,8 +51,8 @@
   --color-ok: #78a885;
   --color-danger: #c85a5a;
 
-  --color-line: rgba(227, 203, 166, 0.09);
-  --color-lineStrong: rgba(227, 203, 166, 0.18);
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-lineStrong: rgba(255, 255, 255, 0.14);
 
   --font-display: var(--fonte-display);
   --font-sans: var(--fonte-ui);
@@ -87,12 +103,12 @@ body {
 .t-hero {
   font-size: clamp(2.5rem, 6.2vw, 4.8rem);
   line-height: 1.02;
-  letter-spacing: -0.025em;
+  letter-spacing: -0.035em;
 }
 .t-secao {
   font-size: clamp(2rem, 4.2vw, 3.05rem);
   line-height: 1.06;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 .t-sub { font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.015em; }
 .t-card { font-size: 1.28rem; line-height: 1.25; letter-spacing: -0.01em; }
@@ -111,16 +127,20 @@ body {
  * parágrafo solto (fora de card) carrega esta classe. */
 .medida { max-width: 60ch; }
 
-/* Título: serifa, corpo grande, entreletra apertada. Grotesca aqui devolveria
-   painel de controle; a serifa é o que diz clube.
+/* Título: sans geométrica, pesada, entreletra bem apertada.
+
+   Peso 800, e a entreletra negativa não é enfeite: letra grossa em corpo
+   grande cria vãos largos entre as palavras se o tracking ficar no padrão, e
+   o título desmancha. Apertar é o que faz a massa de letra virar um bloco
+   sólido, que é o que segura a página sobre o preto.
 
    `text-wrap: balance` reparte as linhas de um título em larguras parecidas.
    Sem ele o título de duas linhas sai com uma linha cheia e uma palavra
    sozinha embaixo, que é a forma mais barata de estragar uma capa. */
 .titulo {
   text-wrap: balance;
-  font-family: var(--font-display), Georgia, serif;
-  font-weight: 600;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
   /* Cormorant tem numeral antigo por padrão em alguns cortes; na web, número
      de título tem que ficar na linha das maiúsculas. */
   font-variant-numeric: lining-nums;
