@@ -35,7 +35,15 @@
 
   --color-text0: #ebebea;
   --color-text1: #bab8b5;
-  --color-text2: #74716c;
+  /* `text2` foi clareado de #74716c para #837f7a, e não foi por gosto.
+     Ele carrega o texto corrido da página e tinha 4,12:1 sobre o preto do
+     site — abaixo dos 4,5:1 que a norma pede para texto normal. Já estava
+     reprovado antes do fundo de raios; o fundo só tornou isso visível, ao
+     levar a superfície onde se lê de (8,8,8) para (22,21,19) e o contraste
+     para 3,68:1.
+     Este é o MENOR clareamento que passa em 4,5:1 com o fundo ligado: 4,50:1
+     ali, e 5,04:1 no preto puro. */
+  --color-text2: #837f7a;
   --color-text3: #474542;
 
   --color-gold50:  #f3e5cd;
@@ -219,3 +227,71 @@ p { text-wrap: pretty; }
  * continua visível em volta das letras, passando por trás delas. */
 main > section { position: relative; z-index: 10; }
 main > section#heroi { z-index: 0; }
+
+/* Fundo de raios (FundoRaios.tsx).
+ *
+ * Duas animações, e as duas mexem SÓ em transform e opacidade — as duas
+ * propriedades que a placa de vídeo resolve sem repintar. Esta página já tem
+ * um vídeo raspado pela rolagem e uma cena 3D dividindo a mesma GPU; um fundo
+ * que force repintura de tela cheia a cada quadro come o orçamento dos dois.
+ *
+ * A deriva é lenta de propósito (38s para ir e voltar). Fundo que se percebe
+ * em movimento deixa de ser fundo: ele tem que ser aquela coisa que a pessoa
+ * só nota quando olha fixo. */
+@keyframes fundo-deriva {
+  from { transform: translate3d(-3%, 0, 0); }
+  to   { transform: translate3d(3%, 0, 0); }
+}
+
+/* Cada raio respira no seu período (17s, 20s, 23s...) e com atraso negativo
+   diferente. Períodos que não são múltiplos entre si nunca casam o ciclo, e é
+   isso que impede o conjunto de virar um piscar regular — padrão que repete
+   visivelmente lê como papel de parede, não como luz. */
+@keyframes fundo-respira {
+  0%, 100% { opacity: 0.008; }
+  50%      { opacity: 0.022; }
+}
+
+.fundo-raios__grupo {
+  animation: fundo-deriva 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* A intensidade saiu de MEDIÇÃO, não do olho, e ela é baixa por dois motivos
+   que se somam:
+
+   1. **Contraste.** Onde os raios batiam com a força original, o fundo atrás
+      do texto chegava a (103, 89, 67). O texto de apoio (`text2`, #74716c)
+      caía para 1,40:1 ali — ilegível. Sobre o preto do site ele tem 4,03:1, e
+      qualquer clareada no fundo come essa margem, porque `text2` é escuro
+      demais para recuperar contraste contra uma superfície acesa.
+
+   2. **O marrom.** Medida a saturação média da página, ela pulou de 2,0% (o
+      número que a revisão de paleta alcançou) para 11,3%. Um banho de luz
+      dourada sobre a página inteira não é "preto e dourado": é a página
+      marrom de volta, com outro nome.
+
+   O número parece pequeno demais, e não é: são CINCO camadas somando no mesmo
+   pixel onde as máscaras se cruzam. A 0,035 cada, o cruzamento chegava a 37 de
+   ouro sobre um preto de 8. O efeito foi desenhado para um herói, onde não há
+   texto por cima; espalhado pela página inteira ele vira um véu quente sobre
+   tudo que se lê.
+
+   Fundo é o que a pessoa só percebe quando olha fixo. Se ele disputa leitura
+   ou tinge a página, ele deixou de ser fundo. */
+.fundo-raios__raio {
+  opacity: 0.012;
+  animation-name: fundo-respira;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+
+/* Quem pediu menos movimento recebe o mesmo desenho, parado. O fundo continua
+   fazendo o trabalho dele, que é não ser um retângulo preto. */
+@media (prefers-reduced-motion: reduce) {
+  .fundo-raios__grupo,
+  .fundo-raios__raio {
+    animation: none;
+  }
+}

@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Sora, Inter_Tight, DM_Mono } from 'next/font/google';
 import './globals.css';
 import { RolagemSuave } from '@/components/RolagemSuave';
+import { FundoRaios } from '@/components/FundoRaios';
 
 /* Três famílias, três papéis: Sora é a voz da marca nos títulos, Inter
    Tight é interface e texto corrido, DM Mono são os algarismos. */
@@ -62,6 +63,10 @@ export default function RootLayout({
   return (
     <html lang="pt-BR" className={`${display.variable} ${ui.variable} ${mono.variable}`}>
       <body>
+        {/* Antes de tudo no DOM: ele é fixo em z-index 0 e as seções vivem em
+            10 (ver globals.css), então a ordem aqui é o que garante que ele
+            fique atrás inclusive do herói, que também é 0. */}
+        <FundoRaios />
         <RolagemSuave />
         {children}
       </body>
