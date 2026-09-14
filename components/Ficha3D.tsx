@@ -113,20 +113,26 @@ const TOPO_Z = PILHAS[PILHA_DESTINO].z + ALTURA_DESTINO * Math.cos(INCLINACAO) *
 
    A regra que define os valores de `x`: a ficha nunca encosta na borda. Ficha
    cortada pela lateral não lê como movimento, lê como erro de posicionamento. */
+/* As frações NÃO são escolhidas no olho: são o centro de cada dobra, medido
+   na página montada. Em 1440x900 o percurso depois do herói tem 6221px e os
+   centros caem em 0,18 (antes e depois), 0,47 (recursos), 0,74 (preços),
+   0,88 (perguntas) e 0,99 (lista). Mexer na estrutura da página move esses
+   números, e é por isso que remexer as dobras obriga a remedir aqui — senão
+   a ficha passa a parar entre duas seções, que é onde ninguém está olhando. */
 type Pose = { x: number; y: number; z: number; escala: number; giroX: number; giroY: number; giroZ: number };
 
 const MARCOS: { em: number; pose: Pose }[] = [
   /* a emenda: exatamente onde o vídeo deixou, centrada e de frente */
   { em: 0.00, pose: { x: 0.00, y: 0.00, z: 0, escala: 1.00, giroX: 0, giroY: 0, giroZ: 0 } },
-  /* a dor: recua para a direita, encolhendo, e começa a virar de lado */
-  { em: 0.22, pose: { x: 1.30, y: -0.42, z: 0, escala: 0.38, giroX: 0.10, giroY: -0.9, giroZ: 0.22 } },
-  /* os três passos: atravessa para a esquerda, mais alta */
-  { em: 0.45, pose: { x: -1.34, y: 0.24, z: 0, escala: 0.32, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
-  /* os recursos: volta à direita, quase de perfil */
-  { em: 0.70, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -3.4, giroZ: 0.26 } },
-  /* os preços: desce deitando, já na inclinação da pilha */
+  /* antes e depois: recua para a direita, encolhendo, e começa a virar */
+  { em: 0.18, pose: { x: 1.30, y: -0.42, z: 0, escala: 0.38, giroX: 0.10, giroY: -0.9, giroZ: 0.22 } },
+  /* recursos: atravessa para a esquerda, mais alta */
+  { em: 0.47, pose: { x: -1.34, y: 0.24, z: 0, escala: 0.32, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
+  /* preços: volta à direita, quase de perfil */
+  { em: 0.74, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -3.4, giroZ: 0.26 } },
+  /* perguntas: desce deitando, já na inclinação da pilha */
   { em: 0.88, pose: { x: TOPO_X, y: TOPO_Y + 0.72, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO * 0.75, giroY: -5.4, giroZ: 0 } },
-  /* o fecho: pousa como a ficha de cima da pilha do meio */
+  /* a lista de espera: pousa como a ficha de cima da pilha do meio */
   { em: 1.00, pose: { x: TOPO_X, y: TOPO_Y, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO, giroY: -GIRO_INTEIRO, giroZ: 0 } },
 ];
 
@@ -362,7 +368,11 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
          canto, sem explicação, disputando atenção com o texto que está sendo
          lido. Entram uma depois da outra, de fora para dentro. */
       c.pilhas.forEach((g, i) => {
-        const atraso = 0.70 + i * 0.035;
+        /* 0,90 e não 0,70: com a estrutura de seis dobras, 0,70 cai no meio
+           dos PREÇOS, e as pilhas apareceriam três dobras antes do lugar
+           delas. Aqui elas sobem durante as perguntas e estão prontas quando
+           a lista de espera entra em quadro. */
+        const atraso = 0.90 + i * 0.02;
         const entrada = faixa(p, atraso, atraso + 0.10);
         g.visible = entrada > 0;
         g.scale.setScalar(PILHA_ESCALA * entrada);

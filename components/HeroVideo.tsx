@@ -187,7 +187,7 @@ export function HeroVideo() {
           </p>
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <BotaoOuro href="#precos">Abrir o meu clube</BotaoOuro>
+            <BotaoOuro href="#lista">Entrar na lista</BotaoOuro>
             <a
               href="#como-funciona"
               className="inline-flex items-center gap-2 rounded-full border border-lineStrong bg-bg0/40 px-7 py-3.5 t-apoio font-medium text-text1 backdrop-blur-sm transition-colors hover:border-gold500 hover:text-text0"

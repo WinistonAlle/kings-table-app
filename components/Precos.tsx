@@ -23,7 +23,7 @@ const PLANOS = [
       'Relógio, premiação e ranking',
       'Histórico da temporada',
     ],
-    cta: 'Começar',
+    cta: 'Entrar na lista',
     destaque: false,
   },
   {
@@ -37,7 +37,7 @@ const PLANOS = [
       'Comprovante conferido por leitura automática',
       'Estruturas de blind próprias',
     ],
-    cta: 'Começar',
+    cta: 'Entrar na lista',
     destaque: true,
   },
   {
@@ -51,7 +51,7 @@ const PLANOS = [
       'Marca própria no app',
       'Suporte direto',
     ],
-    cta: 'Falar com a gente',
+    cta: 'Entrar na lista',
     destaque: false,
   },
 ];
@@ -116,12 +116,12 @@ export function Precos() {
 
             <div className="mt-9">
               {p.destaque ? (
-                <BotaoOuro href="#" className="w-full justify-center">
+                <BotaoOuro href="#lista" className="w-full justify-center">
                   {p.cta}
                 </BotaoOuro>
               ) : (
                 <a
-                  href="#"
+                  href="#lista"
                   className="inline-flex w-full items-center justify-center rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
                 >
                   {p.cta}

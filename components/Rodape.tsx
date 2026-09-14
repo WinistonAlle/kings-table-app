@@ -1,20 +1,24 @@
 import { Coroa, Marca } from './Marca';
-import { BotaoOuro, Filete, Secao } from './Secao';
+import { Filete, Secao } from './Secao';
+import { ListaEspera } from './ListaEspera';
 
 export function Fechamento() {
   return (
-    <Secao className="py-24 text-center lg:py-32">
+    <Secao id="lista" className="py-24 text-center lg:py-32">
       <div className="mx-auto flex max-w-2xl flex-col items-center">
         <Marca className="w-[72px] text-gold500" />
         <h2 className="titulo mt-9 t-secao text-text0">
           A próxima quarta pode ser a última na planilha.
         </h2>
         <p className="medida mx-auto mt-6 t-corpo text-text2">
-          Abra o seu clube em dois minutos e leve o King&apos;s Table para a
-          mesa desta semana.
+          O King&apos;s Table ainda não abriu. Deixe o seu e-mail e você entra
+          antes de todo mundo, com o preço de quem chegou primeiro.
         </p>
-        <div className="mt-10">
-          <BotaoOuro href="#precos">Abrir o meu clube</BotaoOuro>
+        {/* O destino de todos os botões da página. Fica AQUI, e não numa dobra
+            própria, porque é também onde a pilha de fichas 3D pousa: o
+            pagamento visual da página acontece junto com o pedido. */}
+        <div className="mt-10 flex justify-center">
+          <ListaEspera />
         </div>
         <div className="mt-14">
           <Filete largura={132} />
