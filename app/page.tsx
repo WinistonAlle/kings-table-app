@@ -2,6 +2,7 @@ import { HeroVideo } from '@/components/HeroVideo';
 import { Cena } from '@/components/Cena';
 import { Promessa } from '@/components/Promessa';
 import { AntesDepois } from '@/components/AntesDepois';
+import { Mesa } from '@/components/Mesa';
 import { Recursos } from '@/components/Recursos';
 import { Precos } from '@/components/Precos';
 import { Perguntas } from '@/components/Perguntas';
@@ -25,6 +26,7 @@ export default function Home() {
       <HeroVideo />
       <Promessa />
       <AntesDepois />
+      <Mesa />
       <Recursos />
       <Precos />
       <Perguntas />

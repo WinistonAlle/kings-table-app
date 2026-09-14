@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Ficha3D } from './Ficha3D';
+import { Ficha3D, PAUSA_MESA } from './Ficha3D';
 import { AnelTexto } from './AnelTexto';
 import { useMenosMovimento, useTelaPequena } from './useRolagem';
 
@@ -39,6 +39,10 @@ const ANTECIPACAO = 4;
 
 export function Cena() {
   const [progresso, setProgresso] = useState(0);
+  /* Onde a mesa de pôquer está na tela, para a ficha poder pousar nela. Medido
+     junto com a rolagem, no mesmo quadro agrupado: é uma leitura de layout, e
+     fazê-la num ouvinte separado significaria duas leituras por quadro. */
+  const [ancoraMesa, setAncoraMesa] = useState<{ x: number; y: number } | null>(null);
   const [visivel, setVisivel] = useState(false);
   const pedido = useRef(0);
   const pequena = useTelaPequena();
@@ -69,6 +73,17 @@ export function Cena() {
       const total = document.documentElement.scrollHeight - window.innerHeight;
       const percurso = total - fim;
       setProgresso(percurso <= 0 ? 0 : Math.min(1, Math.max(0, (y - fim) / percurso)));
+
+      const mesa = document.querySelector('#mesa .mesa');
+      if (mesa) {
+        const r = mesa.getBoundingClientRect();
+        setAncoraMesa({
+          x: r.left + r.width / 2,
+          y: r.top + r.height * (0.5 + PAUSA_MESA.desvioY),
+        });
+      } else {
+        setAncoraMesa(null);
+      }
     };
 
     const aoRolar = () => {
@@ -95,7 +110,7 @@ export function Cena() {
           o fundo de raios (`FundoRaios.tsx`) assumiu essa função para a página
           inteira, e o brilho virou o que ele era de fato depois disso — uma
           mancha redonda no meio da tela, sem nada que a justificasse. */}
-      <Ficha3D progresso={progresso} visivel={visivel} />
+      <Ficha3D progresso={progresso} visivel={visivel} ancoraMesa={ancoraMesa} />
       {/* Em cima da ficha (z-index 6 contra 5): o anel é texto e precisa ser
           lido, não competir com a peça. */}
       <AnelTexto progresso={progresso} visivel={visivel} />

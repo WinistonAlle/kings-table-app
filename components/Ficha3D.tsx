@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { desenharLateral } from './fichaTextura';
 
@@ -170,6 +170,37 @@ export function projetar(
   };
 }
 
+/* O caminho inverso: de um ponto da TELA para as coordenadas do mundo.
+ *
+ * Serve para a ficha mirar um elemento da página — no caso, o centro da mesa
+ * de pôquer, que muda de lugar com a largura da janela e com o layout da
+ * dobra. Hard-codar um `x` de mundo funcionaria em 1440px e erraria em todas
+ * as outras larguras, que é onde ninguém testa. */
+export function desprojetar(telaX: number, telaY: number, largura: number, altura: number) {
+  const dist = distanciaPara(ocupacaoNaJanela(largura, altura));
+  const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * dist;
+  const meiaLargura = meiaAltura * (largura / altura);
+  return {
+    x: ((telaX - largura / 2) / (largura / 2)) * meiaLargura,
+    y: -((telaY - altura / 2) / (altura / 2)) * meiaAltura,
+  };
+}
+
+/* A segunda pausa: em cima da mesa, virando o bolo da noite.
+ *
+ * Diferente da primeira, esta não tem posição fixa. Ela MIRA o centro da mesa
+ * desenhada na dobra: quem informa é a `Cena` (medindo o SVG no DOM) e quem
+ * converte é o `desprojetar` acima. */
+export const PAUSA_MESA = {
+  de: 0.4,
+  ate: 0.49,
+  escala: 0.3,
+  /* Quanto a ficha sobe em relação ao centro da mesa, em fração da altura do
+     desenho. Pousada no centro exato, ela tapava o "BOLO R$ 400" — que é
+     justamente o número que a dobra existe para mostrar. */
+  desvioY: -0.11,
+};
+
 /* As frações NÃO são escolhidas no olho: são o centro de cada dobra, medido
    na página montada. Em 1440x900 o percurso depois do herói tem 6221px e os
    centros caem em 0,18 (antes e depois), 0,47 (recursos), 0,74 (preços),
@@ -181,28 +212,46 @@ type Pose = { x: number; y: number; z: number; escala: number; giroX: number; gi
 const MARCOS: { em: number; pose: Pose }[] = [
   /* a emenda: exatamente onde o vídeo deixou, centrada e de frente */
   { em: 0.00, pose: { x: 0.00, y: 0.00, z: 0, escala: 1.00, giroX: 0, giroY: 0, giroZ: 0 } },
-  /* antes e depois: recua para a direita, encolhendo, e começa a virar */
-  /* A PAUSA. Dois marcos com a pose IDÊNTICA: entre eles a interpolação não
-     tem o que interpolar, e a ficha fica parada de verdade — inclusive a
-     rotação, que é o que costuma denunciar uma pausa falsa. É neste trecho
-     que o anel de texto gira em volta dela (ver `AnelTexto.tsx`), e o efeito
-     só funciona se a peça estiver mesmo imóvel: anel girando em volta de uma
-     ficha que também gira vira duas coisas girando. */
+
+  /* A PRIMEIRA PAUSA, na dobra da promessa. Dois marcos com a pose IDÊNTICA:
+     entre eles a interpolação não tem o que interpolar, e a ficha fica parada
+     de verdade — inclusive a rotação, que é o que costuma denunciar uma pausa
+     falsa. É neste trecho que o anel de texto gira em volta dela (ver
+     `AnelTexto.tsx`), e o efeito só funciona se a peça estiver mesmo imóvel:
+     anel girando em volta de uma ficha que também gira vira duas coisas
+     girando. */
   { em: POSE_PAUSA.de, pose: POSE_PAUSA.pose },
   { em: POSE_PAUSA.ate, pose: POSE_PAUSA.pose },
-  /* recursos: atravessa para a esquerda, mais alta */
-  /* `y` bem abaixo do centro: a dobra dos recursos passou a ter o ÍNDICE
-     nesta altura, à esquerda, e a ficha cruzava em cima dos nomes dos grupos.
-     A coluna esquerda fica vazia abaixo do índice, e é ali que ela cabe sem
-     tapar nada. */
-  { em: 0.47, pose: { x: -1.34, y: -0.87, z: 0, escala: 0.30, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
+
+  /* antes e depois: recua para a direita, encolhendo, e começa a virar */
+  { em: 0.27, pose: { x: 1.30, y: -0.42, z: 0, escala: 0.38, giroX: 0.10, giroY: -2.6, giroZ: 0.22 } },
+
+  /* A SEGUNDA PAUSA, em cima da mesa. Aqui ela fica DE FRENTE e sem
+     inclinação (`giroY` numa volta fechada, `giroX` e `giroZ` em zero): a
+     mesa é vista de cima, e de cima uma ficha no feltro é um círculo. De
+     perfil, como estava, ela parecia equilibrada na borda.
+     `x` e `y` são substituídos em tempo de desenho pela âncora medida no DOM
+     — ver o comentário de `desprojetar`. */
+  { em: PAUSA_MESA.de, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: 0, giroY: -GIRO_INTEIRO, giroZ: 0 } },
+  { em: PAUSA_MESA.ate, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: 0, giroY: -GIRO_INTEIRO, giroZ: 0 } },
+
+  /* recursos: desce para o vazio da coluna esquerda, abaixo do índice — que é
+     onde ela cabe sem cruzar os nomes dos grupos */
+  { em: 0.60, pose: { x: -1.34, y: -0.87, z: 0, escala: 0.30, giroX: -0.14, giroY: -7.6, giroZ: -0.18 } },
+
   /* preços: volta à direita, quase de perfil */
-  { em: 0.74, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -3.4, giroZ: 0.26 } },
+  { em: 0.74, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -8.9, giroZ: 0.26 } },
+
   /* perguntas: desce deitando, já na inclinação da pilha */
-  { em: 0.88, pose: { x: TOPO_X, y: TOPO_Y + 0.72, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO * 0.75, giroY: -5.4, giroZ: 0 } },
-  /* a lista de espera: pousa como a ficha de cima da pilha do meio */
-  { em: 1.00, pose: { x: TOPO_X, y: TOPO_Y, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO, giroY: -GIRO_INTEIRO, giroZ: 0 } },
+  { em: 0.88, pose: { x: TOPO_X, y: TOPO_Y + 0.72, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO * 0.75, giroY: -10.6, giroZ: 0 } },
+
+  /* a lista de espera: pousa como a ficha de cima da pilha do meio.
+     `giroY` em duas voltas fechadas: parar no meio de uma volta deixaria a
+     peça de cima da pilha torta, e pilha com a ficha de cima torta não lê
+     como pilha. */
+  { em: 1.00, pose: { x: TOPO_X, y: TOPO_Y, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO, giroY: -2 * GIRO_INTEIRO, giroZ: 0 } },
 ];
+
 
 function interpolar(p: number): Pose {
   let a = MARCOS[0];
@@ -239,9 +288,24 @@ const TILT_MAX = 0.20;       // radianos
 const GIRO_POR_ROLAGEM = 7.0; // radianos por unidade de progresso por segundo
 const ATRITO = 2.4;           // por segundo: o quanto o giro extra perde por si
 
-export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: boolean }) {
+export function Ficha3D({
+  progresso,
+  visivel,
+  ancoraMesa,
+}: {
+  progresso: number;
+  visivel: boolean;
+  /** Centro da mesa na tela, em pixels, ou null quando ela não está montada. */
+  ancoraMesa: { x: number; y: number } | null;
+}) {
   const tela = useRef<HTMLCanvasElement>(null);
   const alvo = useRef(0);
+  const ancora = useRef<{ x: number; y: number } | null>(null);
+  /* A ficha vive ABAIXO do conteúdo (z 5 contra 10), senão ela taparia texto
+     ao atravessar a página. Na pausa da mesa isso se inverte: ali ela precisa
+     estar EM CIMA do feltro, que é opaco, ou ela simplesmente não aparece. E
+     ali não há texto embaixo dela — só a mesa vazia. */
+  const [naMesa, setNaMesa] = useState(false);
   const cena = useRef<{
     renderer: THREE.WebGLRenderer;
     camera: THREE.PerspectiveCamera;
@@ -424,7 +488,20 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
          do vídeo; assim que ela sai do centro, ninguém tem com o que comparar. */
       const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * c.camera.position.z;
       const desloc = DESLOCAMENTO_X * 2 * meiaAltura * (1 - faixa(p, 0, 0.22));
-      c.ficha.position.set(pose.x + desloc, pose.y, pose.z);
+      /* Dentro da pausa da mesa, a posição vem da MESA, não do marco: ela é
+         medida no DOM a cada rolagem e convertida para o mundo. Uma janela
+         mais estreita move o desenho da mesa, e a ficha acompanha. */
+      let alvoX = pose.x + desloc;
+      let alvoY = pose.y;
+      if (ancora.current && p > PAUSA_MESA.de - 0.06 && p < PAUSA_MESA.ate + 0.06) {
+        const mundo = desprojetar(ancora.current.x, ancora.current.y, largura, altura);
+        /* Mistura suave nas bordas da janela, para a ficha CHEGAR à mesa em
+           vez de saltar para ela. */
+        const forca = faixa(p, PAUSA_MESA.de - 0.06, PAUSA_MESA.de) * (1 - faixa(p, PAUSA_MESA.ate, PAUSA_MESA.ate + 0.06));
+        alvoX = alvoX + (mundo.x - alvoX) * forca;
+        alvoY = alvoY + (mundo.y - alvoY) * forca;
+      }
+      c.ficha.position.set(alvoX, alvoY, pose.z);
       c.ficha.scale.setScalar(pose.escala);
       c.ficha.rotation.set(
         pose.giroX + mao.y * TILT_MAX * licenca,
@@ -477,6 +554,16 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
     alvo.current = progresso;
   }, [progresso]);
 
+  useEffect(() => {
+    ancora.current = ancoraMesa;
+  }, [ancoraMesa]);
+
+  useEffect(() => {
+    setNaMesa(
+      ancoraMesa != null && progresso >= PAUSA_MESA.de && progresso <= PAUSA_MESA.ate,
+    );
+  }, [ancoraMesa, progresso]);
+
   return (
     <canvas
       ref={tela}
@@ -490,7 +577,7 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
          nada por baixo para casar. */
       style={{
         opacity: visivel ? 1 : 0,
-        zIndex: 5,
+        zIndex: naMesa ? 11 : 5,
         transition: visivel ? 'none' : 'opacity 300ms ease',
       }}
     />
