@@ -105,6 +105,29 @@ export function HeroVideo() {
                 onCanPlayThrough={() => setPronto(true)}
                 className="h-full w-full object-cover"
               />
+
+              {/* A maleta VAZIA, para a ficha ter de onde sair.
+                  O último quadro do vídeo tem a ficha dentro dele. Quando a
+                  ficha 3D assume e começa a atravessar a página, a do vídeo
+                  continuaria ali, parada no centro: duas fichas na tela, e a
+                  ilusão inteira desmonta.
+                  Esta é a mesma cena sem a peça. Ela entra nos últimos 1,5%
+                  da rolagem do herói, que é depois de a ficha 3D já estar
+                  acesa e exatamente em cima da do vídeo — a troca acontece
+                  escondida atrás dela.
+                  Os níveis foram casados por medição, não no olho: ganho e
+                  offset por canal ajustados contra o quadro final do vídeo,
+                  fora do disco da ficha. Distância média de cor resultante:
+                  2,47 em 255. Sem isso a imagem entrava mais clara e o fundo
+                  dava um salto de brilho no instante da troca. */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/video/maleta-vazia.jpg"
+                alt=""
+                aria-hidden
+                className="absolute inset-0 h-full w-full object-cover"
+                style={{ opacity: Math.min(1, Math.max(0, (p - 0.985) / 0.015)) }}
+              />
             </>
           )}
 
