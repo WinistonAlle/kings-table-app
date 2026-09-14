@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { desenharLateral } from './fichaTextura';
+import { assinarMesa, mesaAgora } from './mesaSinal';
+import { LUGARES_NA_MESA, quedasEm } from './Mesa';
 
 /* A ficha 3D que assume quando o vídeo termina e atravessa a página.
  *
@@ -191,14 +193,48 @@ export function desprojetar(telaX: number, telaY: number, largura: number, altur
  * Diferente da primeira, esta não tem posição fixa. Ela MIRA o centro da mesa
  * desenhada na dobra: quem informa é a `Cena` (medindo o SVG no DOM) e quem
  * converte é o `desprojetar` acima. */
+/* A MESA de pôquer, dentro desta mesma cena.
+ *
+ * Dois números mandam no desenho e valem explicação:
+ *
+ * `MESA_TOMBO` é quanto o tampo tomba na direção da câmera. Em 0 ele fica
+ * deitado e a câmera, que olha no eixo Z, o veria de canto — uma linha. Em
+ * π/2 ele fica de frente e vira um círculo chapado, sem perspectiva nenhuma.
+ * 1,05 rad (60°) deixa a elipse achatada o suficiente para ler "mesa vista de
+ * cima" e ainda sobrar profundidade entre a borda de cima e a de baixo.
+ *
+ * `MESA_RAIO` e `MESA_OVAL` foram escolhidos contra o que a câmera enxerga, e
+ * não no olho: no plano z=0 a cena mede 3,12 de altura e ~5,0 de largura numa
+ * janela 16:10. Com raio 1,78 e oval 1,6, o tampo mede 5,7 de largura (passa
+ * das bordas, que é o "de ponta a ponta" pedido) e 3,08 de altura depois do
+ * tombo — cabe na vertical com uma folga fina, que é o que mantém o aro
+ * visível em cima e embaixo. Aro que sai de quadro deixa de ser mesa e vira
+ * fundo verde. */
+const MESA_TOMBO = 1.05;
+const MESA_RAIO = 1.78;
+const MESA_OVAL = 1.6;
+/* Onde as pilhas ficam, em fração do raio: dentro do aro, na beirada do
+   feltro, como fichas de quem está sentado. */
+const MESA_ANEL = 0.7;
+const MESA_FICHAS_POR_PILHA = 9;
+
 export const PAUSA_MESA = {
+  /* A janela é a da DOBRA, medida na página montada: a seção da mesa vai de
+     4434 a 5964 de rolagem, o que no percurso da ficha (7470px depois do
+     herói) cai entre 0,40 e 0,485. Ficha que chega antes pousa numa mesa que
+     ainda não entrou; que sai depois fica pendurada no vazio. */
   de: 0.4,
-  ate: 0.49,
-  escala: 0.3,
-  /* Quanto a ficha sobe em relação ao centro da mesa, em fração da altura do
-     desenho. Pousada no centro exato, ela tapava o "BOLO R$ 400" — que é
-     justamente o número que a dobra existe para mostrar. */
-  desvioY: -0.11,
+  ate: 0.485,
+  /* O tamanho da ficha quando ela pousa: o MESMO das fichas da mesa, para a
+     pilha não ficar com uma peça de outro jogo em cima. As da mesa estão a
+     0,1 dentro de um grupo escalado por MESA_RAIO, o que dá 0,178 de raio no
+     mundo — e é esse número que a viajante tem que alcançar, encolhendo.
+     Ela entra na página com escala 1: a viagem inteira é essa diminuição. */
+  escala: RAIO * 0.1 * MESA_RAIO,
+  /* Deitada no feltro. `criarFicha` entrega a peça de frente para a câmera, e
+     o tampo está tombado em MESA_TOMBO: a diferença é exatamente o quanto ela
+     precisa girar para ficar plana sobre a mesa. */
+  giroX: MESA_TOMBO - Math.PI / 2,
 };
 
 /* As frações NÃO são escolhidas no olho: são o centro de cada dobra, medido
@@ -232,18 +268,18 @@ const MARCOS: { em: number; pose: Pose }[] = [
      perfil, como estava, ela parecia equilibrada na borda.
      `x` e `y` são substituídos em tempo de desenho pela âncora medida no DOM
      — ver o comentário de `desprojetar`. */
-  { em: PAUSA_MESA.de, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: 0, giroY: -GIRO_INTEIRO, giroZ: 0 } },
-  { em: PAUSA_MESA.ate, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: 0, giroY: -GIRO_INTEIRO, giroZ: 0 } },
+  { em: PAUSA_MESA.de, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: PAUSA_MESA.giroX, giroY: -GIRO_INTEIRO, giroZ: 0 } },
+  { em: PAUSA_MESA.ate, pose: { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: PAUSA_MESA.giroX, giroY: -GIRO_INTEIRO, giroZ: 0 } },
 
   /* recursos: desce para o vazio da coluna esquerda, abaixo do índice — que é
      onde ela cabe sem cruzar os nomes dos grupos */
-  { em: 0.60, pose: { x: -1.34, y: -0.87, z: 0, escala: 0.30, giroX: -0.14, giroY: -7.6, giroZ: -0.18 } },
+  { em: 0.63, pose: { x: -1.34, y: -0.87, z: 0, escala: 0.30, giroX: -0.14, giroY: -7.6, giroZ: -0.18 } },
 
   /* preços: volta à direita, quase de perfil */
-  { em: 0.74, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -8.9, giroZ: 0.26 } },
+  { em: 0.78, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -8.9, giroZ: 0.26 } },
 
   /* perguntas: desce deitando, já na inclinação da pilha */
-  { em: 0.88, pose: { x: TOPO_X, y: TOPO_Y + 0.72, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO * 0.75, giroY: -10.6, giroZ: 0 } },
+  { em: 0.90, pose: { x: TOPO_X, y: TOPO_Y + 0.72, z: TOPO_Z, escala: PILHA_ESCALA, giroX: INCLINACAO * 0.75, giroY: -10.6, giroZ: 0 } },
 
   /* a lista de espera: pousa como a ficha de cima da pilha do meio.
      `giroY` em duas voltas fechadas: parar no meio de uma volta deixaria a
@@ -291,21 +327,17 @@ const ATRITO = 2.4;           // por segundo: o quanto o giro extra perde por si
 export function Ficha3D({
   progresso,
   visivel,
-  ancoraMesa,
 }: {
   progresso: number;
   visivel: boolean;
-  /** Centro da mesa na tela, em pixels, ou null quando ela não está montada. */
-  ancoraMesa: { x: number; y: number } | null;
 }) {
   const tela = useRef<HTMLCanvasElement>(null);
   const alvo = useRef(0);
-  const ancora = useRef<{ x: number; y: number } | null>(null);
-  /* A ficha vive ABAIXO do conteúdo (z 5 contra 10), senão ela taparia texto
-     ao atravessar a página. Na pausa da mesa isso se inverte: ali ela precisa
-     estar EM CIMA do feltro, que é opaco, ou ela simplesmente não aparece. E
-     ali não há texto embaixo dela — só a mesa vazia. */
-  const [naMesa, setNaMesa] = useState(false);
+  /* A ficha (e a mesa) vivem ABAIXO do conteúdo, em z 5 contra os 10 das
+     seções. Na dobra da mesa isso é o que se QUER: o conteúdo do bloco fica no
+     meio do feltro. E a pilha em que a peça pousa está na beirada, longe do
+     texto, então ninguém tapa ninguém. */
+  const estadoMesa = useRef(mesaAgora());
   const cena = useRef<{
     renderer: THREE.WebGLRenderer;
     camera: THREE.PerspectiveCamera;
@@ -390,12 +422,26 @@ export function Ficha3D({
     /* Geometrias e materiais nascem UMA vez e são compartilhados. A cena tem
        trinta fichas no fecho; trinta cópias de uma textura de 1024px seriam
        trinta envios para a placa desenhando a mesma coisa. */
-    const criarFicha = () => {
+    const criarFicha = (deitada = false) => {
       const g = new THREE.Group();
       const corpo = new THREE.Mesh(geoCorpo, [materialLado, materialFace, materialFace]);
-      /* O cilindro do three nasce em pé; deitar em X põe a face para a câmera. */
-      corpo.rotation.x = Math.PI / 2;
-      g.add(corpo, new THREE.Mesh(geoBisel, materialBisel));
+      const bisel = new THREE.Mesh(geoBisel, materialBisel);
+      if (deitada) {
+        /* DEITADA: como uma ficha numa mesa, face para cima. O cilindro do
+           three já nasce assim (eixo em Y), então o corpo não gira — só o
+           bisel, que nasce no plano XY e precisa ir para o XZ para contornar
+           a peça em vez de cortá-la ao meio.
+           Isto importa mais do que parece: a primeira versão empilhava fichas
+           "de frente" e depois tombava cada uma em X. Girar em Y DEPOIS de
+           tombar em X não gira a peça no próprio eixo, faz ela cambalhotar —
+           e a pilha inteira virava uma bola de fichas fanadas. */
+        bisel.rotation.x = Math.PI / 2;
+      } else {
+        /* DE FRENTE, para a câmera: é a pose da ficha que atravessa a
+           página, e a que a emenda com o vídeo calibra. */
+        corpo.rotation.x = Math.PI / 2;
+      }
+      g.add(corpo, bisel);
       return g;
     };
 
@@ -423,6 +469,100 @@ export function Ficha3D({
       scene.add(g);
       return g;
     });
+
+    /* ------------------------------------------------------------ a mesa */
+
+    const mesa = new THREE.Group();
+    /* Tomba o tampo na direção da câmera. Ver MESA_TOMBO. */
+    mesa.rotation.x = MESA_TOMBO;
+    /* Escala UNIFORME, e o oval fica nas peças que são ovais.
+       Com a escala do grupo achatada em X (que era como isto começou), TUDO
+       dentro dela herdava a deformação — inclusive a espessura das fichas, que
+       saíam esmagadas, enquanto a ficha viajante chegava com a proporção certa
+       e pousava visivelmente mais gorda que a pilha. Escala não-uniforme em
+       grupo que contém objetos de proporção fixa é sempre essa armadilha. */
+    mesa.scale.setScalar(MESA_RAIO);
+    mesa.visible = false;
+    scene.add(mesa);
+
+    /* O feltro. Verde de mesa mesmo, e bem fosco: feltro não tem brilho, e um
+       verde com reflexo vira plástico na hora. Escuro o bastante para o texto
+       branco que fica por cima continuar legível. */
+    const feltro = new THREE.Mesh(
+      new THREE.CylinderGeometry(1, 1, 0.035, 128),
+      new THREE.MeshStandardMaterial({ color: 0x16351f, roughness: 0.97, metalness: 0 }),
+    );
+    feltro.scale.x = MESA_OVAL;
+    mesa.add(feltro);
+
+    /* O aro. Dois anéis: o de fora é o estofado, escuro e sem cor; o de
+       dentro é o fio de ouro que separa o estofado do feltro, e é ele que
+       amarra a mesa à marca. */
+    const estofado = new THREE.Mesh(
+      new THREE.TorusGeometry(1.045, 0.062, 14, 160),
+      new THREE.MeshStandardMaterial({ color: 0x121212, roughness: 0.6, metalness: 0.05 }),
+    );
+    estofado.rotation.x = Math.PI / 2;
+    estofado.scale.x = MESA_OVAL;
+    mesa.add(estofado);
+
+    const fioDeOuro = new THREE.Mesh(
+      new THREE.TorusGeometry(0.985, 0.006, 8, 160),
+      new THREE.MeshStandardMaterial({ color: 0x8b6d3c, roughness: 0.45, metalness: 0.2 }),
+    );
+    fioDeOuro.rotation.x = Math.PI / 2;
+    fioDeOuro.position.y = 0.019;
+    fioDeOuro.scale.x = MESA_OVAL;
+    mesa.add(fioDeOuro);
+
+    /* As pilhas dos jogadores, em volta do feltro.
+     *
+     * Elas são FILHAS da mesa, então herdam o tombo e ficam em pé sobre o
+     * tampo sem ninguém calcular ângulo. E a escala não-uniforme do grupo
+     * (o oval) achataria as fichas, então cada pilha desfaz essa escala em si
+     * mesma: é o preço de fazer o oval por escala em vez de geometria. */
+    const pilhasMesa = Array.from({ length: LUGARES_NA_MESA }, (_, i) => {
+      const a = (i / LUGARES_NA_MESA) * Math.PI * 2 + Math.PI / 2;
+      const g = new THREE.Group();
+      /* O X acompanha o oval do tampo à mão, já que o grupo não deforma mais
+         nada: é assim que as pilhas seguem a borda em vez de ficarem num
+         círculo dentro de uma elipse. */
+      g.position.set(Math.cos(a) * MESA_ANEL * MESA_OVAL, 0.018, Math.sin(a) * MESA_ANEL);
+      /* Fichas pequenas: a mesa é grande, e pilha do tamanho da ficha
+         viajante faria a mesa parecer de brinquedo. */
+      const tamanho = 0.1;
+      for (let n = 0; n < MESA_FICHAS_POR_PILHA; n++) {
+        const f = criarFicha(true);
+        /* Ângulo áureo em torno do eixo da própria ficha: os encaixes nunca
+           repetem alinhamento. Pilha de verdade nunca fica com as bordas
+           casadas, e casadas é justamente o que faz um render parecer
+           render. */
+        f.rotation.y = (n * 2.39996) % (Math.PI * 2);
+        f.position.y = n * ESPESSURA * tamanho;
+        f.position.x = Math.sin(n * 1.7) * 0.004;
+        f.position.z = Math.cos(n * 2.3) * 0.004;
+        f.scale.setScalar(tamanho);
+        g.add(f);
+      }
+      mesa.add(g);
+      return g;
+    });
+
+    /* Onde a ficha viajante pousa: em cima da pilha que sobra.
+     *
+     * Calculado do MUNDO, com `localToWorld`, e não estimado: a pilha é neta
+     * de um grupo que tem rotação e escala não-uniforme, e refazer essa conta
+     * à mão é onde se erra por meio centímetro que na tela vira a ficha
+     * flutuando ao lado da pilha. */
+    const pilhaVencedora = pilhasMesa[0];
+    const topoDaPilha = new THREE.Vector3();
+    const medirTopo = () => {
+      mesa.updateMatrixWorld(true);
+      topoDaPilha
+        .set(0, MESA_FICHAS_POR_PILHA * ESPESSURA * 0.1, 0)
+        .applyMatrix4(pilhaVencedora.matrixWorld);
+    };
+    medirTopo();
 
     cena.current = { renderer, camera, scene, ficha, pilhas };
 
@@ -488,20 +628,24 @@ export function Ficha3D({
          do vídeo; assim que ela sai do centro, ninguém tem com o que comparar. */
       const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * c.camera.position.z;
       const desloc = DESLOCAMENTO_X * 2 * meiaAltura * (1 - faixa(p, 0, 0.22));
-      /* Dentro da pausa da mesa, a posição vem da MESA, não do marco: ela é
-         medida no DOM a cada rolagem e convertida para o mundo. Uma janela
-         mais estreita move o desenho da mesa, e a ficha acompanha. */
+      /* Dentro da pausa, a ficha mira o TOPO DA PILHA vencedora, e esse ponto
+         vem do mundo (`localToWorld`), não de uma conta à mão: a pilha é neta
+         de um grupo com rotação e escala não-uniforme, e refazer isso na mão é
+         onde se erra por meio centímetro — que na tela vira a peça flutuando
+         ao lado da pilha em vez de em cima dela.
+         A mistura nas bordas da janela existe para ela CHEGAR à mesa, em vez
+         de saltar para lá. */
       let alvoX = pose.x + desloc;
       let alvoY = pose.y;
-      if (ancora.current && p > PAUSA_MESA.de - 0.06 && p < PAUSA_MESA.ate + 0.06) {
-        const mundo = desprojetar(ancora.current.x, ancora.current.y, largura, altura);
-        /* Mistura suave nas bordas da janela, para a ficha CHEGAR à mesa em
-           vez de saltar para ela. */
-        const forca = faixa(p, PAUSA_MESA.de - 0.06, PAUSA_MESA.de) * (1 - faixa(p, PAUSA_MESA.ate, PAUSA_MESA.ate + 0.06));
-        alvoX = alvoX + (mundo.x - alvoX) * forca;
-        alvoY = alvoY + (mundo.y - alvoY) * forca;
+      let alvoZ = pose.z;
+      const forcaMesa =
+        faixa(p, PAUSA_MESA.de - 0.08, PAUSA_MESA.de) * (1 - faixa(p, PAUSA_MESA.ate, PAUSA_MESA.ate + 0.06));
+      if (forcaMesa > 0) {
+        alvoX += (topoDaPilha.x - alvoX) * forcaMesa;
+        alvoY += (topoDaPilha.y - alvoY) * forcaMesa;
+        alvoZ += (topoDaPilha.z - alvoZ) * forcaMesa;
       }
-      c.ficha.position.set(alvoX, alvoY, pose.z);
+      c.ficha.position.set(alvoX, alvoY, alvoZ);
       c.ficha.scale.setScalar(pose.escala);
       c.ficha.rotation.set(
         pose.giroX + mao.y * TILT_MAX * licenca,
@@ -509,7 +653,27 @@ export function Ficha3D({
         pose.giroZ,
       );
 
-      /* As pilhas só existem no fecho. Antes disso seriam objetos parados num
+      /* A mesa e as pilhas dela, comandadas pela dobra.
+         `estadoMesa` é escrito pela seção enquanto ela rola (ver
+         `mesaSinal.ts`), então quem manda no que se vê é a rolagem, não um
+         relógio correndo num canto da página. */
+      const est = estadoMesa.current;
+      const entradaMesa = est.ativa
+        ? faixa(est.progresso, 0.0, 0.1) * (1 - faixa(est.progresso, 0.9, 1.0))
+        : 0;
+      mesa.visible = entradaMesa > 0.002;
+      if (mesa.visible) {
+        mesa.scale.setScalar(MESA_RAIO * entradaMesa);
+        const caidos = quedasEm(est.progresso);
+        pilhasMesa.forEach((pilha, i) => {
+          /* A pilha 0 é a do campeão e nunca some: é nela que a ficha pousa.
+             As outras caem da última para a primeira. */
+          pilha.visible = i === 0 || i > caidos;
+        });
+        medirTopo();
+      }
+
+      /* As pilhas do FECHO só existem no fim da página. Antes disso seriam objetos parados num
          canto, sem explicação, disputando atenção com o texto que está sendo
          lido. Entram uma depois da outra, de fora para dentro. */
       c.pilhas.forEach((g, i) => {
@@ -554,15 +718,9 @@ export function Ficha3D({
     alvo.current = progresso;
   }, [progresso]);
 
-  useEffect(() => {
-    ancora.current = ancoraMesa;
-  }, [ancoraMesa]);
-
-  useEffect(() => {
-    setNaMesa(
-      ancoraMesa != null && progresso >= PAUSA_MESA.de && progresso <= PAUSA_MESA.ate,
-    );
-  }, [ancoraMesa, progresso]);
+  useEffect(() => assinarMesa((e) => {
+    estadoMesa.current = e;
+  }), []);
 
   return (
     <canvas
@@ -577,7 +735,7 @@ export function Ficha3D({
          nada por baixo para casar. */
       style={{
         opacity: visivel ? 1 : 0,
-        zIndex: naMesa ? 11 : 5,
+        zIndex: 5,
         transition: visivel ? 'none' : 'opacity 300ms ease',
       }}
     />
