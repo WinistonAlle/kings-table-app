@@ -64,7 +64,7 @@ export function Precos() {
         <Titulo>
           Custa menos que <Realce>um buy-in</Realce>.
         </Titulo>
-        <p className="mt-6 text-lg leading-relaxed text-text2">
+        <p className="medida mt-6 t-corpo text-text2">
           Um mês inteiro de mesas organizadas pelo preço de uma entrada da sua
           noite. Sem fidelidade, sem taxa por jogador.
         </p>
@@ -84,8 +84,8 @@ export function Precos() {
               </span>
             ) : null}
 
-            <h3 className="titulo text-[1.7rem] text-gold200">{p.nome}</h3>
-            <p className="mt-2 text-[0.92rem] leading-relaxed text-text2">
+            <h3 className="titulo t-sub text-gold200">{p.nome}</h3>
+            <p className="mt-2 t-apoio text-text2">
               {p.para}
             </p>
 
@@ -95,10 +95,10 @@ export function Precos() {
             <div className="mt-7 flex items-baseline gap-2">
               {p.preco ? (
                 <>
-                  <span className="font-mono text-[2.6rem] leading-none text-text0">
+                  <span className="font-mono t-ornamento text-text0">
                     {p.preco}
                   </span>
-                  <span className="text-[0.85rem] text-text3">{p.periodo}</span>
+                  <span className="t-micro text-text3">{p.periodo}</span>
                 </>
               ) : (
                 <span className="rotulo text-gold300">em breve</span>
@@ -107,7 +107,7 @@ export function Precos() {
 
             <ul className="mt-7 flex flex-1 flex-col gap-3">
               {p.itens.map((i) => (
-                <li key={i} className="flex items-start gap-3 text-[0.93rem] text-text1">
+                <li key={i} className="flex items-start gap-3 t-apoio text-text1">
                   <span aria-hidden className="mt-[7px] block h-1 w-1 shrink-0 rotate-45 bg-gold400" />
                   {i}
                 </li>
@@ -122,7 +122,7 @@ export function Precos() {
               ) : (
                 <a
                   href="#"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-lineStrong px-7 py-3.5 text-[0.95rem] font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
+                  className="inline-flex w-full items-center justify-center rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
                 >
                   {p.cta}
                 </a>

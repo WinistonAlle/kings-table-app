@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Inter_Tight, DM_Mono } from 'next/font/google';
 import './globals.css';
+import { RolagemSuave } from '@/components/RolagemSuave';
 
 /* As mesmas três famílias do app, pelos mesmos papéis: serifa é a voz do
    clube, Inter Tight é interface, DM Mono são os algarismos. */
@@ -46,7 +47,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="pt-BR" className={`${display.variable} ${ui.variable} ${mono.variable}`}>
-      <body>{children}</body>
+      <body>
+        <RolagemSuave />
+        {children}
+      </body>
     </html>
   );
 }

@@ -13,31 +13,31 @@ const CENAS = [
     quando: '21h40',
     titulo: 'Alguém pergunta quanto está o blind',
     texto:
-      'O cronômetro é o celular de quem lembrou de abrir. Ele bloqueou a tela, o app parou, e ninguém sabe se o nível virou faz cinco minutos ou faz quinze.',
+      'O cronômetro é o celular de alguém. Bloqueou a tela, o app parou, e ninguém sabe há quanto tempo.',
   },
   {
     quando: '22h15',
     titulo: 'O terceiro rebuy da noite',
     texto:
-      'Anotado no verso de um papel, ou não anotado. No fim, a conta do bolo não fecha com o que está na mesa, e alguém vai ter que ceder.',
+      'Anotado no verso de um papel, ou não anotado. No fim o bolo não fecha, e alguém cede.',
   },
   {
     quando: '23h30',
     titulo: '"Eu já te paguei?"',
     texto:
-      'Metade pagou por PIX, metade paga na saída, e um sempre paga semana que vem. Você vira cobrador do seu próprio jogo.',
+      'Metade pagou por PIX, metade paga na saída, um paga semana que vem. Você virou cobrador.',
   },
   {
     quando: '01h00',
     titulo: 'Quem ganhou o quê',
     texto:
-      'A premiação é calculada no grito, com gente cansada. Depois a discussão migra para o grupo do WhatsApp, onde nunca termina.',
+      'Premiação calculada no grito, com gente cansada. A discussão continua no grupo até quarta.',
   },
   {
     quando: 'na quarta seguinte',
     titulo: 'Ninguém sabe quem está na frente',
     texto:
-      'A temporada existe só na memória de quem venceu mais vezes. Sem ranking, não há campeonato, só uma sequência de noites soltas.',
+      'Sem ranking, não existe campeonato. Só uma sequência de noites soltas.',
   },
 ];
 
@@ -54,13 +54,13 @@ export function Dor() {
       <ol className="mt-16 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-2 lg:grid-cols-3">
         {CENAS.map((c) => (
           <li key={c.titulo} className="bg-bg1 p-7 lg:p-8">
-            <p className="font-mono text-[0.72rem] tracking-wide text-gold500">
+            <p className="font-mono t-micro tracking-wide text-gold500">
               {c.quando}
             </p>
-            <h3 className="mt-3 text-[1.05rem] font-semibold text-text0">
+            <h3 className="titulo mt-3 t-card text-gold200">
               {c.titulo}
             </h3>
-            <p className="mt-3 text-[0.95rem] leading-relaxed text-text2">
+            <p className="mt-3 t-apoio text-text2">
               {c.texto}
             </p>
           </li>
@@ -68,7 +68,7 @@ export function Dor() {
 
         {/* A última célula fecha a fileira e faz a virada para a solução. */}
         <li className="flex items-center bg-bg1 p-7 lg:p-8">
-          <p className="titulo text-[1.45rem] text-gold200">
+          <p className="titulo t-sub text-gold200">
             Nada disso é sobre pôquer. É sobre planilha.
           </p>
         </li>

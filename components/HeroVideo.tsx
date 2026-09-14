@@ -141,13 +141,13 @@ export function HeroVideo() {
             transform: semVideo ? undefined : `translateY(${subidaTexto}px)`,
           }}
         >
-          <h1 className="titulo text-[clamp(2.4rem,6vw,4.6rem)] text-balance text-text0 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
+          <h1 className="titulo t-hero text-text0 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
             O seu home game merece mais que{' '}
             <em className="not-italic text-gold300">uma planilha</em> e{' '}
             <em className="not-italic text-gold300">boa memória</em>.
           </h1>
 
-          <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text1 drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)] lg:text-xl">
+          <p className="mx-auto mt-7 max-w-[52ch] t-corpo text-text1 drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
             Relógio de blinds que não atrasa, controle de quem pagou, premiação
             calculada na hora e o ranking da temporada saindo sozinho de cada
             noite.
@@ -157,7 +157,7 @@ export function HeroVideo() {
             <BotaoOuro href="#precos">Abrir o meu clube</BotaoOuro>
             <a
               href="#como-funciona"
-              className="inline-flex items-center gap-2 rounded-full border border-lineStrong bg-bg0/40 px-7 py-3.5 text-[0.95rem] font-medium text-text1 backdrop-blur-sm transition-colors hover:border-gold500 hover:text-text0"
+              className="inline-flex items-center gap-2 rounded-full border border-lineStrong bg-bg0/40 px-7 py-3.5 t-apoio font-medium text-text1 backdrop-blur-sm transition-colors hover:border-gold500 hover:text-text0"
             >
               Ver como funciona
             </a>

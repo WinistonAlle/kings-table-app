@@ -47,7 +47,10 @@ html {
   /* Nos dois, e não só no body: o valor do body propaga pra viewport quando o
      html está `visible`, e aí o body para de cortar. Aprendido na marra. */
   overflow-x: clip;
-  scroll-behavior: smooth;
+  /* Nada de `scroll-behavior: smooth` aqui: a rolagem suave é do Lenis
+     (`RolagemSuave.tsx`), e as duas ativas ao mesmo tempo brigam pelo mesmo
+     scroll, cada uma animando para um destino. O sintoma é a página tremer ao
+     clicar num link de âncora. */
 }
 
 body {
@@ -66,14 +69,66 @@ body {
   }
 }
 
+/* ---------------------------------------------------------------- a escala
+ *
+ * Oito degraus, e nenhum tamanho fora deles.
+ *
+ * Antes desta seção a página tinha dezesseis tamanhos avulsos, escritos um a
+ * um no meio das classes: 0,72 / 0,85 / 0,92 / 0,93 / 0,95 / 0,98 / 1,05 /
+ * 1,15 / 1,4 / 1,45 / 1,6 / 1,7 ... Nenhum estava errado sozinho. O problema é
+ * que 0,92 e 0,95 lado a lado não leem como dois níveis de importância, leem
+ * como descuido, e é isso que faz uma página parecer amadora antes de alguém
+ * ler uma palavra.
+ *
+ * A razão entre degraus vizinhos é ~1,22. Os dois maiores são fluidos porque
+ * título grande que não encolhe quebra em celular; os menores são fixos porque
+ * corpo de texto que muda de tamanho com a janela atrapalha a leitura. */
+
+.t-hero {
+  font-size: clamp(2.5rem, 6.2vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+}
+.t-secao {
+  font-size: clamp(2rem, 4.2vw, 3.05rem);
+  line-height: 1.06;
+  letter-spacing: -0.02em;
+}
+.t-sub { font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.015em; }
+.t-card { font-size: 1.28rem; line-height: 1.25; letter-spacing: -0.01em; }
+.t-corpo { font-size: 1.0625rem; line-height: 1.62; }
+.t-apoio { font-size: 0.9375rem; line-height: 1.6; }
+.t-micro { font-size: 0.8125rem; line-height: 1.5; }
+/* Ornamento: o algarismo gigante dos passos e o preço. Não é texto para ler,
+   é marco visual, e por isso tem degrau próprio. */
+.t-ornamento { font-size: clamp(2.6rem, 4.4vw, 3.4rem); line-height: 1; }
+
+/* A medida da linha.
+ *
+ * Linha longa demais faz o olho perder a volta: ao chegar ao fim, ele não
+ * encontra o começo da seguinte. O intervalo confortável é 45 a 75 caracteres,
+ * e a coluna da página tem 1152px, o que daria mais de 110. Por isso todo
+ * parágrafo solto (fora de card) carrega esta classe. */
+.medida { max-width: 60ch; }
+
 /* Título: serifa, corpo grande, entreletra apertada. Grotesca aqui devolveria
-   painel de controle; a serifa é o que diz clube. */
+   painel de controle; a serifa é o que diz clube.
+
+   `text-wrap: balance` reparte as linhas de um título em larguras parecidas.
+   Sem ele o título de duas linhas sai com uma linha cheia e uma palavra
+   sozinha embaixo, que é a forma mais barata de estragar uma capa. */
 .titulo {
+  text-wrap: balance;
   font-family: var(--font-display), Georgia, serif;
   font-weight: 600;
-  letter-spacing: -0.02em;
-  line-height: 1.05;
+  /* Cormorant tem numeral antigo por padrão em alguns cortes; na web, número
+     de título tem que ficar na linha das maiúsculas. */
+  font-variant-numeric: lining-nums;
 }
+
+/* Parágrafo. `pretty` só cuida das últimas linhas, evitando a palavra órfã, e
+   é barato o bastante para valer em corpo de texto. */
+p { text-wrap: pretty; }
 
 /* Rótulo gravado: caixa alta, entreletra larga, corpo miúdo. */
 .rotulo {

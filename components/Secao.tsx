@@ -34,7 +34,7 @@ export function Titulo({
   className?: string;
 }) {
   return (
-    <h2 className={`titulo mt-4 text-[clamp(2rem,4.2vw,3.1rem)] text-balance text-text0 ${className}`}>
+    <h2 className={`titulo mt-4 t-secao text-text0 ${className}`}>
       {children}
     </h2>
   );
@@ -77,7 +77,7 @@ export function BotaoOuro({
   return (
     <a
       href={href}
-      className={`botao-ouro inline-flex items-center gap-2 rounded-full px-7 py-3.5 text-[0.95rem] font-semibold ${className}`}
+      className={`botao-ouro inline-flex items-center gap-2 rounded-full px-7 py-3.5 t-apoio font-semibold ${className}`}
     >
       {children}
     </a>
@@ -94,7 +94,7 @@ export function BotaoFantasma({
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-2 rounded-full border border-lineStrong px-7 py-3.5 text-[0.95rem] font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
+      className="inline-flex items-center gap-2 rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
     >
       {children}
     </a>

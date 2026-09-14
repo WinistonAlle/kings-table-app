@@ -12,33 +12,32 @@ const RECURSOS = [
   {
     titulo: 'O relógio não atrasa',
     texto:
-      'Ele é ancorado no relógio de parede, não num contador. Bloqueie a tela, atenda o telefone, feche o app: quando voltar, o nível é o certo. Se passou tempo demais, ele já pulou os níveis que passaram, em vez de recuperar um a um na frente da mesa.',
-    destaque: true,
+      'Ancorado no relógio de parede, não num contador. Bloqueie a tela, feche o app, volte uma hora depois: o nível é o certo.',
   },
   {
     titulo: 'Quem pagou, sem você virar cobrador',
     texto:
-      'Cada jogador tem o estado dele: a receber, pago, contestado. Reentrada e add-on contam sozinhos no bolo, então a conta fecha com o que está na mesa.',
+      'A receber, pago, contestado. Reentrada e add-on entram sozinhos no bolo.',
   },
   {
     titulo: 'A premiação sai calculada',
     texto:
-      'As faixas mudam com o tamanho do campo, e o valor é recalculado a cada entrada. Quando o torneio acaba, cada posição já tem o prêmio gravado, somando o bolo exato.',
+      'As faixas acompanham o tamanho do campo. No fim, cada posição já tem o prêmio gravado.',
   },
   {
     titulo: 'O ranking existe',
     texto:
-      'A temporada deixa de viver na memória de quem venceu mais. Pontos por posição e tamanho de campo, vitórias, ITM e saldo, atualizados a cada noite que termina.',
+      'Pontos por posição e tamanho de campo, vitórias, ITM e saldo. Atualizado a cada noite.',
   },
   {
     titulo: 'Eliminação com um toque',
     texto:
-      'Caiu com sete na mesa, terminou em sétimo. A última eliminação fecha o torneio sozinha. E tem desfazer, porque erro de dedo acontece, e acontece na mesa.',
+      'Caiu com sete na mesa, terminou em sétimo. A última eliminação fecha o torneio sozinha.',
   },
   {
     titulo: 'Funciona sem sinal',
     texto:
-      'A noite inteira roda no aparelho. Sala sem Wi-Fi, celular sem dados, tanto faz: nada depende de conexão para o torneio andar.',
+      'Sala sem Wi-Fi, celular sem dados, tanto faz. A noite inteira roda no aparelho.',
   },
 ];
 
@@ -53,16 +52,16 @@ export function Recursos() {
         </Titulo>
       </div>
 
+      {/* Seis cartões iguais, dois por três.
+          O primeiro ocupava duas fileiras porque o texto dele era três vezes
+          maior que o dos outros. Com os textos encurtados, o mesmo destaque
+          virou uma caixa vazia do tamanho de duas: a hierarquia estava sendo
+          feita pelo tamanho do parágrafo, não por decisão. */}
       <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {RECURSOS.map((r) => (
-          <article
-            key={r.titulo}
-            className={`superficie rounded-2xl p-7 lg:p-8 ${
-              r.destaque ? 'md:col-span-2 lg:col-span-1 lg:row-span-2' : ''
-            }`}
-          >
-            <h3 className="titulo text-[1.4rem] text-gold200">{r.titulo}</h3>
-            <p className="mt-4 text-[0.95rem] leading-relaxed text-text2">
+          <article key={r.titulo} className="superficie rounded-2xl p-7 lg:p-8">
+            <h3 className="titulo t-card text-gold200">{r.titulo}</h3>
+            <p className="mt-4 t-apoio text-text2">
               {r.texto}
             </p>
           </article>

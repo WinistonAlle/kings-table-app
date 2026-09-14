@@ -43,12 +43,12 @@ export function ComoFunciona() {
           <div key={p.n} className="relative">
             <span
               aria-hidden
-              className="titulo block text-[3.4rem] leading-none text-gold700"
+              className="titulo t-ornamento block text-gold700"
             >
               {p.n}
             </span>
-            <h3 className="titulo mt-4 text-[1.6rem] text-gold200">{p.titulo}</h3>
-            <p className="mt-3 text-[0.98rem] leading-relaxed text-text2">
+            <h3 className="titulo mt-4 t-sub text-gold200">{p.titulo}</h3>
+            <p className="mt-3 t-apoio text-text2">
               {p.texto}
             </p>
           </div>
