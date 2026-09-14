@@ -1,16 +1,26 @@
-import { Rotulo, Secao, Titulo, Realce } from './Secao';
+'use client';
 
-/* Tudo que o sistema faz, em detalhe.
+import { useState } from 'react';
+import { Rotulo, Secao, Titulo, Realce } from './Secao';
+import { ListaLinhas } from './ListaLinhas';
+
+/* Tudo que o sistema faz, navegável.
+ *
+ * Isto era quinze cartões parados, empilhados em quatro grades: a dobra mais
+ * longa da página e a única em que nada acontecia enquanto se lia. Agora é um
+ * ÍNDICE à esquerda e o detalhe à direita — quatro linhas para percorrer em
+ * vez de quinze caixas para varrer, e a dobra encolheu para menos de metade
+ * da altura.
+ *
+ * Os grupos não são categoria de catálogo: são as quatro coisas que uma noite
+ * de home game tem. O relógio, o dinheiro, a mesa e a temporada. Quem
+ * organiza reconhece as quatro antes de ler o que está embaixo.
  *
  * A lista foi levantada lendo `lib/` e `stores/` do app, não de memória: cada
- * item abaixo corresponde a código que existe. Quatro grupos, porque quinze
- * cartões soltos não se leem — e os grupos são as quatro coisas que uma noite
- * de home game tem: o relógio, o dinheiro, a mesa e a temporada.
- *
- * A REGRA que vale desde a primeira versão desta seção: só entra o que o app
- * faz hoje. O que ainda não existe vai num bloco à parte, marcado, no fim.
- * Misturar as duas coisas é como se perde a confiança de quem compra — e num
- * produto de nicho vendido para pares, a primeira mentira é a última venda.
+ * item corresponde a código que existe. A REGRA que vale desde a primeira
+ * versão desta seção continua: só entra o que o app faz hoje, e o que ainda
+ * não existe vai num bloco à parte, marcado, no fim. Misturar as duas coisas
+ * é como se perde a confiança de quem compra.
  */
 
 const GRUPOS = [
@@ -55,7 +65,6 @@ const GRUPOS = [
   },
 ];
 
-/* O que ainda não existe. Vai separado e dito com todas as letras. */
 const POR_VIR = [
   'Conta e sincronização entre aparelhos',
   'Leitura automática do comprovante de pagamento',
@@ -64,8 +73,11 @@ const POR_VIR = [
 ];
 
 export function Recursos() {
+  const [ativo, setAtivo] = useState(0);
+  const grupo = GRUPOS[ativo];
+
   return (
-    <Secao className="py-24 lg:py-32">
+    <Secao id="recursos" className="py-24 lg:py-32">
       <div className="max-w-2xl">
         <Rotulo>O que ele faz</Rotulo>
         <Titulo>
@@ -74,30 +86,36 @@ export function Recursos() {
         </Titulo>
       </div>
 
-      <div className="mt-16 flex flex-col gap-14 lg:gap-16">
-        {GRUPOS.map((g) => (
-          <div key={g.nome} className="grid gap-8 lg:grid-cols-[minmax(0,15rem)_1fr] lg:gap-14">
-            {/* O nome do grupo fica na coluna da esquerda no desktop e vira
-                cabeçalho no celular: é a mesma hierarquia, sem media query
-                própria. */}
-            <div className="lg:pt-1">
-              <h3 className="titulo t-sub text-gold200">{g.nome}</h3>
-              <p className="mt-2 t-apoio text-text2">{g.resumo}</p>
-            </div>
+      <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-20">
+        <div className="lg:pt-2">
+          <ListaLinhas
+            itens={GRUPOS.map((g) => g.nome)}
+            ativo={ativo}
+            onEscolher={setAtivo}
+          />
+        </div>
 
-            <dl className="grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
-              {g.itens.map(([titulo, texto]) => (
-                <div key={titulo} className="bg-bg1 p-6 lg:p-7">
-                  <dt className="titulo t-card text-text0">{titulo}</dt>
-                  <dd className="mt-2 t-apoio text-text2">{texto}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-        ))}
+        {/* O painel. `key` no grupo faz o React remontar a lista a cada troca,
+            e é isso que redispara a animação de entrada — sem ela a troca
+            seria um corte seco e o olho perderia que o conteúdo mudou. */}
+        <div key={grupo.nome} className="painel-recursos">
+          <p className="t-corpo text-gold200">{grupo.resumo}</p>
+
+          <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-2">
+            {grupo.itens.map(([titulo, texto], i) => (
+              <div
+                key={titulo}
+                className="painel-recursos__item bg-bg1 p-6 lg:p-7"
+                style={{ animationDelay: `${i * 70}ms` }}
+              >
+                <dt className="titulo t-card text-text0">{titulo}</dt>
+                <dd className="mt-2 t-apoio text-text2">{texto}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       </div>
 
-      {/* O que está por vir, dito como tal. */}
       <div className="superficie mt-16 rounded-2xl p-7 lg:mt-20 lg:p-9">
         <h3 className="rotulo text-gold500">Ainda não, mas vem</h3>
         <p className="medida mt-3 t-apoio text-text2">

@@ -379,3 +379,134 @@ main > section#heroi { z-index: 0; }
     transition: opacity 200ms linear;
   }
 }
+
+/* Índice com linhas (ListaLinhas.tsx).
+ *
+ * `--efeito` vai de 0 a 1 e é escrito por um único laço de rAF no
+ * JavaScript. Tudo aqui deriva DELE: a cor, o deslocamento e a escala da
+ * linha. É o que mantém as três coisas em passo — com uma transição CSS para
+ * cada, elas chegariam em tempos diferentes e o item pareceria se montar por
+ * partes. */
+.lista-linhas {
+  --comprimento-risco: 56px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+
+.lista-linhas__item {
+  position: relative;
+  padding-left: calc(var(--comprimento-risco) + 1.25rem);
+}
+
+/* O risco que antecede cada item. Cresce e acende com a proximidade. */
+.lista-linhas__risco {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: var(--comprimento-risco);
+  transform: translateY(-50%) scaleX(calc(0.55 + var(--efeito, 0) * 0.45));
+  transform-origin: left center;
+  background-color: color-mix(
+    in srgb,
+    var(--color-gold300) calc(var(--efeito, 0) * 100%),
+    var(--color-gold700)
+  );
+}
+
+/* O tracinho curto entre dois itens: é ele que faz a coluna ler como uma
+   escala graduada em vez de uma lista de links. */
+.lista-linhas__item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  top: calc(100% + 0.575rem);
+  left: 0;
+  height: 1px;
+  width: calc(var(--comprimento-risco) * 0.42);
+  background-color: var(--color-gold700);
+  transform: translateY(-50%) scaleX(calc(0.6 + var(--efeito, 0) * 0.5));
+  transform-origin: left center;
+}
+
+.lista-linhas__botao {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  background: none;
+  border: 0;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  text-align: left;
+  color: color-mix(
+    in srgb,
+    var(--color-gold100) calc(var(--efeito, 0) * 100%),
+    var(--color-text2)
+  );
+  transform: translateX(calc(var(--efeito, 0) * var(--deslocamento)));
+}
+
+/* O foco tem que aparecer: o item é botão e quem navega por teclado precisa
+   ver onde está. Contorno afastado, para não encostar na letra. */
+.lista-linhas__botao:focus-visible {
+  outline: 2px solid var(--color-gold400);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.lista-linhas__numero {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  opacity: calc(0.45 + var(--efeito, 0) * 0.55);
+}
+
+.lista-linhas__texto {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.35rem, 2.1vw, 1.9rem);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+/* Sem ponteiro fino não há proximidade, e o risco fica no estado de repouso.
+   Movimento reduzido também tira o deslocamento: a cor ainda distingue o item
+   ativo, que é a informação que importa. */
+@media (prefers-reduced-motion: reduce) {
+  .lista-linhas__botao {
+    transform: none;
+  }
+}
+
+/* O painel de recursos, ao trocar de grupo.
+ *
+ * Cada item entra subindo, escalonado em 70ms. O `key` no React remonta a
+ * lista a cada troca, e é a remontagem que redispara a animação — sem ela a
+ * troca seria um corte seco e o olho perderia que o conteúdo mudou.
+ *
+ * `animation` e não `transition` aqui, ao contrário da promessa: lá o gatilho
+ * era uma classe trocada pelo observador; aqui o elemento NASCE no momento do
+ * disparo, e animação de entrada é exatamente o caso de keyframes. */
+@keyframes painel-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.painel-recursos__item {
+  animation: painel-entra 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-recursos__item {
+    animation: none;
+  }
+}

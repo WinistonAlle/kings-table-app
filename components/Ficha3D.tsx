@@ -191,7 +191,11 @@ const MARCOS: { em: number; pose: Pose }[] = [
   { em: POSE_PAUSA.de, pose: POSE_PAUSA.pose },
   { em: POSE_PAUSA.ate, pose: POSE_PAUSA.pose },
   /* recursos: atravessa para a esquerda, mais alta */
-  { em: 0.47, pose: { x: -1.34, y: 0.24, z: 0, escala: 0.32, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
+  /* `y` bem abaixo do centro: a dobra dos recursos passou a ter o ÍNDICE
+     nesta altura, à esquerda, e a ficha cruzava em cima dos nomes dos grupos.
+     A coluna esquerda fica vazia abaixo do índice, e é ali que ela cabe sem
+     tapar nada. */
+  { em: 0.47, pose: { x: -1.34, y: -0.87, z: 0, escala: 0.30, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
   /* preços: volta à direita, quase de perfil */
   { em: 0.74, pose: { x: 1.28, y: -0.16, z: 0, escala: 0.30, giroX: 0.12, giroY: -3.4, giroZ: 0.26 } },
   /* perguntas: desce deitando, já na inclinação da pilha */
