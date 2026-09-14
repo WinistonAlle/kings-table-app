@@ -113,6 +113,51 @@ const TOPO_Z = PILHAS[PILHA_DESTINO].z + ALTURA_DESTINO * Math.cos(INCLINACAO) *
 
    A regra que define os valores de `x`: a ficha nunca encosta na borda. Ficha
    cortada pela lateral não lê como movimento, lê como erro de posicionamento. */
+/* Onde a ficha para, e por quanto tempo de rolagem.
+ *
+ * Exportado porque o anel de texto precisa saber EXATAMENTE onde ela está na
+ * tela para girar em volta dela. Duas fontes de verdade para a mesma posição
+ * seria o tipo de coisa que funciona no dia em que se escreve e se desencontra
+ * no primeiro ajuste. */
+export const POSE_PAUSA = {
+  de: 0.13,
+  ate: 0.27,
+  /* `y` e `escala` foram calculados para o anel CABER na faixa livre entre a
+     grade das cenas e o título dos três passos, não escolhidos no olho: a
+     faixa mede ~362px em 1440x900 e o anel, com a folga de 1,38, mede
+     ~350px. Centro da faixa em y=553 na tela, que dá -0,357 em unidades de
+     mundo. Anel maior que a faixa encosta no cartão de cima ou no título de
+     baixo, e aí ele deixa de ser um objeto e vira um acidente. */
+  pose: { x: 1.40, y: -0.357, z: 0, escala: 0.44, giroX: 0.06, giroY: -0.55, giroZ: 0.12 },
+};
+
+/* Onde um ponto do mundo aparece na tela, em pixels.
+ *
+ * A câmera é perspectiva, olhando para a origem, e a ficha vive no plano
+ * z = 0 — o que torna a conta uma regra de três, sem matriz nenhuma: a meia
+ * altura visível nesse plano é `tan(fov/2) · distância`, e a meia largura é
+ * isso vezes a proporção da janela.
+ *
+ * `distanciaPara(ocupacaoNaJanela(...))` é a MESMA chamada que a cena faz ao
+ * redimensionar. Repetir a fórmula aqui em vez de reusar a função seria criar
+ * a chance de as duas divergirem justamente numa janela fora do comum, que é
+ * onde ninguém testa. */
+export function projetar(
+  ponto: { x: number; y: number; escala: number },
+  largura: number,
+  altura: number,
+) {
+  const dist = distanciaPara(ocupacaoNaJanela(largura, altura));
+  const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * dist;
+  const meiaLargura = meiaAltura * (largura / altura);
+  const pxPorUnidade = altura / 2 / meiaAltura;
+  return {
+    centroX: largura / 2 + (ponto.x / meiaLargura) * (largura / 2),
+    centroY: altura / 2 - (ponto.y / meiaAltura) * (altura / 2),
+    diametro: 2 * RAIO * ponto.escala * pxPorUnidade,
+  };
+}
+
 /* As frações NÃO são escolhidas no olho: são o centro de cada dobra, medido
    na página montada. Em 1440x900 o percurso depois do herói tem 6221px e os
    centros caem em 0,18 (antes e depois), 0,47 (recursos), 0,74 (preços),
@@ -125,7 +170,14 @@ const MARCOS: { em: number; pose: Pose }[] = [
   /* a emenda: exatamente onde o vídeo deixou, centrada e de frente */
   { em: 0.00, pose: { x: 0.00, y: 0.00, z: 0, escala: 1.00, giroX: 0, giroY: 0, giroZ: 0 } },
   /* antes e depois: recua para a direita, encolhendo, e começa a virar */
-  { em: 0.18, pose: { x: 1.30, y: -0.42, z: 0, escala: 0.38, giroX: 0.10, giroY: -0.9, giroZ: 0.22 } },
+  /* A PAUSA. Dois marcos com a pose IDÊNTICA: entre eles a interpolação não
+     tem o que interpolar, e a ficha fica parada de verdade — inclusive a
+     rotação, que é o que costuma denunciar uma pausa falsa. É neste trecho
+     que o anel de texto gira em volta dela (ver `AnelTexto.tsx`), e o efeito
+     só funciona se a peça estiver mesmo imóvel: anel girando em volta de uma
+     ficha que também gira vira duas coisas girando. */
+  { em: POSE_PAUSA.de, pose: POSE_PAUSA.pose },
+  { em: POSE_PAUSA.ate, pose: POSE_PAUSA.pose },
   /* recursos: atravessa para a esquerda, mais alta */
   { em: 0.47, pose: { x: -1.34, y: 0.24, z: 0, escala: 0.32, giroX: -0.14, giroY: -2.2, giroZ: -0.18 } },
   /* preços: volta à direita, quase de perfil */

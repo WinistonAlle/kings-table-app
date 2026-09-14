@@ -295,3 +295,44 @@ main > section#heroi { z-index: 0; }
     animation: none;
   }
 }
+
+/* Anel de texto girando em volta da ficha (AnelTexto.tsx).
+ *
+ * O layout circular é o mesmo do CircularText original, e o truque é este:
+ * cada letra é um bloco absoluto do TAMANHO DO ANEL INTEIRO, com a letra no
+ * topo e centralizada. Girar esse bloco em torno do próprio centro leva a
+ * letra para a posição dela na circunferência — sem calcular seno e cosseno
+ * para cada uma, e sem `offset-path`, que ainda tem canto escuro em navegador.
+ *
+ * A rotação é `@keyframes` em vez de biblioteca de animação: um laço infinito
+ * e linear é exatamente o que o compositor resolve sozinho, sem acordar o
+ * JavaScript a cada quadro. */
+.anel-texto__giro {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  animation: anel-gira 22s linear infinite;
+  will-change: transform;
+}
+
+.anel-texto__giro span {
+  position: absolute;
+  inset: 0;
+  display: inline-block;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--color-gold300);
+  transform-origin: 50% 50%;
+}
+
+@keyframes anel-gira {
+  to { transform: rotate(360deg); }
+}
+
+/* Quem pediu menos movimento recebe o anel parado. Ele continua dizendo o
+   nome da marca em volta da peça, que é metade do trabalho dele. */
+@media (prefers-reduced-motion: reduce) {
+  .anel-texto__giro { animation: none; }
+}

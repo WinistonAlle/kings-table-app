@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { Ficha3D } from './Ficha3D';
+import { AnelTexto } from './AnelTexto';
 import { useMenosMovimento, useTelaPequena } from './useRolagem';
 
 /* O maestro da ficha.
@@ -103,6 +104,9 @@ export function Cena() {
         }}
       />
       <Ficha3D progresso={progresso} visivel={visivel} />
+      {/* Em cima da ficha (z-index 6 contra 5): o anel é texto e precisa ser
+          lido, não competir com a peça. */}
+      <AnelTexto progresso={progresso} visivel={visivel} />
     </>
   );
 }
