@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from 'react';
 /**
  * Quanto de um elemento já foi percorrido pela rolagem, de 0 a 1.
  *
- * Devolve `0` enquanto o topo do elemento não chegou ao topo da tela, `1`
- * quando o fim dele passou, e MAIS que 1 depois disso. É a régua que todo efeito guiado por rolagem usa
+ * Devolve `0` enquanto o topo do elemento não chegou ao topo da tela, e `1`
+ * quando o fim dele passou. É a régua que todo efeito guiado por rolagem usa
  * nesta página — vídeo raspado e ficha 3D leem a mesma.
  *
  * Atualiza dentro de um `requestAnimationFrame`: o evento de rolagem dispara
@@ -31,11 +31,7 @@ export function useProgresso(alvo: React.RefObject<HTMLElement | null>) {
         setP(r.top <= 0 ? 1 : 0);
         return;
       }
-      /* Sem teto no 1. Passar de 1 é informação útil: diz QUANTO já se rolou
-         além do elemento, e é isso que deixa a placa da maleta vazia entrar
-         depois que o vídeo chegou ao último quadro, em vez de antes. Quem
-         precisa do valor limitado limita na hora de usar. */
-      setP(Math.max(0, -r.top / percurso));
+      setP(Math.min(1, Math.max(0, -r.top / percurso)));
     };
 
     const aoRolar = () => {

@@ -42,7 +42,7 @@ export function HeroVideo() {
     const v = video.current;
     if (!v || !v.duration) return;
 
-    alvo.current = Math.min(1, p) * v.duration;
+    alvo.current = p * v.duration;
     if (pedido.current) return;
 
     const aplicar = () => {
@@ -61,9 +61,8 @@ export function HeroVideo() {
   /* O texto sai de cena na primeira metade: a partir daí a ficha é o assunto,
      e título por cima dela competiria com o momento que a página inteira
      está construindo. */
-  const pTexto = Math.min(1, p);
-  const opacidadeTexto = Math.max(0, 1 - pTexto / 0.42);
-  const subidaTexto = -pTexto * 90;
+  const opacidadeTexto = Math.max(0, 1 - p / 0.42);
+  const subidaTexto = -p * 90;
 
   return (
     <section
@@ -127,13 +126,17 @@ export function HeroVideo() {
                 alt=""
                 aria-hidden
                 className="absolute inset-0 h-full w-full object-cover"
-                /* Entra só DEPOIS do fim do herói (p > 1), que é onde a ficha
-                   3D já está acesa e parada em cima da do vídeo. Antes disso
-                   a peça do vídeo dissolveria com nada por cima, e dava para
-                   ver a ficha sumindo. A janela é folgada de propósito: 8% do
-                   percurso do herói, tempo de sobra escondida atrás da ficha,
-                   que só começa a andar bem depois. */
-                style={{ opacity: Math.min(1, Math.max(0, (p - 1) / 0.08)) }}
+                /* CORTE SECO, e este é o ponto inteiro.
+                   Dissolvendo, a ficha do vídeo some aos poucos: fica um
+                   fantasma dela no centro enquanto a ficha 3D já saiu
+                   andando, e o que se lê não é "a peça saiu da maleta", é
+                   "apareceu uma cópia e a original apagou". Trocado de uma
+                   vez, no quadro exato em que a ficha 3D está em cima e do
+                   mesmo tamanho, não existe instante intermediário para
+                   ninguém ver. O resto do quadro (maleta, brilho) foi casado
+                   por medição, a 2,47 de distância média de cor em 255, então
+                   o corte também não aparece fora do disco. */
+                style={{ opacity: p >= 1 ? 1 : 0 }}
               />
             </>
           )}

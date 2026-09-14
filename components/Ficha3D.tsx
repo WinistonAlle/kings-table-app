@@ -32,23 +32,6 @@ import { desenharLateral } from './fichaTextura';
  *   responder ao giro.
  */
 
-/* O brilho da face, e por que são DOIS valores.
- *
- * 0,60 é o tom em que a ficha 3D fica idêntica à ficha do vídeo: medido no
- * quadro da emenda, com a maleta vazia no lugar, a diferença de luminância
- * dentro do disco cai de +8,1 para +1,1. É o número que faz a troca sumir.
- *
- * Mas ele não pode valer o percurso inteiro. O tom do vídeo é o tom de uma
- * peça dentro de uma maleta mal iluminada; segurar a ficha ali para sempre
- * deixa ela opaca justamente quando ela vira o assunto da página. Então 0,60
- * é só o ponto de partida: assim que o herói sai de cena e não há mais com o
- * que comparar, ela sobe para 0,79, que é o tom em que a peça tem vida.
- *
- * A troca deixa de ser "escureça a ficha para sempre" e vira "case no
- * instante da emenda, depois seja você mesma". */
-const EMISSIVA_EMENDA = 0.6;
-const EMISSIVA_LIVRE = 0.79;
-
 const FOV = 30;
 const RAIO = 1;
 const ESPESSURA = 0.14;
@@ -242,7 +225,7 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
          nasceria clara demais em cima dele. O `color` quase preto deixa uma
          fresta para a luz, só o bastante para a face escurecer quando a ficha
          vira de costas. */
-      emissiveIntensity: EMISSIVA_EMENDA,
+      emissiveIntensity: 0.79,
       roughness: 0.9,
       metalness: 0,
       color: 0x000000,
@@ -346,13 +329,6 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
       const p = alvo.current;
       const pose = interpolar(p);
 
-      /* A face acende conforme o herói sai de cena. 5% do percurso é a mesma
-         janela em que o brilho de fundo entra (ver Cena.tsx): as duas coisas
-         crescem juntas, então o que se vê é a cena inteira ganhando luz, e
-         não a ficha mudando de cor sozinha. */
-      materialFace.emissiveIntensity =
-        EMISSIVA_EMENDA + (EMISSIVA_LIVRE - EMISSIVA_EMENDA) * faixa(p, 0, 0.05);
-
       /* A licença para a mão interferir: zero nas duas pontas, inteira no
          meio. Ver o comentário de TILT_MAX. */
       const licenca = faixa(p, 0.02, 0.14) * (1 - faixa(p, 0.84, 0.97));
@@ -429,13 +405,11 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
       aria-hidden
       className="pointer-events-none fixed inset-0 h-full w-full"
       /* Aparece INSTANTÂNEA, some com calma.
-         A entrada tinha 300ms de transição, e durante esses 300ms a ficha 3D
-         era semitransparente em cima da ficha do vídeo: duas peças
-         translúcidas empilhadas não somam a mesma imagem que uma opaca, e o
-         resultado era um clarão curto bem na troca. Não há o que suavizar na
-         entrada — ela nasce no lugar, no tamanho e na cor exatos da ficha do
-         vídeo, então trocar de uma vez é invisível. A saída continua suave,
-         porque aí não existe nada por baixo para casar. */
+         Se ela entrasse suavizada, o corte da placa aconteceria com a ficha
+         ainda translúcida — e por baixo dela estaria a maleta já vazia. A
+         entrada não tem o que suavizar: a ficha nasce no lugar, no tamanho e
+         na cor da que está no vídeo. A saída continua suave, porque aí não há
+         nada por baixo para casar. */
       style={{
         opacity: visivel ? 1 : 0,
         zIndex: 5,
