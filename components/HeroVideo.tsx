@@ -42,7 +42,7 @@ export function HeroVideo() {
     const v = video.current;
     if (!v || !v.duration) return;
 
-    alvo.current = p * v.duration;
+    alvo.current = Math.min(1, p) * v.duration;
     if (pedido.current) return;
 
     const aplicar = () => {
@@ -61,8 +61,9 @@ export function HeroVideo() {
   /* O texto sai de cena na primeira metade: a partir daí a ficha é o assunto,
      e título por cima dela competiria com o momento que a página inteira
      está construindo. */
-  const opacidadeTexto = Math.max(0, 1 - p / 0.42);
-  const subidaTexto = -p * 90;
+  const pTexto = Math.min(1, p);
+  const opacidadeTexto = Math.max(0, 1 - pTexto / 0.42);
+  const subidaTexto = -pTexto * 90;
 
   return (
     <section
@@ -126,7 +127,13 @@ export function HeroVideo() {
                 alt=""
                 aria-hidden
                 className="absolute inset-0 h-full w-full object-cover"
-                style={{ opacity: Math.min(1, Math.max(0, (p - 0.985) / 0.015)) }}
+                /* Entra só DEPOIS do fim do herói (p > 1), que é onde a ficha
+                   3D já está acesa e parada em cima da do vídeo. Antes disso
+                   a peça do vídeo dissolveria com nada por cima, e dava para
+                   ver a ficha sumindo. A janela é folgada de propósito: 8% do
+                   percurso do herói, tempo de sobra escondida atrás da ficha,
+                   que só começa a andar bem depois. */
+                style={{ opacity: Math.min(1, Math.max(0, (p - 1) / 0.08)) }}
               />
             </>
           )}

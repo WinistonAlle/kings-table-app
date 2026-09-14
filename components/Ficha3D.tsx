@@ -225,7 +225,7 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
          nasceria clara demais em cima dele. O `color` quase preto deixa uma
          fresta para a luz, só o bastante para a face escurecer quando a ficha
          vira de costas. */
-      emissiveIntensity: 0.79,
+      emissiveIntensity: 0.60,
       roughness: 0.9,
       metalness: 0,
       color: 0x000000,
@@ -403,8 +403,20 @@ export function Ficha3D({ progresso, visivel }: { progresso: number; visivel: bo
     <canvas
       ref={tela}
       aria-hidden
-      className="pointer-events-none fixed inset-0 h-full w-full transition-opacity duration-300"
-      style={{ opacity: visivel ? 1 : 0, zIndex: 5 }}
+      className="pointer-events-none fixed inset-0 h-full w-full"
+      /* Aparece INSTANTÂNEA, some com calma.
+         A entrada tinha 300ms de transição, e durante esses 300ms a ficha 3D
+         era semitransparente em cima da ficha do vídeo: duas peças
+         translúcidas empilhadas não somam a mesma imagem que uma opaca, e o
+         resultado era um clarão curto bem na troca. Não há o que suavizar na
+         entrada — ela nasce no lugar, no tamanho e na cor exatos da ficha do
+         vídeo, então trocar de uma vez é invisível. A saída continua suave,
+         porque aí não existe nada por baixo para casar. */
+      style={{
+        opacity: visivel ? 1 : 0,
+        zIndex: 5,
+        transition: visivel ? 'none' : 'opacity 300ms ease',
+      }}
     />
   );
 }

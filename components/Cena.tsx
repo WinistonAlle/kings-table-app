@@ -18,8 +18,18 @@ import { useMenosMovimento, useTelaPequena } from './useRolagem';
  * embora; a ficha, que é `fixed`, fica.
  */
 
-/** Quantos pixels antes do fim do herói a ficha 3D já está acesa. */
-const ANTECIPACAO = 12;
+/* A ficha 3D acende EXATAMENTE no fim do herói, nem um pixel antes.
+ *
+ * Aqui havia 12px de antecipação, para não existir um quadro sem ficha
+ * nenhuma. Ela criava o problema que queria evitar: nesses 12px o vídeo ainda
+ * não chegou ao último quadro, a ficha dele ainda está crescendo, e a 3D já
+ * nasce no tamanho final. Trocava-se uma peça por outra de tamanho diferente,
+ * e o olho lia isso como uma piscada. Medido: o brilho médio do quadro subia
+ * 3,91 de uma vez só nesse ponto, contra variações de ±0,2 em todo o resto da
+ * travessia, e a diferença estava inteira dentro do disco da ficha.
+ *
+ * Não existe quadro sem ficha: a do vídeo está lá até o último instante. */
+const ANTECIPACAO = 0;
 
 export function Cena() {
   const [progresso, setProgresso] = useState(0);
@@ -75,14 +85,22 @@ export function Cena() {
   return (
     <>
       {/* O brilho quente que no vídeo vem de trás da ficha. Sem ele o fundo
-          "apaga" no instante da troca: o vídeo tem essa aura, a cena 3D com
-          fundo transparente não teria. */}
+          "apaga" quando o herói sai de cena: o vídeo tem essa aura, a cena 3D
+          com fundo transparente não teria.
+          Mas ele NÃO pode acender na hora da troca. Ele acendia de 0 a 1 em
+          500ms exatamente ali, somando a própria aura por cima da que o vídeo
+          já desenha — e duas auras somadas no mesmo instante é o que se via
+          como uma piscada. Agora ele entra pela ROLAGEM, do zero, ao longo
+          dos primeiros 6% do percurso, que é quando o vídeo está saindo e a
+          aura dele indo embora junto. */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 transition-opacity duration-500"
+        className="pointer-events-none fixed inset-0"
         style={{
           zIndex: 4,
-          opacity: visivel ? 1 - progresso * 0.55 : 0,
+          opacity: visivel
+            ? Math.min(1, Math.max(0, progresso / 0.06)) * (1 - progresso * 0.55)
+            : 0,
           background:
             'radial-gradient(46% 42% at 50% 50%, rgba(196,156,92,0.22) 0%, rgba(150,110,60,0.10) 42%, transparent 72%)',
         }}
