@@ -2,21 +2,22 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 /* Três famílias, três papéis, e nada além disso.
-   - Cormorant Garamond: a voz do clube. Serifa old-style de contraste alto,
-     que é o que faz parecer convite gravado e não painel de controle. Entra o
-     600 além do 500 e do 700: no escuro, o 500 some em corpo grande e o 700
-     fecha demais os contra-formas em corpo pequeno.
+   - Sora: a voz da marca nos títulos. Geométrica e SEM SERIFA — substituiu a
+     Cormorant Garamond, que era uma garalda de corpo de texto e sumia em
+     título grande sobre preto. Só os pesos cheios (600/700/800): num sistema
+     preto e dourado é a massa da letra que devolve o brilho do ouro, e letra
+     fina deixa o dourado virar um fio.
    - Inter Tight: interface. Legível em 10px, some de vista quando deve.
    - DM Mono: algarismos. Substituiu a JetBrains Mono, que é fonte de editor de
      código — num produto que se vende como clube privado, ela denuncia a
      origem. A DM Mono é geométrica e leve, com o mesmo passo fixo que impede o
      relógio de tremer a cada segundo. */
-import { useFonts,
-  CormorantGaramond_500Medium,
-  CormorantGaramond_500Medium_Italic,
-  CormorantGaramond_600SemiBold,
-  CormorantGaramond_700Bold,
-} from '@expo-google-fonts/cormorant-garamond';
+import { useFonts } from 'expo-font';
+import {
+  Sora_600SemiBold,
+  Sora_700Bold,
+  Sora_800ExtraBold,
+} from '@expo-google-fonts/sora';
 import {
   InterTight_400Regular,
   InterTight_500Medium,
@@ -34,10 +35,9 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
-    CormorantGaramond_500Medium,
-    CormorantGaramond_500Medium_Italic,
-    CormorantGaramond_600SemiBold,
-    CormorantGaramond_700Bold,
+    Sora_600SemiBold,
+    Sora_700Bold,
+    Sora_800ExtraBold,
     InterTight_400Regular,
     InterTight_500Medium,
     InterTight_600SemiBold,

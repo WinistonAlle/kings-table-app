@@ -15,18 +15,23 @@
  */
 
 export const Colors = {
-  /* Os pretos não são neutros: puxam para o quente (marrom), que é o que
-     diferencia "veludo" de "desligado". */
-  bg0: '#0a0807',
-  bg1: '#11100e',
-  bg2: '#1a1816',
-  bg3: '#242220',
-  bg4: '#2e2b28',
+  /* Os pretos são NEUTROS, e isso foi uma correção.
+     Eles puxavam para o quente, com a ideia de que marrom lê como "veludo" e
+     cinza lê como "desligado". Na prática o sistema inteiro ficou marrom:
+     medido, o `text0` tinha 51,2% de saturação, quase a mesma do ouro da logo
+     (46,8%), e texto é o que cobre mais área de uma tela. Agora quem dá cor é
+     só o ouro, que é o que "preto e dourado" quer dizer. A luminosidade de
+     cada degrau é a mesma de antes, então nenhum contraste mudou. */
+  bg0: '#080808',
+  bg1: '#101010',
+  bg2: '#181818',
+  bg3: '#222222',
+  bg4: '#2b2b2b',
 
-  text0: '#f5ede0',
-  text1: '#c9bda6',
-  text2: '#7a7366',
-  text3: '#4a463f',
+  text0: '#ebebea',
+  text1: '#bab8b5',
+  text2: '#74716c',
+  text3: '#474542',
 
   /* A escala inteira é ancorada na LOGO: `gold400` é exatamente o ouro do
      leão (#c49c5c, matiz 37°), e todos os outros degraus são a mesma matiz em
@@ -68,10 +73,12 @@ export const Colors = {
 } as const;
 
 export const Fonts = {
-  display:        'CormorantGaramond_500Medium',
-  displayItalic:  'CormorantGaramond_500Medium_Italic',
-  displaySemi:    'CormorantGaramond_600SemiBold',
-  displayBold:    'CormorantGaramond_700Bold',
+  /* Sem itálico: a Sora não tem, e o papel que o itálico da serifa cumpria
+     (destacar uma expressão dentro de um título) passa a ser do OURO. */
+  display:        'Sora_600SemiBold',
+  displayItalic:  'Sora_600SemiBold',
+  displaySemi:    'Sora_700Bold',
+  displayBold:    'Sora_800ExtraBold',
   ui:             'InterTight_400Regular',
   uiMedium:       'InterTight_500Medium',
   uiSemiBold:     'InterTight_600SemiBold',
@@ -148,7 +155,9 @@ export const Elevacao = {
 /* Degradês nomeados, para as telas não repetirem paradas de cor na mão. */
 export const Degrade = {
   /* Fundo de tela: um clarão quente no alto, como luminária sobre a mesa. */
-  fundo: ['#1b1510', '#0d0b09', Colors.bg0] as const,
+  /* Era ['#1b1510', '#0d0b09', ...]: dois marrons empilhados. Agora é
+     cinza-carvão para preto, e quem dá cor na tela é o ouro. */
+  fundo: ['#151515', '#0c0c0c', Colors.bg0] as const,
   /* Superfície elevada: some de cima para baixo, imitando queda de luz. */
   superficie: ['rgba(255,250,235,0.055)', 'rgba(255,250,235,0.012)'] as const,
   /* Ouro de botão: claro em cima, escuro embaixo. É o que faz parecer metal
