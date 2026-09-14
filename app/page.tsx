@@ -1,4 +1,5 @@
-import { Topo } from '@/components/Topo';
+import { HeroVideo } from '@/components/HeroVideo';
+import { Cena } from '@/components/Cena';
 import { Dor } from '@/components/Dor';
 import { ComoFunciona } from '@/components/ComoFunciona';
 import { Recursos } from '@/components/Recursos';
@@ -11,7 +12,8 @@ import { Fechamento, Rodape } from '@/components/Rodape';
 export default function Home() {
   return (
     <main>
-      <Topo />
+      <Cena />
+      <HeroVideo />
       <Dor />
       <ComoFunciona />
       <Recursos />

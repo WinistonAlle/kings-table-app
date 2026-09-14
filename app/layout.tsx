@@ -26,11 +26,11 @@ const SITE = 'https://kingstable.vercel.app';
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
-  title: "King's Table — o seu home game, organizado",
+  title: "King's Table: o seu home game, organizado",
   description:
     'Relógio de blinds, controle de quem pagou, premiação calculada e ranking da temporada. O aplicativo que substitui a planilha e a discussão no grupo.',
   openGraph: {
-    title: "King's Table — o seu home game, organizado",
+    title: "King's Table: o seu home game, organizado",
     description:
       'Relógio de blinds, controle de quem pagou, premiação calculada e ranking da temporada.',
     url: SITE,

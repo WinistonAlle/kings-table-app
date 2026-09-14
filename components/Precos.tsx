@@ -15,7 +15,7 @@ import { BotaoOuro, Rotulo, Secao, Titulo, Realce } from './Secao';
 const PLANOS = [
   {
     nome: 'Mesa única',
-    preco: '—',
+    preco: null,
     periodo: 'por mês',
     para: 'Para quem toca um home game e quer parar de usar planilha.',
     itens: [
@@ -28,7 +28,7 @@ const PLANOS = [
   },
   {
     nome: 'Clube',
-    preco: '—',
+    preco: null,
     periodo: 'por mês',
     para: 'Para quem organiza mais de uma mesa ou divide a organização.',
     itens: [
@@ -42,7 +42,7 @@ const PLANOS = [
   },
   {
     nome: 'Casa',
-    preco: '—',
+    preco: null,
     periodo: 'sob consulta',
     para: 'Para clube com muitas mesas simultâneas e mais de um organizador.',
     itens: [
@@ -89,11 +89,20 @@ export function Precos() {
               {p.para}
             </p>
 
+            {/* Enquanto o preço não está fechado, o lugar dele não pode ficar
+                com um número de mentira nem com a fonte de R$ 49 esticando um
+                texto qualquer. Some o corpo grande e fica só o aviso. */}
             <div className="mt-7 flex items-baseline gap-2">
-              <span className="font-mono text-[2.6rem] leading-none text-text0">
-                {p.preco}
-              </span>
-              <span className="text-[0.85rem] text-text3">{p.periodo}</span>
+              {p.preco ? (
+                <>
+                  <span className="font-mono text-[2.6rem] leading-none text-text0">
+                    {p.preco}
+                  </span>
+                  <span className="text-[0.85rem] text-text3">{p.periodo}</span>
+                </>
+              ) : (
+                <span className="rotulo text-gold300">em breve</span>
+              )}
             </div>
 
             <ul className="mt-7 flex flex-1 flex-col gap-3">

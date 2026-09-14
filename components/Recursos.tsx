@@ -33,7 +33,7 @@ const RECURSOS = [
   {
     titulo: 'Eliminação com um toque',
     texto:
-      'Caiu com sete na mesa, terminou em sétimo. A última eliminação fecha o torneio sozinha. E tem desfazer, porque erro de dedo acontece — e acontece na mesa.',
+      'Caiu com sete na mesa, terminou em sétimo. A última eliminação fecha o torneio sozinha. E tem desfazer, porque erro de dedo acontece, e acontece na mesa.',
   },
   {
     titulo: 'Funciona sem sinal',

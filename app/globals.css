@@ -131,3 +131,16 @@ body {
   height: 1px;
   background: rgba(255, 250, 235, 0.07);
 }
+
+/* A camada da ficha 3D.
+ *
+ * A ficha atravessa a página num canvas fixo, e a pergunta é de que lado do
+ * conteúdo ela passa. Por cima ela tapa o texto: chegou a esconder a palavra
+ * "quem" no meio de um título. Por baixo de tudo ela some no herói, que é onde
+ * ela precisa aparecer inteira para emendar com o vídeo.
+ *
+ * Por isso são três andares, e não dois: o herói embaixo, a ficha no meio, o
+ * resto do conteúdo em cima. As seções não têm fundo próprio, então a ficha
+ * continua visível em volta das letras, passando por trás delas. */
+main > section { position: relative; z-index: 10; }
+main > section#heroi { z-index: 0; }

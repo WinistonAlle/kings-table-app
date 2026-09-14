@@ -37,7 +37,7 @@ const CENAS = [
     quando: 'na quarta seguinte',
     titulo: 'Ninguém sabe quem está na frente',
     texto:
-      'A temporada existe só na memória de quem venceu mais vezes. Sem ranking, não há campeonato — só uma sequência de noites soltas.',
+      'A temporada existe só na memória de quem venceu mais vezes. Sem ranking, não há campeonato, só uma sequência de noites soltas.',
   },
 ];
 

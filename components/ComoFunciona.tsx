@@ -18,7 +18,7 @@ const PASSOS = [
     n: '02',
     titulo: 'Jogue a noite',
     texto:
-      'O relógio corre sozinho, mesmo com o celular no bolso. Você marca quem pagou, quem recomprou e quem caiu — um toque por vez.',
+      'O relógio corre sozinho, mesmo com o celular no bolso. Você marca quem pagou, quem recomprou e quem caiu, um toque por vez.',
   },
   {
     n: '03',
