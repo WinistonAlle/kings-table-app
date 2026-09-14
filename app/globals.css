@@ -322,8 +322,11 @@ main > section#heroi { z-index: 0; }
   display: inline-block;
   font-family: var(--font-display), system-ui, sans-serif;
   font-weight: 700;
-  letter-spacing: 0.02em;
-  color: var(--color-gold300);
+  letter-spacing: 0.04em;
+  color: var(--color-gold200);
+  /* Um fio de brilho: o anel passa por cima de um fundo que varia (o preto da
+     página e a própria ficha), e sem ele as letras somem contra a peça. */
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.55);
   transform-origin: 50% 50%;
 }
 
@@ -335,4 +338,44 @@ main > section#heroi { z-index: 0; }
    nome da marca em volta da peça, que é metade do trabalho dele. */
 @media (prefers-reduced-motion: reduce) {
   .anel-texto__giro { animation: none; }
+}
+
+/* O surgimento da promessa (Promessa.tsx).
+ *
+ * Cada cláusula sobe e acende, na ordem em que se lê, com 130ms entre elas.
+ *
+ * `transition` e não `@keyframes`: o gatilho vem do JavaScript (o observador
+ * de interseção troca uma classe), e transição é o que casa com isso. Com
+ * keyframes eu precisaria montar e desmontar a animação para ela poder
+ * disparar na hora certa.
+ *
+ * O `clip-path` corta cada linha pela base enquanto ela sobe, então a palavra
+ * emerge de dentro do próprio espaço em vez de flutuar de baixo da linha
+ * anterior. É o que separa "entrou deslizando" de "estava escrito e apareceu".
+ *
+ * `inline-block` nas cláusulas é o que permite transformá-las: `transform`
+ * não faz nada num `span` de fluxo. E a quebra entre elas continua natural,
+ * porque cada uma carrega o seu espaço no fim. */
+.promessa__linha {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.38em);
+  clip-path: inset(0 0 -0.2em 0);
+  transition:
+    opacity 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promessa--visivel .promessa__linha {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Movimento reduzido: a frase aparece inteira, sem subir. O conteúdo é o
+   mesmo; o que sai é o deslocamento. */
+@media (prefers-reduced-motion: reduce) {
+  .promessa__linha {
+    transform: none;
+    transition: opacity 200ms linear;
+  }
 }

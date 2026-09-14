@@ -94,12 +94,7 @@ export function AntesDepois() {
         </li>
       </ol>
 
-      {/* A faixa larga no desktop não é respiro decorativo: é o lugar da
-          ficha. Ela para aqui, à direita, com o anel de texto girando em
-          volta (ver `POSE_PAUSA` em Ficha3D.tsx), e o anel tem ~350px de
-          diâmetro. Sem a faixa, ele cai em cima do texto do terceiro passo.
-          No celular a cena 3D nem existe, então lá vale o respiro normal. */}
-      <div className="mt-20 max-w-2xl lg:mt-[22rem]">
+      <div className="mt-20 max-w-2xl lg:mt-24">
         <Rotulo>Com o King&apos;s Table</Rotulo>
         <Titulo>
           Três passos, e a noite <Realce>cuida de si</Realce>.

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { useMenosMovimento, useProgresso, useTelaPequena } from './useRolagem';
-import { BotaoOuro, Filete } from './Secao';
+import { useEffect, useRef, useState } from "react";
+import { useMenosMovimento, useProgresso, useTelaPequena } from "./useRolagem";
+import { BotaoOuro, Filete } from "./Secao";
 
 /* O herói: o vídeo da maleta, raspado pela rolagem.
  *
@@ -52,7 +52,7 @@ export function HeroVideo() {
       const t = alvo.current;
       /* Menos de um quadro de diferença não vale uma busca. */
       if (Math.abs(v2.currentTime - t) < 1 / 48) return;
-      if ('fastSeek' in v2 && typeof v2.fastSeek === 'function') v2.fastSeek(t);
+      if ("fastSeek" in v2 && typeof v2.fastSeek === "function") v2.fastSeek(t);
       else v2.currentTime = t;
     };
     pedido.current = requestAnimationFrame(aplicar);
@@ -92,7 +92,7 @@ export function HeroVideo() {
                 alt=""
                 aria-hidden
                 className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
-                  pronto ? 'opacity-0' : 'opacity-100'
+                  pronto ? "opacity-0" : "opacity-100"
                 }`}
               />
               <video
@@ -161,7 +161,7 @@ export function HeroVideo() {
             className="pointer-events-none absolute inset-0"
             style={{
               background:
-                'linear-gradient(to bottom, rgba(10,8,7,0.5) 0%, transparent 32%, transparent 62%, rgba(10,8,7,0.8) 100%)',
+                "linear-gradient(to bottom, rgba(10,8,7,0.5) 0%, transparent 32%, transparent 62%, rgba(10,8,7,0.8) 100%)",
             }}
           />
         </div>
@@ -175,16 +175,15 @@ export function HeroVideo() {
           }}
         >
           <h1 className="titulo t-hero text-text0 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
-            O seu home game merece mais que{' '}
-            <em className="not-italic text-gold300">uma planilha</em> e{' '}
+            O seu home game merece mais que{" "}
+            <em className="not-italic text-gold300">uma planilha</em> e{" "}
             <em className="not-italic text-gold300">boa memória</em>.
           </h1>
 
-          <p className="mx-auto mt-7 max-w-[52ch] t-corpo text-text1 drop-shadow-[0_2px_16px_rgba(0,0,0,0.9)]">
-            Relógio de blinds que não atrasa, controle de quem pagou, premiação
-            calculada na hora e o ranking da temporada saindo sozinho de cada
-            noite.
-          </p>
+          {/* O subtítulo saiu daqui e virou a dobra seguinte (`Promessa.tsx`).
+              No herói ele disputava com o vídeo e com a ficha subindo, que é o
+              momento em que a página só tem um assunto. Sozinho, numa dobra
+              própria, ele tem tempo de ser lido. */}
 
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <BotaoOuro href="#lista">Entrar na lista</BotaoOuro>

@@ -26,13 +26,20 @@ import { POSE_PAUSA, projetar } from './Ficha3D';
  * pior, e não era o pedido.
  */
 
-/* Os separadores importam tanto quanto as palavras: sem eles, "KING'STABLE"
-   fecha o círculo sem respiro e o olho não acha onde a frase começa. */
-const TEXTO = "KING'S · TABLE · ";
+/* O que enche o círculo é a CONTAGEM de caracteres, não a entreletra.
+ *
+ * Com 17 caracteres, as letras ficavam a 21° uma da outra: num anel de ~490px
+ * isso é um vão enorme entre elas, e o olho lê letras soltas em volta de uma
+ * ficha em vez de uma palavra dando a volta. Com "POKER" no meio são 25
+ * caracteres a 14,4°, que é o que fecha a frase.
+ *
+ * Os separadores continuam importando: sem eles "KING'STABLEPOKER" fecha o
+ * círculo sem respiro e não se acha onde a frase começa. */
+const TEXTO = "KING'S · TABLE · POKER · ";
 
 /** Quanto o anel é maior que a ficha. 1,38 deixa o texto fora da borda sem
  *  descolar dela a ponto de virar um círculo independente. */
-const FOLGA = 1.38;
+const FOLGA = 1.34;
 
 export function AnelTexto({ progresso, visivel }: { progresso: number; visivel: boolean }) {
   const [caixa, setCaixa] = useState<{ centroX: number; centroY: number; diametro: number } | null>(
@@ -73,7 +80,7 @@ export function AnelTexto({ progresso, visivel }: { progresso: number; visivel: 
         transition: 'opacity 600ms ease',
       }}
     >
-      <div className="anel-texto__giro" style={{ fontSize: tamanho * 0.062 }}>
+      <div className="anel-texto__giro" style={{ fontSize: tamanho * 0.074 }}>
         {letras.map((letra, i) => (
           <span
             key={i}

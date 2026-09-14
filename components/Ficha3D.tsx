@@ -120,16 +120,28 @@ const TOPO_Z = PILHAS[PILHA_DESTINO].z + ALTURA_DESTINO * Math.cos(INCLINACAO) *
  * seria o tipo de coisa que funciona no dia em que se escreve e se desencontra
  * no primeiro ajuste. */
 export const POSE_PAUSA = {
-  de: 0.13,
-  ate: 0.27,
-  /* `y` e `escala` foram calculados para o anel CABER na faixa livre entre a
-     grade das cenas e o título dos três passos, não escolhidos no olho: a
-     faixa mede ~362px em 1440x900 e o anel, com a folga de 1,38, mede
-     ~350px. Centro da faixa em y=553 na tela, que dá -0,357 em unidades de
-     mundo. Anel maior que a faixa encosta no cartão de cima ou no título de
-     baixo, e aí ele deixa de ser um objeto e vira um acidente. */
-  pose: { x: 1.40, y: -0.357, z: 0, escala: 0.44, giroX: 0.06, giroY: -0.55, giroZ: 0.12 },
+  /* A pausa acontece na dobra da PROMESSA, que é a primeira depois do herói.
+     Medido na página montada: aquela dobra ocupa o percurso de 0,10 a 0,13 e
+     tem o centro em 0,117. A janela é mais larga que isso de propósito — ela
+     começa em 0,05, quando a ficha mal saiu da maleta, para o anel de texto
+     já estar girando quando a frase entra em quadro. Era esse "começar um
+     pouco antes" que faltava.
+
+     Narrativamente é o lugar certo: a peça acabou de sair do vídeo e esta é a
+     primeira vez que ela fica quieta para alguém olhar. */
+  de: 0.05,
+  ate: 0.19,
+  /* `x` e `escala` saem da largura que a dobra cede: o texto ocupa 62% da
+     coluna (144..858 em 1440px) e a ficha fica no que sobra. Com escala 0,62
+     o anel mede ~490px e cai entre 874 e 1366 — 16px do texto, 74px da borda.
+     Anel que encosta no texto deixa de ser objeto e vira acidente. */
+  /* `y` positivo sobe a peça. Em -0,05 ela ficava no meio da tela, e como o
+     anel é fixo na viewport enquanto o texto rola, havia um trecho em que a
+     ficha aparecia ABAIXO da frase e já invadindo a dobra seguinte. Em 0,30
+     ela fica na altura do bloco de texto durante toda a passagem. */
+  pose: { x: 1.389, y: 0.30, z: 0, escala: 0.62, giroX: 0.05, giroY: -0.42, giroZ: 0.08 },
 };
+
 
 /* Onde um ponto do mundo aparece na tela, em pixels.
  *
