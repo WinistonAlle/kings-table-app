@@ -90,19 +90,11 @@ export function Cena() {
 
   return (
     <>
-      {/* O brilho quente que no vídeo vem de trás da ficha. Sem ele o fundo
-          "apaga" no instante da troca: o vídeo tem essa aura, a cena 3D com
-          fundo transparente não teria. */}
-      <div
-        aria-hidden
-        className="pointer-events-none fixed inset-0 transition-opacity duration-500"
-        style={{
-          zIndex: 4,
-          opacity: visivel ? 1 - progresso * 0.55 : 0,
-          background:
-            'radial-gradient(46% 42% at 50% 50%, rgba(196,156,92,0.22) 0%, rgba(150,110,60,0.10) 42%, transparent 72%)',
-        }}
-      />
+      {/* Aqui existia um brilho quente radial no centro da tela, para o fundo
+          não "apagar" quando o herói saísse levando a aura do vídeo. Ele saiu:
+          o fundo de raios (`FundoRaios.tsx`) assumiu essa função para a página
+          inteira, e o brilho virou o que ele era de fato depois disso — uma
+          mancha redonda no meio da tela, sem nada que a justificasse. */}
       <Ficha3D progresso={progresso} visivel={visivel} />
       {/* Em cima da ficha (z-index 6 contra 5): o anel é texto e precisa ser
           lido, não competir com a peça. */}

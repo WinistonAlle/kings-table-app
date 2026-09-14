@@ -248,8 +248,8 @@ main > section#heroi { z-index: 0; }
    isso que impede o conjunto de virar um piscar regular — padrão que repete
    visivelmente lê como papel de parede, não como luz. */
 @keyframes fundo-respira {
-  0%, 100% { opacity: 0.008; }
-  50%      { opacity: 0.022; }
+  0%, 100% { opacity: 0.14; }
+  50%      { opacity: 0.34; }
 }
 
 .fundo-raios__grupo {
@@ -280,7 +280,7 @@ main > section#heroi { z-index: 0; }
    Fundo é o que a pessoa só percebe quando olha fixo. Se ele disputa leitura
    ou tinge a página, ele deixou de ser fundo. */
 .fundo-raios__raio {
-  opacity: 0.012;
+  opacity: 0.22;
   animation-name: fundo-respira;
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
