@@ -634,8 +634,8 @@ main > section#heroi { z-index: 0; }
 
 /* A dobra da mesa (Mesa.tsx).
  *
- * A mesa não tem mais percurso próprio: ela é uma dobra estática, com as
- * pilhas paradas e a ficha 3D pousando no feltro. */
+ * A mesa fica presa dentro da própria dobra: inteira enquanto a pessoa está
+ * nela, fora da tela quando a próxima seção assume. */
 .mesa-dobra {
   padding-block: 6rem;
 }
@@ -648,11 +648,13 @@ main > section#heroi { z-index: 0; }
    768 exatos a cena 3D NÃO roda. */
 @media (min-width: 769px) {
   .mesa-dobra {
-    min-height: 100vh;
+    height: 150vh;
     padding-block: 0;
   }
 
   .mesa-grude {
-    min-height: 100vh;
+    position: sticky;
+    top: 0;
+    height: 100vh;
   }
 }

@@ -658,7 +658,7 @@ export function Ficha3D({
       const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * c.camera.position.z;
       const desloc = DESLOCAMENTO_X * 2 * meiaAltura * (1 - faixa(p, 0, 0.22));
       const est = estadoMesa.current;
-      mesa.position.y = -(est.deslocamentoY / (altura / 2)) * meiaAltura;
+      mesa.position.y = 0;
       if (est.ativa) medirTopo();
       /* Dentro da pausa, a ficha mira o TOPO DA PILHA vencedora, e esse ponto
          vem do mundo (`localToWorld`), não de uma conta à mão: a pilha é neta
@@ -726,23 +726,9 @@ export function Ficha3D({
       c.renderer.clear();
 
       if (mesa.visible) {
-        const topo = Math.max(0, Math.min(altura, est.recorteTopo));
-        const baixo = Math.max(0, Math.min(altura, est.recorteBaixo));
-        const recorteAltura = baixo - topo;
-        if (recorteAltura > 0) {
-          const pixelRatio = c.renderer.getPixelRatio();
-          c.camera.layers.set(1);
-          c.renderer.setScissor(
-            0,
-            Math.round((altura - baixo) * pixelRatio),
-            Math.round(largura * pixelRatio),
-            Math.round(recorteAltura * pixelRatio),
-          );
-          c.renderer.setScissorTest(true);
-          c.renderer.render(c.scene, c.camera);
-          c.renderer.setScissorTest(false);
-          c.renderer.clearDepth();
-        }
+        c.camera.layers.set(1);
+        c.renderer.render(c.scene, c.camera);
+        c.renderer.clearDepth();
       }
 
       c.camera.layers.set(0);

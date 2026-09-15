@@ -19,9 +19,10 @@ import { PASSOS } from './AntesDepois';
  * Funcionava, mas era um diagrama: a ficha não podia pousar nele, só passar
  * por cima ou por baixo.)
  *
- * O que está AQUI é a seção: uma dobra de uma tela com o conteúdo no meio e a
- * posição que permite à cena 3D desenhar a mesa recortada dentro dela. O
- * número que liga os dois lados vai por `mesaSinal.ts`.
+ * O que está AQUI é a seção: o percurso curto em que o bloco fica preso na
+ * tela, com o conteúdo no meio e a posição que permite à cena 3D desenhar a
+ * mesa inteira atrás dele. O número que liga os dois lados vai por
+ * `mesaSinal.ts`.
  */
 
 const LUGARES = 8;
@@ -59,11 +60,8 @@ export function Mesa() {
       const blocoRect = bloco.getBoundingClientRect();
       const recorteTopo = Math.max(0, secaoRect.top);
       const recorteBaixo = Math.min(window.innerHeight, secaoRect.bottom);
-      const ativa =
-        recorteBaixo > recorteTopo &&
-        secaoRect.bottom > 360 &&
-        blocoRect.bottom > 0 &&
-        blocoRect.top < window.innerHeight;
+      const blocoPreenchendoTela = blocoRect.top <= 1 && blocoRect.bottom >= window.innerHeight - 1;
+      const ativa = recorteBaixo > recorteTopo && blocoPreenchendoTela;
       definirMesa({
         ativa,
         progresso: progressoAtual.current,
