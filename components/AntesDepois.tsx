@@ -1,4 +1,5 @@
 import { Rotulo, Secao, Titulo, Realce } from './Secao';
+import OptionWheel from './OptionWheel';
 
 /* Antes e depois, numa dobra só.
  *
@@ -73,29 +74,24 @@ export function AntesDepois() {
   return (
     <Secao id="como-funciona" className="py-24 lg:py-32">
       <div className="max-w-2xl">
-        <Rotulo>A noite de hoje</Rotulo>
+        <Rotulo>O sistema</Rotulo>
         <Titulo>
-          A mesa é boa. A <Realce>organização</Realce> é que cansa.
+          Tudo para <Realce>organizar sua mesa</Realce>.
         </Titulo>
       </div>
 
-      <ol className="mt-14 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-2 lg:grid-cols-3">
-        {CENAS.map((c) => (
-          <li key={c.titulo} className="bg-bg1 p-7 lg:p-8">
-            <p className="font-mono t-micro tracking-wide text-gold500">{c.quando}</p>
-            <h3 className="titulo mt-3 t-card text-gold200">{c.titulo}</h3>
-            <p className="mt-3 t-apoio text-text2">{c.texto}</p>
-          </li>
-        ))}
-
-        {/* A charneira. Ela fecha a fileira das cenas e abre a resposta, e é
-            por estar ENCOSTADA nas duas que ela funciona. */}
-        <li className="flex items-center bg-bg1 p-7 lg:p-8">
-          <p className="titulo t-sub text-gold200">
-            Nada disso é sobre pôquer. É sobre planilha.
-          </p>
-        </li>
-      </ol>
+      <div className="mt-10">
+        <OptionWheel items={[
+          'Criação de mesas',
+          'Relógio e blinds',
+          'Ranking de liga',
+          'Jogadores e entradas',
+          'Controle de pagamentos',
+          'Premiação e resultados',
+          'Histórico e uso offline',
+          'Rainha IA · em breve',
+        ]} />
+      </div>
 
     </Secao>
   );
