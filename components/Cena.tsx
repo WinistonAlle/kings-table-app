@@ -68,7 +68,19 @@ export function Cena() {
       /* Daqui até o fim da página é o percurso da ficha. */
       const total = document.documentElement.scrollHeight - window.innerHeight;
       const percurso = total - fim;
-      setProgresso(percurso <= 0 ? 0 : Math.min(1, Math.max(0, (y - fim) / percurso)));
+      const promessa = document.getElementById('promessa');
+      if (promessa && window.innerWidth >= 1024) {
+        const inicio = promessa.offsetTop;
+        const fimPausa = inicio + promessa.offsetHeight - window.innerHeight;
+        const p = y < inicio
+          ? 0.05 * (y - fim) / Math.max(1, inicio - fim)
+          : y <= fimPausa
+            ? 0.05 + 0.14 * (y - inicio) / Math.max(1, fimPausa - inicio)
+            : 0.19 + 0.81 * (y - fimPausa) / Math.max(1, total - fimPausa);
+        setProgresso(Math.min(1, Math.max(0, p)));
+      } else {
+        setProgresso(percurso <= 0 ? 0 : Math.min(1, Math.max(0, (y - fim) / percurso)));
+      }
     };
 
     const aoRolar = () => {

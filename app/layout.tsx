@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Sora, Inter_Tight, DM_Mono } from 'next/font/google';
+import { Sora, Inter_Tight, DM_Mono, Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { RolagemSuave } from '@/components/RolagemSuave';
 import { FundoRaios } from '@/components/FundoRaios';
@@ -38,6 +38,8 @@ const mono = DM_Mono({
   weight: ['300', '400', '500'],
 });
 
+const destaque = Playfair_Display({ variable: '--fonte-destaque', subsets: ['latin'], weight: ['700'], style: ['italic'] });
+
 const SITE = 'https://kingstable.vercel.app';
 
 export const metadata: Metadata = {
@@ -61,7 +63,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR" className={`${display.variable} ${ui.variable} ${mono.variable}`}>
+    <html lang="pt-BR" className={`${display.variable} ${ui.variable} ${mono.variable} ${destaque.variable}`}>
       <body>
         {/* Antes de tudo no DOM: ele é fixo em z-index 0 e as seções vivem em
             10 (ver globals.css), então a ordem aqui é o que garante que ele

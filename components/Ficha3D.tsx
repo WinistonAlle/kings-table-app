@@ -631,7 +631,8 @@ export function Ficha3D({
       instante = agora;
 
       const p = alvo.current;
-      const fichaPousouNaMesa = p >= PAUSA_MESA.de;
+      const fimOrbita = document.getElementById('como-funciona')?.getBoundingClientRect();
+      const fichaPousouNaMesa = !!fimOrbita && fimOrbita.bottom <= 0;
       const pose = fichaPousouNaMesa
         ? { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: PAUSA_MESA.giroX, giroY: -GIRO_INTEIRO, giroZ: 0 }
         : interpolar(p);

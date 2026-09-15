@@ -59,7 +59,7 @@ export function Promessa() {
   }, []);
 
   return (
-    <Secao id="promessa" className="py-28 lg:py-40">
+    <Secao id="promessa" className="promessa-dobra py-28 lg:py-40">
       {/* No desktop o texto ocupa ~62% e cede a direita para a ficha, que para
           exatamente ali. É coluna reservada, não sobra: uma peça grande e
           parada ao LADO do que se lê vira parte da página; espremida num vão,
@@ -74,7 +74,7 @@ export function Promessa() {
             <span
               key={i}
               className="promessa__linha"
-              style={{ transitionDelay: `${i * 130}ms` }}
+              style={{ transitionDelay: `${i * 240}ms` }}
             >
               {c.texto}
               {c.destaque ? <em className="not-italic text-gold300"> {c.destaque}</em> : null}{' '}

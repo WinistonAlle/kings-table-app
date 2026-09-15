@@ -7,6 +7,7 @@ import { Recursos } from '@/components/Recursos';
 import { Precos } from '@/components/Precos';
 import { Perguntas } from '@/components/Perguntas';
 import { Fechamento, Rodape } from '@/components/Rodape';
+import { HomeGames } from '@/components/HomeGames';
 
 /* Sete dobras, na ordem da cabeça de quem chega:
    1. o que é (herói), 1b. o que ele FAZ, em uma frase (a promessa, que era
@@ -25,11 +26,12 @@ export default function Home() {
       <Cena />
       <HeroVideo />
       <Promessa />
-      <AntesDepois />
       <Mesa />
+      <AntesDepois />
       <div className="relative isolate overflow-clip">
         <div className="relative z-10">
           <Recursos />
+          <HomeGames />
           <Precos />
           <Perguntas />
           <Fechamento />

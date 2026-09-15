@@ -67,6 +67,23 @@
   --font-mono: var(--fonte-mono);
 }
 
+.titulo { font-weight: 800; }
+.titulo em, .titulo .text-gold300 {
+  font-family: var(--fonte-destaque), Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+}
+@media (min-width: 1024px) {
+  .promessa-dobra { height: 210vh; padding-block: 0; }
+  .promessa-dobra > div {
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+}
+
 html {
   /* Nos dois, e não só no body: o valor do body propaga pra viewport quando o
      html está `visible`, e aí o body para de cortar. Aprendido na marra. */

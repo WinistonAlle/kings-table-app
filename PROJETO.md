@@ -1,5 +1,25 @@
 # King's Table: a landing page
 
+## Revisao visual de 15/09/2026
+
+- Preview de desenvolvimento: http://localhost:3001 (manter esta porta).
+- Ordem atual: HeroVideo, Promessa, Mesa, AntesDepois (OptionWheel), Recursos,
+  HomeGames (DriftWall), Precos, Perguntas, Fechamento e Rodape.
+- Promessa fica sticky por 210vh no desktop. Cena remapeia seu progresso
+  pela geometria da promessa para manter POSE_PAUSA durante a leitura.
+- Mesa e fichas estaticas da mesa nao usam mais WebGL. A mesa visual e DOM;
+  ela aguarda um video de dealer visto de cima, que o usuario vai produzir.
+- A mesma ficha WebGL ancora na roda de features por geometria do DOM e
+  encerra o percurso depois dessa dobra. Nao ha pilha final nem fichas caindo.
+- Sora 800 nos titulos, Playfair Display 700 italica nos destaques.
+- Recursos usa FEATURES como fonte unica, com menu de proximidade no desktop
+  e seletor no celular. Recursos futuros permanecem identificados.
+- HomeGames usa seis cenas geradas em public/home-games-atlas.png. DriftWall
+  pausa fora da viewport e respeita movimento reduzido.
+- Perguntas tem 14 respostas e acordeao nativo centralizado.
+
+As secoes historicas abaixo descrevem tambem implementacoes anteriores.
+
 Documento de passagem. Escrito em 15/09/2026 para quem for continuar o
 trabalho em outra ferramenta. Ele cobre o que o projeto é, como cada peça
 funciona, por que cada decisão foi tomada, o que está pronto, o que falta e
