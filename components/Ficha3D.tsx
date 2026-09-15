@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { desenharLateral } from './fichaTextura';
 import { assinarMesa, mesaAgora } from './mesaSinal';
-import { LUGARES_NA_MESA, quedasEm } from './Mesa';
+import { LUGARES_NA_MESA } from './Mesa';
 
 /* A ficha 3D que assume quando o vídeo termina e atravessa a página.
  *
@@ -579,11 +579,6 @@ export function Ficha3D({
      * de um grupo que tem rotação e escala não-uniforme, e refazer essa conta
      * à mão é onde se erra por meio centímetro que na tela vira a ficha
      * flutuando ao lado da pilha. */
-    /* Quanto de cada pilha ainda está na mesa, de 1 a 0. É isto que é
-       animado: a pilha some encolhendo e afundando no feltro, em vez de
-       desaparecer de um quadro para o outro. */
-    const vivas = new Array(LUGARES_NA_MESA).fill(1);
-
     const pilhaVencedora = pilhasMesa[0];
     mesa.traverse((obj) => obj.layers.set(1));
     const topoDaPilha = new THREE.Vector3();
@@ -636,11 +631,14 @@ export function Ficha3D({
       instante = agora;
 
       const p = alvo.current;
-      const pose = interpolar(p);
+      const fichaPousouNaMesa = p >= PAUSA_MESA.de;
+      const pose = fichaPousouNaMesa
+        ? { x: 0, y: 0, z: 0, escala: PAUSA_MESA.escala, giroX: PAUSA_MESA.giroX, giroY: -GIRO_INTEIRO, giroZ: 0 }
+        : interpolar(p);
 
       /* A licença para a mão interferir: zero nas duas pontas, inteira no
          meio. Ver o comentário de TILT_MAX. */
-      const licenca = faixa(p, 0.02, 0.14) * (1 - faixa(p, 0.84, 0.97));
+      const licenca = fichaPousouNaMesa ? 0 : faixa(p, 0.02, 0.14) * (1 - faixa(p, 0.84, 0.97));
 
       /* Rolagem rápida empurra o giro; o atrito devolve a ficha ao percurso.
          Por isso é um empurrão e não uma posição: o efeito some sozinho
@@ -672,13 +670,16 @@ export function Ficha3D({
       let alvoX = pose.x + desloc;
       let alvoY = pose.y;
       let alvoZ = pose.z;
-      const forcaMesa =
-        faixa(p, PAUSA_MESA.de - 0.08, PAUSA_MESA.de) * (1 - faixa(p, PAUSA_MESA.ate, PAUSA_MESA.ate + 0.06));
-      if (forcaMesa > 0) {
+      const forcaMesa = fichaPousouNaMesa
+        ? 1
+        : faixa(p, PAUSA_MESA.de - 0.08, PAUSA_MESA.de);
+      if (forcaMesa > 0 && est.ativa) {
         alvoX += (topoDaPilha.x - alvoX) * forcaMesa;
         alvoY += (topoDaPilha.y - alvoY) * forcaMesa;
         alvoZ += (topoDaPilha.z - alvoZ) * forcaMesa;
       }
+      c.ficha.visible = !fichaPousouNaMesa || est.ativa;
+      c.ficha.layers.set(fichaPousouNaMesa && est.ativa ? 1 : 0);
       c.ficha.position.set(alvoX, alvoY, alvoZ);
       c.ficha.scale.setScalar(pose.escala);
       c.ficha.rotation.set(
@@ -693,21 +694,13 @@ export function Ficha3D({
          relógio correndo num canto da página. */
       mesa.visible = est.ativa;
       if (mesa.visible) {
-        /* A mesa já está ali, inteira. A rolagem desta dobra anima as pilhas,
-           não o tampo. */
+        /* A mesa já está ali, inteira. As pilhas também ficam paradas; a única
+           peça que chega aqui é a ficha viajante, e ela para no topo. */
         for (const m of materiaisMesa) m.opacity = 1;
-        const caidos = quedasEm(est.progresso);
-        pilhasMesa.forEach((pilha, i) => {
-          /* A pilha 0 é a do campeão e nunca some: é nela que a ficha pousa.
-             As outras caem da última para a primeira. */
-          const alvoVivo = i === 0 || i > caidos ? 1 : 0;
-          vivas[i] += (alvoVivo - vivas[i]) * Math.min(1, dt * 7);
-          const v = vivas[i];
-          pilha.visible = v > 0.01;
-          pilha.scale.setScalar(v);
-          /* Afunda um pouco enquanto encolhe: a pilha é retirada da mesa, não
-             evaporada. */
-          pilha.position.y = 0.018 - (1 - v) * 0.06;
+        pilhasMesa.forEach((pilha) => {
+          pilha.visible = true;
+          pilha.scale.setScalar(1);
+          pilha.position.y = 0.018;
         });
         medirTopo();
       }
