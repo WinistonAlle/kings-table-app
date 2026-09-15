@@ -7,8 +7,9 @@
   HomeGames (DriftWall), Precos, Perguntas, Fechamento e Rodape.
 - Promessa fica sticky por 210vh no desktop. Cena remapeia seu progresso
   pela geometria da promessa para manter POSE_PAUSA durante a leitura.
-- Mesa e fichas estaticas da mesa nao usam mais WebGL. A mesa visual e DOM;
-  ela aguarda um video de dealer visto de cima, que o usuario vai produzir.
+- Mesa usa public/mesa-dealer.mp4, video do usuario visto de cima, sem audio,
+  com enquadramento inteiro e sem parallax. Pausa fora da tela e usa poster
+  para movimento reduzido. No celular, o texto fica abaixo do video.
 - A mesma ficha WebGL ancora na roda de features por geometria do DOM e
   encerra o percurso depois dessa dobra. Nao ha pilha final nem fichas caindo.
 - Sora 800 nos titulos, Playfair Display 700 italica nos destaques.

@@ -23,10 +23,39 @@ export const LUGARES_NA_MESA = LUGARES;
 export function Mesa() {
   const secao = useRef<HTMLElement>(null);
   const grude = useRef<HTMLDivElement>(null);
+  const video = useRef<HTMLVideoElement>(null);
   const progressoAtual = useRef(0);
   const p = useProgresso(secao);
   const telaPequena = useTelaPequena();
   const semMesa3D = telaPequena !== false;
+
+  useEffect(() => {
+    const elemento = video.current;
+    const bloco = grude.current;
+    if (!elemento || !bloco) return;
+    const movimentoReduzido = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let visivel = false;
+    const atualizar = () => {
+      if (visivel && !document.hidden && !movimentoReduzido.matches) {
+        void elemento.play().catch(() => {});
+      } else {
+        elemento.pause();
+      }
+    };
+    const observador = new IntersectionObserver(([entrada]) => {
+      visivel = entrada.isIntersecting;
+      atualizar();
+    }, { threshold: 0.05 });
+    observador.observe(bloco);
+    document.addEventListener('visibilitychange', atualizar);
+    movimentoReduzido.addEventListener('change', atualizar);
+    return () => {
+      observador.disconnect();
+      document.removeEventListener('visibilitychange', atualizar);
+      movimentoReduzido.removeEventListener('change', atualizar);
+      elemento.pause();
+    };
+  }, []);
 
   useEffect(() => {
     progressoAtual.current = Math.min(1, p);
@@ -82,7 +111,17 @@ export function Mesa() {
     <section ref={secao} id="mesa" className="mesa-dobra relative w-full">
       <div ref={grude} className="mesa-grude flex w-full items-center justify-center">
         <div className="mesa-visual" aria-hidden>
-          <div className="mesa-oval" />
+          <video
+            ref={video}
+            className="mesa-video"
+            src="/mesa-dealer.mp4"
+            poster="/mesa-dealer-poster.jpg"
+            muted
+            loop
+            playsInline
+            preload="metadata"
+            tabIndex={-1}
+          />
         </div>
 
         <div className="mesa-conteudo mx-auto w-full max-w-3xl px-6 text-center">
