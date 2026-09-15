@@ -14,9 +14,7 @@ export function Fechamento() {
           O King&apos;s Table ainda não abriu. Deixe o seu e-mail e você entra
           antes de todo mundo, com o preço de quem chegou primeiro.
         </p>
-        {/* O destino de todos os botões da página. Fica AQUI, e não numa dobra
-            própria, porque é também onde a pilha de fichas 3D pousa: o
-            pagamento visual da página acontece junto com o pedido. */}
+        {/* O destino de todos os botões da página. */}
         <div className="mt-10 flex justify-center">
           <ListaEspera />
         </div>

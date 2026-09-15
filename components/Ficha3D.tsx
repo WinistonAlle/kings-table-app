@@ -704,7 +704,7 @@ export function Ficha3D({
            a lista de espera entra em quadro. */
         const atraso = 0.90 + i * 0.02;
         const entrada = faixa(p, atraso, atraso + 0.10);
-        g.visible = entrada > 0;
+        g.visible = false;
         g.scale.setScalar(PILHA_ESCALA * entrada);
         /* Enquanto sobem, as pilhas também se inclinam de leve com o ponteiro:
            é o que impede que pareçam um adesivo colado no canto. */
