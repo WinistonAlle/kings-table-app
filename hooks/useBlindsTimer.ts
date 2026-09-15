@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { AppState, AppStateStatus } from 'react-native';
 import { useBlindsStore } from '@/stores/blindsStore';
+import { useTournamentStore } from '@/stores/tournamentStore';
 
 /**
  * Mantém o relógio de blinds em dia enquanto a tela estiver montada.
@@ -11,7 +12,11 @@ import { useBlindsStore } from '@/stores/blindsStore';
  * segundo decorrido — trinta minutos de tela bloqueada eram 1.800 atualizações
  * de estado em sequência.
  */
-export function useBlindsTimer() {
+export function useBlindsTimer(tournamentId?: string | null) {
+  const torneio = useTournamentStore(s => s.tournaments.find(t => t.id === tournamentId));
+  useEffect(() => {
+    if (torneio) useBlindsStore.getState().selectTournament(torneio.id, torneio.blindStructure);
+  }, [torneio?.id, torneio?.blindStructure]);
   const isRunning = useBlindsStore((s) => s.isRunning);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 

@@ -47,6 +47,8 @@ export default function Mesa() {
   const { tournaments, addPlayer, removePlayer, updatePlayer, setActive, eliminatePlayer, undoElimination } =
     useTournamentStore();
   const [nome, setNome] = useState('');
+  const [erroJogador, setErroJogador] = useState('');
+  const [mostrarPremios, setMostrarPremios] = useState(false);
 
   const torneio = tournaments.find((t) => t.id === id);
 
@@ -88,10 +90,17 @@ export default function Mesa() {
 
   const encerrado = torneio.status === 'finished';
   const campeao = torneio.players.find((p) => p.position === 1);
+  const adicionarJogador = () => {
+    const limpo = nome.trim();
+    if (!limpo) { setErroJogador('Informe o nome do jogador.'); return; }
+    if (torneio.players.some(p => p.name.trim().toLocaleLowerCase('pt-BR') === limpo.toLocaleLowerCase('pt-BR'))) { setErroJogador('Já existe um jogador com esse nome. Use um sobrenome para diferenciar.'); return; }
+    addPlayer(torneio.id, { userId: `guest_${Date.now()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
+    setNome(''); setErroJogador('');
+  };
 
   return (
     <KTScreen edges={['top']}>
-      <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* ------------------------------------------------------ cabeçalho */}
         <View style={styles.topo}>
           <Pressable style={styles.iconeBtn} onPress={() => router.back()} hitSlop={12}>
@@ -101,9 +110,11 @@ export default function Mesa() {
             <KTText papel="rotulo" color={Colors.gold500}>
               {FORMATOS[torneio.format] ?? torneio.format} · {dinheiro(torneio.buyIn)}
             </KTText>
-            <KTText papel="titulo" color={Colors.gold100} numberOfLines={1}>{torneio.name}</KTText>
+            <KTText papel="titulo" color={torneio.color ?? Colors.gold100} numberOfLines={2}>{torneio.name}</KTText>
           </View>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Atalho para o relógio"
             style={styles.iconeBtn}
             onPress={() => { setActive(torneio.id); router.push(`/blinds/${torneio.id}` as any); }}
             hitSlop={12}
@@ -111,6 +122,15 @@ export default function Mesa() {
             <Ionicons name="timer-outline" size={19} color={Colors.gold200} />
           </Pressable>
         </View>
+
+        {!encerrado ? <>
+          <KTButton label="Abrir relógio de blinds" size="lg" fullWidth onPress={() => { setActive(torneio.id); router.push(`/blinds/${torneio.id}` as never); }} icone={<Ionicons name="timer-outline" size={22} color={Colors.bg0} />} />
+          <View style={{ gap: 12 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Naipe tipo={torneio.suit ?? 'espada'} cor={torneio.color ?? Colors.gold300} tamanho={22} /><KTText papel="subtitulo">Adicionar jogadores</KTText></View><KTText papel="apoio" color={Colors.text1}>Cada nome entra com um buy-in de {dinheiro(torneio.buyIn)} e pagamento a receber.</KTText>
+            <TextInput accessibilityLabel="Nome do novo jogador" value={nome} onChangeText={value => { setNome(value); setErroJogador(''); }} placeholder="Nome e sobrenome" placeholderTextColor={Colors.text2} style={styles.campo} onSubmitEditing={adicionarJogador} returnKeyType="done" maxLength={60} />
+            <KTButton label="Adicionar jogador à mesa" onPress={adicionarJogador} disabled={!nome.trim()} variant="fantasma" fullWidth icone={<Ionicons name="person-add-outline" size={18} color={Colors.gold200} />} />
+            {erroJogador ? <KTText accessibilityLiveRegion="polite" color={Colors.danger}>{erroJogador}</KTText> : null}
+          </View>
+        </> : null}
 
         {/* ---------------------------------------------------- o resumo */}
         <KTSurface nivel="card" padding={0} destaque={encerrado}>
@@ -142,9 +162,9 @@ export default function Mesa() {
         <View>
           <View style={styles.secaoTopo}>
             <KTText papel="rotulo" color={Colors.text2}>Premiação</KTText>
-            <KTText papel="rotulo" color={Colors.text3}>{payoutLabel(premiacao.faixas.length)}</KTText>
+            <Pressable accessibilityRole="button" accessibilityState={{ expanded: mostrarPremios }} onPress={() => setMostrarPremios(!mostrarPremios)} style={{ flexDirection: 'row', gap: 8, alignItems: 'center', minHeight: 44 }}><KTText papel="apoio" color={Colors.gold300}>{mostrarPremios ? 'Recolher' : 'Ver distribuição'}</KTText><Ionicons name={mostrarPremios ? 'chevron-up' : 'chevron-down'} size={18} color={Colors.gold300} /></Pressable>
           </View>
-          <KTSurface nivel="card" padding={0}>
+          {mostrarPremios || encerrado ? <KTSurface nivel="card" padding={0}>
             {premiacao.faixas.map((f, i) => {
               const dono = torneio.players.find((p) => p.position === f.place);
               return (
@@ -166,7 +186,7 @@ export default function Mesa() {
                 </View>
               );
             })}
-          </KTSurface>
+          </KTSurface> : null}
         </View>
 
         {/* -------------------------------------------------- na mesa */}
@@ -175,42 +195,6 @@ export default function Mesa() {
             <KTText papel="rotulo" color={Colors.text2}>Na mesa</KTText>
             <KTText papel="rotulo" color={Colors.text3}>{naMesa.length}</KTText>
           </View>
-
-          {!encerrado ? (
-            <View style={styles.adicionar}>
-              <TextInput
-                value={nome}
-                onChangeText={setNome}
-                placeholder="Nome do jogador"
-                placeholderTextColor={Colors.text3}
-                style={[styles.campo, semAnelDeFoco]}
-                onSubmitEditing={() => {
-                  const limpo = nome.trim();
-                  if (!limpo) return;
-                  addPlayer(torneio.id, {
-                    userId: `guest_${Date.now()}`, name: limpo,
-                    buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending',
-                  });
-                  setNome('');
-                }}
-                returnKeyType="done"
-              />
-              <Pressable
-                style={styles.adicionarBtn}
-                onPress={() => {
-                  const limpo = nome.trim();
-                  if (!limpo) return;
-                  addPlayer(torneio.id, {
-                    userId: `guest_${Date.now()}`, name: limpo,
-                    buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending',
-                  });
-                  setNome('');
-                }}
-              >
-                <Ionicons name="add" size={20} color={Colors.gold200} />
-              </Pressable>
-            </View>
-          ) : null}
 
           <View style={{ gap: Space.sm }}>
             {naMesa.map((j) => (
@@ -371,7 +355,7 @@ function Contador({ rotulo, valor, onMenos, onMais }: {
 }
 
 const styles = StyleSheet.create({
-  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xxl, paddingBottom: Space.xxl },
+  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xl, paddingBottom: Space.xxl, maxWidth: 760, width: '100%', alignSelf: 'center' },
   vazio: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: Space.xxl },
 
   topo: { flexDirection: 'row', alignItems: 'center', gap: Space.md },
@@ -406,7 +390,7 @@ const styles = StyleSheet.create({
 
   adicionar: { flexDirection: 'row', gap: Space.sm, marginBottom: Space.lg },
   campo: {
-    flex: 1, height: 48, borderRadius: Radius.md, paddingHorizontal: Space.lg,
+    height: 50, borderRadius: Radius.sm, paddingHorizontal: Space.lg,
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
     backgroundColor: Colors.bg1, color: Colors.text0,
     fontFamily: 'InterTight_400Regular', fontSize: 15,

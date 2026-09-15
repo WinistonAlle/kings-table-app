@@ -12,6 +12,10 @@ import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsStore, BLIND_PRESETS } from '@/stores/blindsStore';
 import type { TournamentFormat } from '@/types';
 import { semAnelDeFoco } from '@/components/ui/campo';
+import { StructureEditor } from '@/components/StructureEditor';
+import { usePresetsStore } from '@/stores/presetsStore';
+import { normalizarEstrutura, validarEstrutura, valorBuyIn } from '@/lib/estrutura';
+import type { BlindLevel } from '@/types';
 
 /* Abrir a mesa.
  *
@@ -33,25 +37,35 @@ const FORMATOS: { valor: TournamentFormat; nome: string; nota: string; minutos: 
 ];
 
 const NAIPES = ['espada', 'copas', 'ouros', 'paus'] as const;
+const CORES = [Colors.gold300, '#78a885', '#8ab8d9', '#d98e9e', '#b39bd1'] as const;
 
 export default function AbrirMesa() {
   const { createTournament, setActive, startTournament } = useTournamentStore();
-  const { setStructure } = useBlindsStore();
+  const { selectTournament } = useBlindsStore();
 
   const [nome, setNome] = useState('');
-  const [buyIn, setBuyIn] = useState('500');
+  const [buyIn, setBuyIn] = useState('');
   const [formato, setFormato] = useState<TournamentFormat>('regular');
   const [reentrada, setReentrada] = useState(true);
   const [naipe, setNaipe] = useState<(typeof NAIPES)[number]>('espada');
+  const [cor, setCor] = useState<string>(Colors.gold300);
+  const [levels, setLevels] = useState<BlindLevel[]>(BLIND_PRESETS.regular.map(n => ({ ...n })));
+  const [editar, setEditar] = useState(false);
+  const [nomePreset, setNomePreset] = useState('');
+  const [aviso, setAviso] = useState('');
+  const { presets, save, remove } = usePresetsStore();
 
-  const valor = Number(buyIn.replace(/\D/g, '')) || 0;
-  const podeAbrir = nome.trim().length > 0 && valor > 0;
+  const valor = valorBuyIn(buyIn);
+  const erroEstrutura = validarEstrutura(levels);
+  const podeAbrir = nome.trim().length > 0 && valor > 0 && !erroEstrutura;
 
   const abrir = () => {
     if (!podeAbrir) return;
-    const estrutura = BLIND_PRESETS[formato] ?? BLIND_PRESETS.regular;
+    const estrutura = normalizarEstrutura(levels);
     const t = createTournament({
       name: nome.trim(),
+      suit: naipe,
+      color: cor,
       format: formato,
       buyIn: valor,
       reEntryAllowed: reentrada,
@@ -60,7 +74,7 @@ export default function AbrirMesa() {
       blindStructure: estrutura,
       createdBy: 'me',
     });
-    setStructure(estrutura);
+    selectTournament(t.id, estrutura);
     setActive(t.id);
     /* Já entra em andamento: quem abre a mesa está com gente em volta dela, não
        agendando pra semana que vem. */
@@ -82,7 +96,7 @@ export default function AbrirMesa() {
         <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* -------------------------------------------------------- nome */}
           <View style={styles.abertura}>
-            <Naipe tipo={naipe} tamanho={26} cor={Colors.gold300} />
+            <Naipe tipo={naipe} tamanho={32} cor={cor} />
             <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: Space.md }}>
               Como se chama a noite?
             </KTText>
@@ -105,6 +119,9 @@ export default function AbrirMesa() {
             {NAIPES.map((n) => (
               <Pressable
                 key={n}
+                accessibilityRole="button"
+                accessibilityLabel={`Naipe ${n}`}
+                accessibilityState={{ selected: naipe === n }}
                 onPress={() => setNaipe(n)}
                 style={[styles.naipeBtn, naipe === n && styles.naipeBtnAtivo]}
                 hitSlop={6}
@@ -113,6 +130,7 @@ export default function AbrirMesa() {
               </Pressable>
             ))}
           </View>
+          <View style={styles.naipes}>{CORES.map(c => <Pressable key={c} accessibilityRole="button" accessibilityLabel={`Cor ${c}`} accessibilityState={{ selected: c === cor }} onPress={() => setCor(c)} style={[styles.naipeBtn, { borderColor: cor === c ? c : Colors.borderStrong }]}><View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c }} />{cor === c ? <Ionicons name="checkmark" size={14} color={Colors.bg0} style={{ position: 'absolute' }} /> : null}</Pressable>)}</View>
 
           {/* ------------------------------------------------------ buy-in */}
           <View>
@@ -122,14 +140,17 @@ export default function AbrirMesa() {
                 <KTText papel="subtitulo" color={Colors.text2}>R$</KTText>
                 <TextInput
                   value={buyIn}
-                  onChangeText={(t) => setBuyIn(t.replace(/\D/g, ''))}
-                  keyboardType="number-pad"
+                  onChangeText={setBuyIn}
+                  placeholder="0,00"
+                  placeholderTextColor={Colors.text2}
+                  accessibilityLabel="Valor do buy-in em reais"
+                  keyboardType="decimal-pad"
                   style={[styles.campoValor, semAnelDeFoco]}
-                  maxLength={6}
+                  maxLength={10}
                 />
               </View>
               <View style={styles.atalhos}>
-                {[100, 200, 500, 1000].map((v) => (
+                {[25, 50, 100, 200].map((v) => (
                   <Pressable
                     key={v}
                     onPress={() => setBuyIn(String(v))}
@@ -149,9 +170,9 @@ export default function AbrirMesa() {
             <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Ritmo dos blinds</KTText>
             <View style={{ gap: Space.sm }}>
               {FORMATOS.map((f) => {
-                const ativo = formato === f.valor;
+                const ativo = formato === f.valor && !editar;
                 return (
-                  <Pressable key={f.valor} onPress={() => setFormato(f.valor)}>
+                  <Pressable key={f.valor} accessibilityRole="button" accessibilityState={{ selected: formato === f.valor && !editar }} onPress={() => { setFormato(f.valor); setLevels(BLIND_PRESETS[f.valor].map(n => ({ ...n }))); setEditar(false); setAviso(''); }}>
                     <KTSurface nivel={ativo ? 'card' : 'plana'} destaque={ativo} padding={Space.lg} style={styles.formato}>
                       <View style={[styles.radio, ativo && styles.radioAtivo]}>
                         {ativo ? <View style={styles.radioMiolo} /> : null}
@@ -168,6 +189,13 @@ export default function AbrirMesa() {
                 );
               })}
             </View>
+            {presets.length ? <View style={{ marginTop: 24, gap: 12 }}><KTText papel="rotulo" color={Colors.text1}>Minhas estruturas</KTText>{presets.map(p => <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><KTButton label={p.name} variant="fantasma" onPress={() => { setLevels(p.levels.map(n => ({ ...n }))); setEditar(true); setAviso(''); }} style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel={`Excluir estrutura ${p.name}`} onPress={() => remove(p.id)} style={styles.iconeBtn}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable></View>)}</View> : null}
+            <KTButton label={editar ? 'Fechar editor de blinds' : 'Personalizar blinds e intervalos'} variant="fantasma" onPress={() => setEditar(!editar)} style={{ marginTop: 20 }} icone={<Ionicons name="options-outline" size={18} color={Colors.gold200} />} />
+            <KTButton label="Criar estrutura do zero" variant="fantasma" onPress={() => { setLevels([]); setEditar(true); setAviso(''); }} style={{ marginTop: 12 }} />
+            <KTText papel="apoio" color={Colors.text1} style={{ marginTop: 12 }}>{levels.filter(n => !n.isBreak).length} níveis · {levels.filter(n => n.isBreak).length} intervalos · {levels.reduce((total, n) => total + (n.durationMinutes || 0), 0)} min</KTText>
+            {editar ? <View style={{ marginTop: 16, gap: 16 }}><StructureEditor levels={levels} onChange={setLevels} /><TextInput accessibilityLabel="Nome da estrutura para salvar" placeholder="Nome da sua estrutura" placeholderTextColor={Colors.text2} value={nomePreset} onChangeText={setNomePreset} style={[styles.campoNome, { textAlign: 'left', fontSize: 16 }]} /><KTButton label="Salvar estrutura para outras mesas" variant="fantasma" disabled={!nomePreset.trim() || !!erroEstrutura} onPress={() => { if (save(nomePreset, levels)) { setAviso('Estrutura salva neste aparelho.'); setNomePreset(''); } }} /><KTText papel="apoio" color={Colors.text1}>Você também pode usar esta estrutura só nesta mesa, sem salvar.</KTText></View> : null}
+            {erroEstrutura ? <KTText color={Colors.danger} style={{ marginTop: 12 }}>{erroEstrutura}</KTText> : null}
+            {aviso ? <KTText accessibilityLiveRegion="polite" color={Colors.ok} style={{ marginTop: 12 }}>{aviso}</KTText> : null}
           </View>
 
           {/* --------------------------------------------------- reentrada */}
@@ -192,7 +220,7 @@ export default function AbrirMesa() {
             uma rolagem. */}
         <View style={styles.barra}>
           <KTButton
-            label={podeAbrir ? 'Criar mesa' : !nome.trim() ? 'Dê um nome à mesa' : 'Informe o valor do buy-in'}
+            label={podeAbrir ? 'Criar mesa' : !nome.trim() ? 'Dê um nome à mesa' : !valor ? 'Informe o valor do buy-in' : 'Confira os níveis de blinds'}
             onPress={abrir}
             disabled={!podeAbrir}
             size="lg"
@@ -214,7 +242,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, backgroundColor: Colors.bg1,
   },
-  conteudo: { paddingHorizontal: Space.xl, gap: Space.xxl },
+  conteudo: { paddingHorizontal: Space.xl, gap: Space.xxl, width: '100%', maxWidth: 760, alignSelf: 'center' },
 
   abertura: { alignItems: 'center', paddingTop: Space.lg },
   campoNome: {

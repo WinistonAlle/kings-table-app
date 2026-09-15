@@ -7,6 +7,7 @@ import { Colors, Radius, Space } from '@/constants/tokens';
 import { KTText } from '@/components/ui/Text';
 import { Anel } from '@/components/ui/Anel';
 import { Grao } from '@/components/ui/Screen';
+import { KTButton } from '@/components/ui/Button';
 import { Filete, Naipe } from '@/components/ui/Ornamento';
 import { useBlindsTimer } from '@/hooks/useBlindsTimer';
 import { useTournamentStore } from '@/stores/tournamentStore';
@@ -35,7 +36,7 @@ export default function Relogio() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
   const { structure, currentLevel, secondsRemaining, isRunning, start, pause, nextLevel, prevLevel } =
-    useBlindsTimer();
+    useBlindsTimer(id);
   const torneio = useTournamentStore((s) =>
     s.tournaments.find((t) => t.id === (id ?? s.activeTournamentId)),
   );
@@ -51,7 +52,7 @@ export default function Relogio() {
 
   const alerta = secondsRemaining <= 60;
   const critico = secondsRemaining <= 30;
-  const corTempo = critico ? Colors.danger : alerta ? Colors.warn : Colors.gold50;
+  const corTempo = critico ? Colors.danger : alerta ? Colors.warn : torneio?.color ?? Colors.gold50;
 
   /* Pulso nos últimos 30s. Só a opacidade, não a escala: número que muda de
      tamanho é ilegível de longe, que é justamente quando isto importa. */
@@ -90,12 +91,13 @@ export default function Relogio() {
 
   /* O anel tem que caber ENTRE o cabeçalho e os controles, não na altura
      inteira: com 0.74 ele subia por baixo do nome do torneio. */
-  const anel = Math.min(A * 0.66, 300);
+  const retrato = width < 700;
+  const anel = retrato ? Math.min(width * 0.78, height * 0.38, 340) : Math.min(height * 0.6, 420);
 
   return (
     <View style={styles.raiz}>
       {/* Feltro: vinheta radial quente ao centro, escurecendo para as bordas. */}
-      <LinearGradient colors={['#191712', '#0b0a08', '#050403']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={[Colors.bg2, Colors.bg0, '#050505']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
       <Grao opacidade={0.045} />
 
       {/* ------------------------------------------------ barra de título */}
@@ -104,7 +106,7 @@ export default function Relogio() {
           <Ionicons name="chevron-down" size={20} color={Colors.text2} />
         </Pressable>
         <View style={styles.tituloCentro}>
-          <KTText papel="subtitulo" color={Colors.gold200}>{torneio?.name ?? 'Mesa'}</KTText>
+          <KTText papel="subtitulo" color={torneio?.color ?? Colors.gold200} numberOfLines={2} style={{ textAlign: 'center' }}>{torneio?.name ?? 'Mesa'}</KTText>
           {torneio ? (
             <KTText papel="rotulo" color={Colors.text3} style={{ marginTop: 2 }}>
               {torneio.players.filter((p) => !p.position).length} de pé
@@ -115,36 +117,41 @@ export default function Relogio() {
       </View>
 
       {/* ------------------------------------------------------ o palco */}
-      <View style={styles.palco}>
+      <View style={[styles.palco, retrato && { flexDirection: 'column', justifyContent: 'space-evenly', paddingHorizontal: 16 }]}>
         {/* Esquerda: o nível corrente. */}
         <Lado
           rotulo="Agora"
-          nivel={currentLevel + 1}
+          nivel={atual?.level}
           sb={atual?.smallBlind}
           bb={atual?.bigBlind}
           ante={atual?.ante}
+          intervalo={atual?.isBreak}
           destaque
+          compacto={retrato}
         />
 
         {/* Centro: o tempo. */}
         <Pressable
           style={[styles.centro, { width: anel, height: anel }]}
           onPress={isRunning ? pause : start}
+          accessibilityRole="button"
+          disabled={secondsRemaining === 0}
+          accessibilityLabel={isRunning ? 'Pausar relógio' : 'Iniciar relógio'}
         >
           <View style={StyleSheet.absoluteFill}>
             <Anel
               tamanho={anel}
               espessura={4}
               progresso={progresso}
-              cor={critico ? Colors.danger : alerta ? Colors.warn : undefined}
+              cor={corTempo}
             />
           </View>
           <Animated.View style={{ opacity: pulso, alignItems: 'center' }}>
-            <KTText papel="rotulo" color={Colors.text3}>Tempo restante</KTText>
+            <KTText papel="rotulo" color={atual?.isBreak ? Colors.ok : Colors.text1}>{atual?.isBreak ? 'Intervalo' : 'Tempo restante'}</KTText>
             <KTText
-              papel="hero"
+              papel="numero"
               color={corTempo}
-              size={Math.min(anel * 0.30, 96)}
+              size={Math.min(anel * 0.25, 96)}
               style={styles.tempo}
             >
               {formatar(secondsRemaining)}
@@ -158,12 +165,16 @@ export default function Relogio() {
         {/* Direita: o que vem. */}
         <Lado
           rotulo="A seguir"
-          nivel={proximo ? currentLevel + 2 : undefined}
+          nivel={proximo?.level}
           sb={proximo?.smallBlind}
           bb={proximo?.bigBlind}
           ante={proximo?.ante}
+          intervalo={proximo?.isBreak}
+          compacto={retrato}
         />
       </View>
+
+      <View style={{ alignItems: 'center', paddingBottom: 16 }}><KTButton label={isRunning ? 'Pausar relógio' : secondsRemaining === 0 ? 'Estrutura concluída' : 'Iniciar relógio'} disabled={secondsRemaining === 0} onPress={isRunning ? pause : start} icone={<Ionicons name={isRunning ? 'pause' : 'play'} size={18} color={Colors.bg0} />} style={{ alignSelf: 'center' }} /></View>
 
       {/* ---------------------------------------------------- os controles */}
       <View style={styles.rodape}>
@@ -174,7 +185,7 @@ export default function Relogio() {
 
         <View style={styles.marcaCentro}>
           <Filete largura={64} />
-          <Naipe tipo="espada" tamanho={11} cor={Colors.gold600} />
+          <Naipe tipo={torneio?.suit ?? 'espada'} tamanho={16} cor={torneio?.color ?? Colors.gold300} />
         </View>
 
         <Pressable style={styles.passo} onPress={nextLevel} hitSlop={12}>
@@ -187,7 +198,7 @@ export default function Relogio() {
       {virou ? (
         <Animated.View pointerEvents="none" style={[StyleSheet.absoluteFill, styles.clarao, { opacity: clarao }]}>
           <LinearGradient colors={['rgba(232,213,160,0.22)', 'transparent']} style={StyleSheet.absoluteFill} />
-          <KTText papel="titulo" color={Colors.gold100}>Nível {currentLevel + 1}</KTText>
+          <KTText papel="titulo" color={Colors.gold100}>{atual?.isBreak ? 'Intervalo' : `Nível ${atual?.level ?? currentLevel + 1}`}</KTText>
         </Animated.View>
       ) : null}
     </View>
@@ -196,33 +207,33 @@ export default function Relogio() {
 
 /** Coluna lateral: nível, small, big e ante. */
 function Lado({
-  rotulo, nivel, sb, bb, ante, destaque = false,
+  rotulo, nivel, sb, bb, ante, destaque = false, intervalo = false, compacto = false,
 }: {
-  rotulo: string; nivel?: number; sb?: number; bb?: number; ante?: number; destaque?: boolean;
+  rotulo: string; nivel?: number; sb?: number; bb?: number; ante?: number; destaque?: boolean; intervalo?: boolean; compacto?: boolean;
 }) {
   const cor = destaque ? Colors.text0 : Colors.text2;
   return (
-    <View style={styles.lado}>
+    <View style={[styles.lado, compacto && { width: '100%', alignItems: 'center' }]}>
       <KTText papel="rotulo" color={destaque ? Colors.gold500 : Colors.text3}>{rotulo}</KTText>
-      {nivel ? (
+      {nivel !== undefined ? (
         <>
           <KTText papel="subtitulo" color={destaque ? Colors.gold200 : Colors.text2} style={{ marginTop: 2 }}>
-            Nível {nivel}
+            {intervalo ? 'Intervalo' : `Nível ${nivel}`}
           </KTText>
-          <View style={{ marginTop: Space.lg }}>
+          <View style={{ marginTop: compacto ? 4 : Space.lg, alignItems: compacto ? 'center' : 'flex-start' }}>
             {/* `numberOfLines` é rede de segurança: blind de cinco dígitos no
                 fim da estrutura ainda tem que caber numa linha só. */}
             <KTText
               papel="numeroForte"
-              size={destaque ? 30 : 22}
+              size={compacto ? destaque ? 24 : 18 : destaque ? 30 : 22}
               color={cor}
               numberOfLines={1}
               adjustsFontSizeToFit
             >
-              {curto(sb ?? 0)} / {curto(bb ?? 0)}
+              {intervalo ? 'Pausa' : `${curto(sb ?? 0)} / ${curto(bb ?? 0)}`}
             </KTText>
             <KTText papel="rotulo" color={Colors.text3} style={{ marginTop: 6 }}>
-              {ante ? `ante ${curto(ante)}` : 'sem ante'}
+              {intervalo ? 'Hora de respirar' : ante ? `ante ${curto(ante)}` : 'sem ante'}
             </KTText>
           </View>
         </>
@@ -243,7 +254,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space.xl, paddingTop: Space.lg,
   },
   botaoCanto: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  tituloCentro: { alignItems: 'center' },
+  tituloCentro: { alignItems: 'center', flex: 1 },
 
   palco: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',

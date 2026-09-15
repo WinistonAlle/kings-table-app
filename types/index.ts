@@ -3,6 +3,7 @@ export type TournamentFormat = 'deep' | 'regular' | 'turbo' | 'hyper' | 'rebuy' 
 export type TournamentStatus = 'upcoming' | 'running' | 'finished' | 'cancelled';
 
 export interface BlindLevel {
+  isBreak?: boolean;
   level: number;
   smallBlind: number;
   bigBlind: number;
@@ -11,6 +12,8 @@ export interface BlindLevel {
 }
 
 export interface Tournament {
+  suit?: 'espada' | 'copas' | 'ouros' | 'paus';
+  color?: string;
   id: string;
   name: string;
   leagueId?: string;

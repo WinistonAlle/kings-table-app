@@ -1,5 +1,9 @@
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, G, Line } from 'react-native-svg';
 import { Colors, Degrade } from '@/constants/tokens';
+import { useEffect, useRef, useId } from 'react';
+import { Animated, AccessibilityInfo } from 'react-native';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /* Anel de progresso do nível.
  *
@@ -28,15 +32,27 @@ export function Anel({
 }) {
   /* O anel corre bem na borda: o miolo é do conteúdo, e foi por disputar
      espaço com ele que a primeira versão cortava a linha dos blinds. */
-  const r = (tamanho - espessura) / 2 - 6;
+  const r = (tamanho - espessura) / 2 - 12;
   const c = tamanho / 2;
   const volta = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(1, progresso));
+  const arcoId = `arco-${useId().replace(/:/g, '')}`;
+  const animado = useRef(new Animated.Value(p)).current;
+  useEffect(() => {
+    let cancelado = false;
+    let movimento: Animated.CompositeAnimation | undefined;
+    AccessibilityInfo.isReduceMotionEnabled().then(reduzido => {
+      if (cancelado) return;
+      movimento = Animated.timing(animado, { toValue: p, duration: reduzido ? 0 : 600, useNativeDriver: false });
+      movimento.start();
+    });
+    return () => { cancelado = true; movimento?.stop(); };
+  }, [p, animado]);
 
   return (
     <Svg width={tamanho} height={tamanho}>
       <Defs>
-        <SvgGradient id="arco" x1="0" y1="0" x2="1" y2="1">
+        <SvgGradient id={arcoId} x1="0" y1="0" x2="1" y2="1">
           <Stop offset="0" stopColor={Degrade.arco[0]} />
           <Stop offset="0.5" stopColor={Degrade.arco[1]} />
           <Stop offset="1" stopColor={Degrade.arco[2]} />
@@ -68,15 +84,16 @@ export function Anel({
       </G>
 
       <Circle cx={c} cy={c} r={r} stroke={Colors.gold800} strokeWidth={espessura} fill="none" />
-      <Circle
+      <AnimatedCircle
         cx={c}
         cy={c}
         r={r}
-        stroke={cor ?? 'url(#arco)'}
+        stroke={cor ?? `url(#${arcoId})`}
         strokeWidth={espessura}
         fill="none"
         strokeLinecap="round"
-        strokeDasharray={`${volta * p} ${volta}`}
+        strokeDasharray={`${volta} ${volta}`}
+        strokeDashoffset={Animated.multiply(Animated.subtract(1, animado), volta)}
         transform={`rotate(-90 ${c} ${c})`}
       />
     </Svg>

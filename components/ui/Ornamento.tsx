@@ -17,9 +17,9 @@ type Naipe = 'espada' | 'copas' | 'ouros' | 'paus';
 
 const CAMINHOS: Record<Naipe, string> = {
   espada: 'M12 2C12 2 5 8.5 5 13a4.2 4.2 0 0 0 6.2 3.7c-.2 1.9-.8 3.4-2.2 4.3h6c-1.4-.9-2-2.4-2.2-4.3A4.2 4.2 0 0 0 19 13c0-4.5-7-11-7-11z',
-  copas:  'M12 21s-7.5-4.9-7.5-10.2A4.3 4.3 0 0 1 12 8.1a4.3 4.3 0 0 1 7.5 2.7C19.5 16.1 12 21 12 21z',
+  copas:  'M12 21L3.8 12.8C-1 8 5.4 1 10.2 5.8L12 7.6l1.8-1.8C18.6 1 25 8 20.2 12.8L12 21z',
   ouros:  'M12 2l7 10-7 10-7-10 7-10z',
-  paus:   'M12 2.5a3.4 3.4 0 0 0-2.6 5.6A3.4 3.4 0 1 0 8.6 14a3.3 3.3 0 0 0 2.6-1.2c-.1 3.2-.7 6-2.2 7.2h6c-1.5-1.2-2.1-4-2.2-7.2a3.3 3.3 0 0 0 2.6 1.2 3.4 3.4 0 1 0-.8-5.9A3.4 3.4 0 0 0 12 2.5z',
+  paus:   'M12 2a4 4 0 0 0-3.5 6A4.5 4.5 0 1 0 11 15.7c-.1 2.5-.8 4.2-2 5.3h6c-1.2-1.1-1.9-2.8-2-5.3A4.5 4.5 0 1 0 15.5 8 4 4 0 0 0 12 2z',
 };
 
 export function Naipe({
@@ -34,7 +34,7 @@ export function Naipe({
   opacidade?: number;
 }) {
   return (
-    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" opacity={opacidade}>
+    <Svg width={tamanho} height={tamanho} viewBox="0 0 24 24" opacity={opacidade} style={{ flexShrink: 0 }} pointerEvents="none">
       <Path d={CAMINHOS[tipo]} fill={cor} />
     </Svg>
   );

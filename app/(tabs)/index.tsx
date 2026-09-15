@@ -31,7 +31,7 @@ const dinheiro = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`;
 
 export default function Mesa() {
   const { tournaments, activeTournamentId, setActive } = useTournamentStore();
-  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer();
+  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer(activeTournamentId);
 
   const ativo = tournaments.find((t) => t.id === activeTournamentId && t.status !== 'finished');
   const proximos = tournaments.filter((t) => (t.status === 'upcoming' || t.status === 'running') && t.id !== activeTournamentId);
@@ -94,14 +94,14 @@ export default function Mesa() {
                     <Anel tamanho={268} progresso={progresso} />
                   </View>
                 </View>
-                <KTText papel="rotulo" color={Colors.gold500}>Nível {currentLevel + 1}</KTText>
+                <KTText papel="rotulo" color={Colors.gold500}>{nivel?.isBreak ? 'Intervalo' : `Nível ${nivel?.level ?? currentLevel + 1}`}</KTText>
                 <KTText papel="hero" color={Colors.gold50} style={styles.horaTexto}>
                   {hora(secondsRemaining)}
                 </KTText>
                 {nivel ? (
                   <>
                     <KTText papel="numero" size={17} color={Colors.text1}>
-                      {nivel.smallBlind} / {nivel.bigBlind}
+                      {nivel.isBreak ? 'Pausa para a mesa' : `${nivel.smallBlind} / ${nivel.bigBlind}`}
                     </KTText>
                     {/* O ante desce para uma linha própria: junto dos blinds a
                         frase ficava larga demais e encostava no anel. */}
@@ -122,7 +122,7 @@ export default function Mesa() {
                 <View style={styles.divisor} />
                 <Rodape
                   rotulo="Próximo"
-                  valor={proximo ? `${proximo.smallBlind}/${proximo.bigBlind}` : '—'}
+                  valor={proximo?.isBreak ? 'Intervalo' : proximo ? `${proximo.smallBlind}/${proximo.bigBlind}` : 'Fim'}
                 />
               </View>
             </KTSurface>

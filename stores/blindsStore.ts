@@ -23,6 +23,9 @@ const DEFAULT_STRUCTURE: BlindLevel[] = [
 ];
 
 interface BlindsStore extends EstadoRelogio {
+  tournamentId: string | null;
+  clocks: Record<string, EstadoRelogio & { structure: BlindLevel[] }>;
+  selectTournament: (id: string, structure: BlindLevel[]) => void;
   structure: BlindLevel[];
 
   setStructure: (s: BlindLevel[]) => void;
@@ -44,6 +47,20 @@ interface BlindsStore extends EstadoRelogio {
 export const useBlindsStore = create<BlindsStore>()(
   persist(
     (set, get) => ({
+      tournamentId: null,
+      clocks: {},
+      selectTournament: (id, structure) => {
+        const atual = get();
+        if (atual.tournamentId === id) return;
+        const clocks = { ...atual.clocks };
+        if (atual.tournamentId) clocks[atual.tournamentId] = { ...sincronizar(atual.structure, atual), structure: atual.structure };
+        const salvo = clocks[id];
+        // Attach the legacy clock without losing its time on the existing table.
+        const estado = salvo ?? (!atual.tournamentId && JSON.stringify(atual.structure) === JSON.stringify(structure)
+          ? { ...sincronizar(structure, atual), structure }
+          : { currentLevel: 0, secondsRemaining: (structure[0]?.durationMinutes ?? 0) * 60, levelEndsAt: null, isRunning: false, structure });
+        set({ ...sincronizar(estado.structure, estado), structure: estado.structure, clocks, tournamentId: id });
+      },
       structure: DEFAULT_STRUCTURE,
       currentLevel: 0,
       secondsRemaining: DEFAULT_STRUCTURE[0].durationMinutes * 60,
