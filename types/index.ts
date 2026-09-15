@@ -12,6 +12,9 @@ export interface BlindLevel {
 }
 
 export interface Tournament {
+  location?: string;
+  capacity?: number;
+  invitees?: NightInvitee[];
   suit?: 'espada' | 'copas' | 'ouros' | 'paus';
   color?: string;
   id: string;
@@ -28,6 +31,15 @@ export interface Tournament {
   players: TournamentPlayer[];
   createdBy: string;
   createdAt: string;
+}
+
+export type Attendance = 'confirmed' | 'maybe' | 'absent' | 'waiting';
+export interface NightInvitee {
+  id: string;
+  name: string;
+  status: Attendance;
+  createdAt: string;
+  playerId?: string;
 }
 
 export interface TournamentPlayer {

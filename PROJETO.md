@@ -13,6 +13,22 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 
 ## Implementado
 
+- Agendamento integrado a Criar mesa: Jogar agora ou Agendar noite, data e
+  horario local validados, local e limite de vagas opcionais. Edicao e cancelamento
+  antes do inicio, com protecao de registros de entrada ao cancelar.
+- Organizar a noite em components/NightPlanning.tsx: convidados, confirmado,
+  talvez, ausencia e espera por ordem de entrada. Confirmacoes respeitam vagas;
+  promocao da espera e manual, sem alterar presenca sem aprovacao.
+- Convite textual por WhatsApp, copia no web e compartilhamento nativo.
+  Respostas sao registradas pelo organizador; ainda nao ha link de RSVP remoto.
+- Entrada confirmada e idempotente dos convidados, com um buy-in a receber.
+  RSVP sozinho nao cria jogador nem gera cobranca. Iniciar noite requer duas
+  entradas, confirma a acao e inicia o relogio. Eliminacao bloqueada antes do inicio.
+- Datas e confirmados nas listas de mesas. Persistencia local inclui agenda e
+  convidados; mesas anteriores sem estes campos continuam compativeis.
+- Testes de agenda, datas invalidas, lotacao, duplicados, check-in e pagamentos
+  em testes/teste-noite.ts, integrados a npm run testes.
+
 - Criacao de torneios e presets Deep, Regular, Turbo e Hyper.
 - Jogadores, entradas, reentradas, add-ons e pagamentos manuais.
 - Eliminacao, desfazer, encerramento automatico e premios.
@@ -51,6 +67,9 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 - O relogio ja possui estado separado por torneio; falta evoluir a mesma base
   para sincronizacao online entre anfitriao, telas e jogadores.
 - Contas, autenticacao e sincronizacao Supabase nao estao implementadas.
+- .env.local contem configuracao antiga do Supabase, mas o host falhou com
+  ENOTFOUND em 15/09. Necessario projeto acessivel e migracoes/permissoes antes
+  de conectar RSVP remoto, QR Code, assentos e acompanhamento ao vivo.
 - O modo TV atual apresenta o estado local no proprio aparelho. Abrir a
   mesma mesa em outro aparelho ainda depende da sincronizacao online; nao
   comunicar este recurso como transmissao remota ou compartilhamento ao vivo.

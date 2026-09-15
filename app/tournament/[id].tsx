@@ -13,6 +13,8 @@ import { distribuirPremios, entriesOf, payoutLabel, prizePool } from '@/lib/payo
 import { emJogo } from '@/lib/torneio';
 import type { TournamentPlayer } from '@/types';
 import { semAnelDeFoco } from '@/components/ui/campo';
+import { NightPlanning } from '@/components/NightPlanning';
+import { vagaParaJogador } from '@/lib/noite';
 
 /* A mesa por dentro: quem está jogando, quem caiu, quem pagou e quanto cada um
  * leva.
@@ -89,11 +91,12 @@ export default function Mesa() {
     );
   }
 
-  const encerrado = torneio.status === 'finished';
+  const encerrado = torneio.status === 'finished' || torneio.status === 'cancelled';
   const campeao = torneio.players.find((p) => p.position === 1);
   const adicionarJogador = () => {
     const limpo = nome.trim();
     if (!limpo) { setErroJogador('Informe o nome do jogador.'); return; }
+    if (!vagaParaJogador(torneio, limpo)) { setErroJogador('As vagas estão ocupadas ou reservadas pelos confirmados. Use a lista de espera ou aumente o limite.'); return; }
     if (torneio.players.some(p => p.name.trim().toLocaleLowerCase('pt-BR') === limpo.toLocaleLowerCase('pt-BR'))) { setErroJogador('Já existe um jogador com esse nome. Use um sobrenome para diferenciar.'); return; }
     addPlayer(torneio.id, { userId: `guest_${Date.now()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
     setNome(''); setErroJogador(''); setConfirmacaoJogador(`${limpo} entrou na mesa.`);
@@ -109,7 +112,7 @@ export default function Mesa() {
         </Pressable>
         <View style={styles.topo}>
           <View style={{ flex: 1 }}>
-            <KTText papel="rotulo" color={Colors.text1}>{encerrado ? 'Resultado da mesa' : 'Gestão da mesa'}</KTText>
+            <KTText papel="rotulo" color={Colors.text1}>{torneio.status === 'cancelled' ? 'Noite cancelada' : encerrado ? 'Resultado da mesa' : torneio.status === 'upcoming' ? 'Noite agendada' : 'Gestão da mesa'}</KTText>
             <KTText papel="apoio" color={Colors.text1}>
               {FORMATOS[torneio.format] ?? torneio.format} · {dinheiro(torneio.buyIn)}
             </KTText>
@@ -126,9 +129,10 @@ export default function Mesa() {
           </Pressable>
         </View>
 
+        {torneio.status === 'upcoming' && <NightPlanning tournament={torneio} />}
         {!encerrado ? <>
           <KTButton label="Abrir relógio de blinds" size="lg" fullWidth onPress={() => { setActive(torneio.id); router.push(`/blinds/${torneio.id}` as never); }} icone={<Ionicons name="timer-outline" size={22} color={Colors.bg0} />} />
-          <View style={{ gap: 12 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Naipe tipo={torneio.suit ?? 'espada'} cor={torneio.color ?? Colors.gold300} tamanho={22} /><KTText papel="subtitulo">Adicionar jogadores</KTText></View><KTText papel="apoio" color={Colors.text1}>Cada nome entra com um buy-in de {dinheiro(torneio.buyIn)} e pagamento a receber.</KTText>
+          <View style={{ gap: 12 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Naipe tipo={torneio.suit ?? 'espada'} cor={torneio.color ?? Colors.gold300} tamanho={22} /><KTText papel="subtitulo">{torneio.status === 'upcoming' ? 'Entrada sem convite' : 'Adicionar jogadores'}</KTText></View><KTText papel="apoio" color={Colors.text1}>Cada nome entra com um buy-in de {dinheiro(torneio.buyIn)} e pagamento a receber.</KTText>
             <TextInput accessibilityLabel="Nome do novo jogador" value={nome} onChangeText={value => { setNome(value); setErroJogador(''); setConfirmacaoJogador(''); }} placeholder="Nome e sobrenome" placeholderTextColor={Colors.text2} style={styles.campo} onSubmitEditing={adicionarJogador} returnKeyType="done" maxLength={60} />
             <KTButton label="Adicionar jogador à mesa" onPress={adicionarJogador} disabled={!nome.trim()} variant="fantasma" fullWidth icone={<Ionicons name="person-add-outline" size={18} color={Colors.gold200} />} />
             {erroJogador ? <KTText accessibilityLiveRegion="polite" color={Colors.danger}>{erroJogador}</KTText> : null}
@@ -146,6 +150,7 @@ export default function Mesa() {
               <CardJogador
                 key={j.id}
                 jogador={j}
+                preparando={torneio.status === 'upcoming'}
                 emPe={naMesa.length}
                 buyIn={torneio.buyIn}
                 onPagamento={() => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) })}
@@ -270,9 +275,10 @@ function Cel({ rotulo, valor, nota }: { rotulo: string; valor: string; nota: str
 }
 
 function CardJogador({
-  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover,
+  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover, preparando,
 }: {
   jogador: TournamentPlayer;
+  preparando?: boolean;
   emPe: number;
   buyIn: number;
   onPagamento: () => void;
@@ -311,17 +317,17 @@ function CardJogador({
       {/* A ação que muda o resultado, separada por um filete. */}
       <View style={styles.acaoLinha}>
         <KTText papel="apoio" color={Colors.text3} style={{ flex: 1 }}>
-          {ultimo ? 'Último de pé' : `Cai agora em ${emPe}º`}
+          {preparando ? 'Entrada registrada' : ultimo ? 'Último de pé' : `Cai agora em ${emPe}º`}
         </KTText>
-        {jogador.buyIns + jogador.reEntries + jogador.addOns === 1 && ultimo ? (
-          <Pressable onPress={onRemover} style={styles.removerBtn} hitSlop={6}>
+        {jogador.buyIns + jogador.reEntries + jogador.addOns === 1 && (ultimo || preparando) ? (
+          <Pressable accessibilityRole="button" accessibilityLabel={`Remover entrada de ${jogador.name}`} onPress={onRemover} style={styles.removerBtn} hitSlop={6}>
             <KTText papel="rotulo" color={Colors.text2}>Remover</KTText>
           </Pressable>
         ) : null}
         <Pressable
           onPress={onEliminar}
-          disabled={ultimo}
-          style={[styles.eliminarBtn, ultimo && { opacity: 0.3 }]}
+          disabled={ultimo || preparando}
+          style={[styles.eliminarBtn, (ultimo || preparando) && { opacity: 0.3 }]}
           hitSlop={6}
         >
           <KTText papel="rotulo" color={Colors.red}>Eliminar</KTText>

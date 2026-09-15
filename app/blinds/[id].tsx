@@ -137,7 +137,7 @@ export default function Relogio() {
           style={[styles.centro, { width: anel, height: anel }]}
           onPress={isRunning ? pause : start}
           accessibilityRole="button"
-          disabled={secondsRemaining === 0}
+          disabled={secondsRemaining === 0 || torneio?.status !== 'running'}
           accessibilityLabel={isRunning ? 'Pausar relógio' : 'Iniciar relógio'}
         >
           <View style={StyleSheet.absoluteFill}>
@@ -177,7 +177,7 @@ export default function Relogio() {
       </View>
 
       <View style={{ alignItems: 'center', paddingBottom: 16, gap: Space.md }}>
-        <KTButton label={isRunning ? 'Pausar relógio' : secondsRemaining === 0 ? 'Estrutura concluída' : 'Iniciar relógio'} disabled={secondsRemaining === 0} onPress={isRunning ? pause : start} icone={<Ionicons name={isRunning ? 'pause' : 'play'} size={18} color={Colors.bg0} />} style={{ alignSelf: 'center' }} />
+        <KTButton label={torneio?.status === 'upcoming' ? 'Noite ainda não iniciada' : isRunning ? 'Pausar relógio' : secondsRemaining === 0 ? 'Estrutura concluída' : 'Iniciar relógio'} disabled={secondsRemaining === 0 || torneio?.status !== 'running'} onPress={isRunning ? pause : start} icone={<Ionicons name={isRunning ? 'pause' : 'play'} size={18} color={Colors.bg0} />} style={{ alignSelf: 'center' }} />
         {torneio && <Pressable accessibilityRole="button" onPress={() => router.push(`/display/${torneio.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm, padding: Space.sm }}>
           <Ionicons name="tv-outline" size={18} color={Colors.text1} />
           <KTText color={Colors.text1}>Modo TV / projetor</KTText>

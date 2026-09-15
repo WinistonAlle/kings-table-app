@@ -3,6 +3,8 @@ import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
 import { desfazerEliminacao, eliminar } from '@/lib/torneio';
+import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
+import type { Attendance } from '@/types';
 
 export { emJogo } from '@/lib/torneio';
 
@@ -18,6 +20,10 @@ interface TournamentStore {
   removePlayer: (tournamentId: string, playerId: string) => void;
   updatePlayer: (tournamentId: string, playerId: string, updates: Partial<TournamentPlayer>) => void;
   getActiveTournament: () => Tournament | undefined;
+  invite: (id: string, name: string, status: Attendance) => void;
+  setAttendance: (id: string, guestId: string, status: Attendance) => void;
+  removeInvite: (id: string, guestId: string) => void;
+  checkIn: (id: string, guestId: string) => void;
 
   /** Marca o torneio como em andamento. */
   startTournament: (id: string) => void;
@@ -32,6 +38,18 @@ export const useTournamentStore = create<TournamentStore>()(
     (set, get) => ({
       tournaments: [],
       activeTournamentId: null,
+
+      invite: (id, name, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? adicionarConvidado(t, { id: `i_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name, status, createdAt: new Date().toISOString() }) : t) })),
+      setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).map(c => c.id === guestId && !c.playerId ? { ...c, status: statusPresenca(t, status, guestId) } : c) } : t) })),
+      removeInvite: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).filter(c => c.id !== guestId || c.playerId) } : t) })),
+      checkIn: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => {
+        const c = t.invitees?.find(c => c.id === guestId);
+        if (t.id !== id || t.status !== 'upcoming' || !c || c.status !== 'confirmed' || c.playerId) return t;
+        const existente = t.players.find(p => p.name.trim().toLocaleLowerCase('pt-BR') === c.name.trim().toLocaleLowerCase('pt-BR'));
+        if (!existente && t.capacity && t.players.length >= t.capacity) return t;
+        const playerId = existente?.id ?? `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        return { ...t, players: existente ? t.players : [...t.players, { id: playerId, userId: playerId, name: c.name, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const }], invitees: t.invitees!.map(i => i.id === guestId ? { ...i, playerId } : i) };
+      }) })),
 
       createTournament: (data) => {
         const tournament: Tournament = {
@@ -63,7 +81,7 @@ export const useTournamentStore = create<TournamentStore>()(
         const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
         set(s => ({
           tournaments: s.tournaments.map(t =>
-            t.id === tournamentId
+            t.id === tournamentId && (t.status === 'upcoming' || t.status === 'running') && vagaParaJogador(t, player.name)
               ? { ...t, players: [...t.players, { ...player, id }] }
               : t
           ),
@@ -74,7 +92,7 @@ export const useTournamentStore = create<TournamentStore>()(
         set(s => ({
           tournaments: s.tournaments.map(t =>
             t.id === tournamentId
-              ? { ...t, players: t.players.filter(p => p.id !== playerId) }
+              ? { ...t, players: t.players.filter(p => p.id !== playerId), invitees: t.invitees?.map(c => c.playerId === playerId ? { ...c, playerId: undefined } : c) }
               : t
           ),
         })),
@@ -97,7 +115,7 @@ export const useTournamentStore = create<TournamentStore>()(
 
       eliminatePlayer: (tournamentId, playerId) =>
         set((s) => ({
-          tournaments: s.tournaments.map((t) => (t.id === tournamentId ? eliminar(t, playerId) : t)),
+          tournaments: s.tournaments.map((t) => (t.id === tournamentId && t.status === 'running' ? eliminar(t, playerId) : t)),
         })),
 
       undoElimination: (tournamentId, playerId) =>

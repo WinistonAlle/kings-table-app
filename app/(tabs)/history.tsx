@@ -14,7 +14,7 @@ import { MesasHeader } from '@/components/MesasHeader';
 const FILTROS: { valor: FiltroMesa; nome: string }[] = [
   { valor: 'todas', nome: 'Todas' }, { valor: 'abertas', nome: 'Abertas' }, { valor: 'encerradas', nome: 'Encerradas' },
 ];
-const STATUS = { upcoming: 'Preparando', running: 'Em andamento', finished: 'Encerrada', cancelled: 'Cancelada' };
+const STATUS = { upcoming: 'Agendada', running: 'Em andamento', finished: 'Encerrada', cancelled: 'Cancelada' };
 
 export default function Historico() {
   const torneios = useTournamentStore(s => s.tournaments);
@@ -35,6 +35,7 @@ export default function Historico() {
         return <View key={t.id} style={styles.mesa}>
           <View style={styles.linha}><KTText papel="apoio" color={t.status === 'running' ? Colors.ok : Colors.text2}>{STATUS[t.status]}</KTText><KTText papel="apoio" color={Colors.text2}>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</KTText></View>
           <KTText papel="subtitulo" style={{ marginTop: 10, letterSpacing: 0 }}>{t.name}</KTText>
+          {t.status === 'upcoming' && <KTText papel="apoio" color={Colors.gold200} style={{ marginTop: 8 }}>{new Date(t.startTime).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })} · {t.location || 'Local a combinar'} · {(t.invitees ?? []).filter(c => c.status === 'confirmed').length} confirmados</KTText>}
           <KTText papel="apoio" color={Colors.text1} style={{ marginTop: 8 }}>{t.players.length} {t.players.length === 1 ? 'jogador' : 'jogadores'} · Buy-in {t.buyIn.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} · Bolo {prizePool(t).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</KTText>
           {campeao && t.status === 'finished' ? <View style={[styles.linha, { justifyContent: 'flex-start', gap: 8, marginTop: 12 }]}><Ionicons name="trophy-outline" size={16} color={Colors.gold300} /><KTText papel="apoio" color={Colors.gold200}>{campeao.name} venceu</KTText></View> : null}
           <View style={[styles.acoes, compact && { flexDirection: 'column' }]}>

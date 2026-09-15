@@ -16,6 +16,7 @@ import { StructureEditor } from '@/components/StructureEditor';
 import { usePresetsStore } from '@/stores/presetsStore';
 import { normalizarEstrutura, validarEstrutura, valorBuyIn } from '@/lib/estrutura';
 import type { BlindLevel } from '@/types';
+import { dataAgendada } from '@/lib/noite';
 
 /* Abrir a mesa.
  *
@@ -44,6 +45,11 @@ export default function AbrirMesa() {
   const { selectTournament } = useBlindsStore();
 
   const [nome, setNome] = useState('');
+  const [agendar, setAgendar] = useState(false);
+  const [data, setData] = useState('');
+  const [hora, setHora] = useState('20:00');
+  const [local, setLocal] = useState('');
+  const [vagas, setVagas] = useState('');
   const [buyIn, setBuyIn] = useState('');
   const [formato, setFormato] = useState<TournamentFormat>('regular');
   const [reentrada, setReentrada] = useState(true);
@@ -57,7 +63,10 @@ export default function AbrirMesa() {
 
   const valor = valorBuyIn(buyIn);
   const erroEstrutura = validarEstrutura(levels);
-  const podeAbrir = nome.trim().length > 0 && valor > 0 && !erroEstrutura;
+  const inicio = agendar ? dataAgendada(data, hora) : new Date().toISOString();
+  const capacidade = vagas.trim() ? Number(vagas) : undefined;
+  const erroAgenda = agendar && !inicio ? 'Informe uma data futura (DD/MM/AAAA) e horário (HH:MM).' : capacidade !== undefined && (!Number.isInteger(capacidade) || capacidade < 2 || capacidade > 1000) ? 'Escolha entre 2 e 1.000 vagas, ou deixe sem limite.' : '';
+  const podeAbrir = nome.trim().length > 0 && valor > 0 && !erroEstrutura && !erroAgenda;
 
   const abrir = () => {
     if (!podeAbrir) return;
@@ -70,15 +79,16 @@ export default function AbrirMesa() {
       buyIn: valor,
       reEntryAllowed: reentrada,
       maxReEntries: reentrada ? 2 : 0,
-      startTime: new Date().toISOString(),
+      startTime: inicio!,
+      location: local.trim(),
+      capacity: capacidade,
+      invitees: [],
       blindStructure: estrutura,
       createdBy: 'me',
     });
     selectTournament(t.id, estrutura);
     setActive(t.id);
-    /* Já entra em andamento: quem abre a mesa está com gente em volta dela, não
-       agendando pra semana que vem. */
-    startTournament(t.id);
+    if (!agendar) startTournament(t.id);
     router.replace(`/tournament/${t.id}` as never);
   };
 
@@ -107,6 +117,23 @@ export default function AbrirMesa() {
               maxLength={60}
               returnKeyType="done"
             />
+          </View>
+
+          <View style={{ gap: Space.md }}>
+            <KTText papel="rotulo" color={Colors.text1}>Quando vamos jogar?</KTText>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              {[false, true].map(v => <Pressable key={String(v)} accessibilityRole="radio" accessibilityState={{ checked: agendar === v }} onPress={() => setAgendar(v)} style={[styles.atalho, agendar === v && styles.atalhoAtivo]}><KTText color={agendar === v ? Colors.gold100 : Colors.text1}>{v ? 'Agendar noite' : 'Jogar agora'}</KTText></Pressable>)}
+            </View>
+            {agendar && <>
+              <KTText papel="apoio" color={Colors.text1}>Data e horário local</KTText>
+              <TextInput accessibilityLabel="Data da noite" value={data} onChangeText={setData} placeholder="DD/MM/AAAA" placeholderTextColor={Colors.text2} maxLength={10} style={styles.campoNome} />
+              <TextInput accessibilityLabel="Horário da noite" value={hora} onChangeText={setHora} placeholder="HH:MM" placeholderTextColor={Colors.text2} maxLength={5} style={styles.campoNome} />
+            </>}
+            <KTText papel="apoio" color={Colors.text1}>Local (opcional)</KTText>
+            <TextInput accessibilityLabel="Local da noite" value={local} onChangeText={setLocal} placeholder="Casa do anfitrião ou clube" placeholderTextColor={Colors.text2} maxLength={120} style={styles.campoNome} />
+            <KTText papel="apoio" color={Colors.text1}>Vagas (opcional)</KTText>
+            <TextInput accessibilityLabel="Limite de vagas" value={vagas} onChangeText={setVagas} placeholder="Sem limite" placeholderTextColor={Colors.text2} keyboardType="number-pad" maxLength={4} style={styles.campoNome} />
+            {!!erroAgenda && <KTText color={Colors.danger}>{erroAgenda}</KTText>}
           </View>
 
           {/* Marca da mesa: escolha pequena, e é a que dá identidade ao card
@@ -222,10 +249,10 @@ export default function AbrirMesa() {
             uma rolagem. */}
         <View style={styles.barra}>
           {!podeAbrir && <KTText papel="apoio" color={Colors.text1} style={{ marginBottom: Space.sm }}>
-            {!nome.trim() ? 'Nome da mesa obrigatório' : valor <= 0 ? 'Buy-in deve ser maior que zero' : 'Confira a estrutura de blinds'}
+            {!nome.trim() ? 'Nome da mesa obrigatório' : valor <= 0 ? 'Buy-in deve ser maior que zero' : erroAgenda || 'Confira a estrutura de blinds'}
           </KTText>}
           <KTButton
-            label="Criar mesa"
+            label={agendar ? 'Agendar noite' : 'Criar mesa'}
             onPress={abrir}
             disabled={!podeAbrir}
             size="lg"
