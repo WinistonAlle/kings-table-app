@@ -691,19 +691,22 @@ export function Ficha3D({
       // Anchor the traveling chip to the wheel's layout while this fold is visible.
       const ancora = document.getElementById('feature-chip-anchor');
       const orbita = ancora?.getBoundingClientRect();
-      if (orbita && orbita.bottom > 0 && orbita.top < window.innerHeight) {
+      const dobraOrbita = document.getElementById('como-funciona')?.getBoundingClientRect();
+      if (orbita && dobraOrbita && dobraOrbita.bottom > 0 && dobraOrbita.top < window.innerHeight) {
+        const chegada = faixa(1 - dobraOrbita.top / window.innerHeight, 0, 0.85);
         const meiaLargura = meiaAltura * c.camera.aspect;
         const centroX = orbita.left + orbita.width / 2;
         const centroY = orbita.top + orbita.height / 2;
         c.ficha.visible = true;
         c.ficha.layers.set(0);
-        c.ficha.position.set(
-          (centroX / window.innerWidth * 2 - 1) * meiaLargura,
-          (1 - centroY / window.innerHeight * 2) * meiaAltura,
-          0,
-        );
-        c.ficha.scale.setScalar(orbita.width / window.innerHeight * meiaAltura / RAIO);
-        c.ficha.rotation.set(0, -0.12, 0);
+        c.ficha.position.x += ((centroX / window.innerWidth * 2 - 1) * meiaLargura - c.ficha.position.x) * chegada;
+        c.ficha.position.y += ((1 - centroY / window.innerHeight * 2) * meiaAltura - c.ficha.position.y) * chegada;
+        c.ficha.position.z *= 1 - chegada;
+        const escalaOrbita = orbita.width / window.innerHeight * meiaAltura / RAIO;
+        c.ficha.scale.setScalar(pose.escala + (escalaOrbita - pose.escala) * chegada);
+        c.ficha.rotation.x *= 1 - chegada;
+        c.ficha.rotation.y += (-GIRO_INTEIRO - 0.12 - c.ficha.rotation.y) * chegada;
+        c.ficha.rotation.z *= 1 - chegada;
       }
 
       /* A mesa visual agora pertence ao DOM da própria dobra (`Mesa.tsx`).

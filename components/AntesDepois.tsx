@@ -77,14 +77,14 @@ export const PASSOS = [
 export function AntesDepois() {
   const [selecionado, setSelecionado] = useState(2);
   return (
-    <Secao id="como-funciona" className="py-24 lg:py-32">
+    <Secao id="como-funciona" className="features-dobra py-24">
       <div className="features-visao grid items-center gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)] lg:gap-10">
         <div className="features-orbita relative order-2 lg:order-1">
           <div id="feature-chip-anchor" className="feature-chip" aria-hidden="true" />
           <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
         </div>
         <div className="order-1 lg:order-2">
-          <h2 className="titulo text-[1.75rem] leading-tight text-text0 lg:text-[2.25rem]">
+          <h2 className="titulo text-[1.75rem] leading-tight text-text0 lg:text-[2.75rem]">
             Sua noite de poker,<br /><Realce>organizada.</Realce>
           </h2>
           <p className="mt-5 max-w-sm t-apoio text-text2">
