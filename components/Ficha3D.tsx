@@ -660,28 +660,10 @@ export function Ficha3D({
       const desloc = DESLOCAMENTO_X * 2 * meiaAltura * (1 - faixa(p, 0, 0.22));
       const est = estadoMesa.current;
       mesa.position.y = 0;
-      if (est.ativa) medirTopo();
-      /* Dentro da pausa, a ficha mira o TOPO DA PILHA vencedora, e esse ponto
-         vem do mundo (`localToWorld`), não de uma conta à mão: a pilha é neta
-         de um grupo com rotação e escala não-uniforme, e refazer isso na mão é
-         onde se erra por meio centímetro — que na tela vira a peça flutuando
-         ao lado da pilha em vez de em cima dela.
-         A mistura nas bordas da janela existe para ela CHEGAR à mesa, em vez
-         de saltar para lá. */
-      let alvoX = pose.x + desloc;
-      let alvoY = pose.y;
-      let alvoZ = pose.z;
-      const forcaMesa = fichaPousouNaMesa
-        ? 1
-        : faixa(p, PAUSA_MESA.de - 0.08, PAUSA_MESA.de);
-      if (forcaMesa > 0 && est.ativa) {
-        alvoX += (topoDaPilha.x - alvoX) * forcaMesa;
-        alvoY += (topoDaPilha.y - alvoY) * forcaMesa;
-        alvoZ += (topoDaPilha.z - alvoZ) * forcaMesa;
-      }
-      c.ficha.visible = !est.ativa && !fichaPousouNaMesa;
-      c.ficha.layers.set(fichaPousouNaMesa && est.ativa ? 1 : 0);
-      c.ficha.position.set(alvoX, alvoY, alvoZ);
+      // The DOM video occludes the chip naturally; its trajectory stays continuous.
+      c.ficha.visible = !fichaPousouNaMesa;
+      c.ficha.layers.set(0);
+      c.ficha.position.set(pose.x + desloc, pose.y, pose.z);
       c.ficha.scale.setScalar(pose.escala);
       c.ficha.rotation.set(
         pose.giroX + mao.y * TILT_MAX * licenca,
