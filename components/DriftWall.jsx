@@ -201,14 +201,17 @@ const DriftWall = ({
       }
       const hit = document.elementFromPoint(e.clientX, e.clientY);
       const tile = hit && hit.closest ? hit.closest('[data-tile-id]') : null;
-      if (!tile) return;
+      if (!tile || !containerRef.current.contains(tile)) {
+        release();
+        return;
+      }
       const id = tile.dataset.tileId;
       if (id === activeIdRef.current) return;
       activeIdRef.current = id;
       hoveredColRef.current = Number(tile.dataset.col);
       setActiveId(id);
     },
-    [parallax, reduced]
+    [parallax, reduced, release]
   );
 
   const handlePointerLeaveWall = useCallback(() => {
@@ -245,6 +248,9 @@ const DriftWall = ({
       className: `drift-wall__tile${activeId === id ? ' is-active' : ''}`,
       'data-tile-id': id,
       'data-col': colIndex,
+      onPointerEnter: e => {
+        if (e.pointerType !== 'touch') activate(id, colIndex);
+      },
       onFocus: () => activate(id, colIndex),
       onBlur: release
     };

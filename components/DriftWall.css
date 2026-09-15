@@ -96,9 +96,10 @@
 }
 
 .drift-wall__tile.is-active .drift-wall__inner,
+.drift-wall__tile:hover .drift-wall__inner,
 .drift-wall__tile:focus-visible .drift-wall__inner {
   opacity: 1;
-  transform: translateZ(var(--dw-lift));
+  transform: translateZ(var(--dw-lift)) scale(1.04);
   box-shadow: 0 24px 60px -18px rgba(0, 0, 0, 0.7);
 }
 
@@ -108,6 +109,7 @@
 }
 
 .drift-wall__tile.is-active .drift-wall__overlay,
+.drift-wall__tile:hover .drift-wall__overlay,
 .drift-wall__tile:focus-visible .drift-wall__overlay {
   opacity: 0;
 }
@@ -124,5 +126,26 @@
     will-change: auto;
   }
 }
-.drift-wall__photo { display: block; width: 100%; height: 100%; }
+.drift-wall__photo {
+  display: block;
+  width: 100%;
+  height: 100%;
+  filter: grayscale(var(--dw-gray)) saturate(0.92);
+  transition: filter 0.3s ease;
+}
+.drift-wall__tile.is-active .drift-wall__photo,
+.drift-wall__tile:hover .drift-wall__photo,
+.drift-wall__tile:focus-visible .drift-wall__photo {
+  filter: grayscale(0) saturate(1.15) brightness(1.12);
+}
+@media (prefers-reduced-motion: reduce) {
+  .drift-wall__tile.is-active .drift-wall__inner,
+  .drift-wall__tile:focus-visible .drift-wall__inner {
+    transform: none;
+  }
+  .drift-wall__inner,
+  .drift-wall__photo {
+    transition: none;
+  }
+}
 @media (max-width: 768px) { .drift-wall { --dw-tile-w: 160px !important; --dw-tile-h: 108px !important; } }
