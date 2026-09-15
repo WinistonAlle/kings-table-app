@@ -22,7 +22,9 @@
   color: color-mix(in srgb, #d4b57a calc(var(--ow-p, 0) * 100%), #a6a6a6);
 }
 .option-wheel__item--selected { font-weight: 600; }
+.features-visao .option-wheel__item { font-size: 2.2rem; }
 @media (max-width: 768px) {
   .option-wheel { height: 27rem; }
   .option-wheel__item { left: 24px; font-size: 1.35rem; }
+  .features-visao .option-wheel__item { font-size: 1.15rem; }
 }

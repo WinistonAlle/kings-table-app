@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { BotaoOuro, Rotulo, Secao, Titulo, Realce } from './Secao';
+import { BotaoOuro, Secao, Realce } from './Secao';
 import OptionWheel from './OptionWheel';
 import { FEATURE_NAMES } from './features';
 
@@ -78,18 +78,21 @@ export function AntesDepois() {
   const [selecionado, setSelecionado] = useState(2);
   return (
     <Secao id="como-funciona" className="py-24 lg:py-32">
-      <div className="max-w-2xl">
-        <Rotulo>O sistema</Rotulo>
-        <Titulo>
-          Tudo para <Realce>organizar sua mesa</Realce>.
-        </Titulo>
-      </div>
-
-      <div className="mt-10">
-        <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
-      </div>
-      <div onClick={() => window.dispatchEvent(new CustomEvent('feature-selecionada', { detail: selecionado }))}>
-        <BotaoOuro href="#recursos">Explorar funcionalidades</BotaoOuro>
+      <div className="features-visao grid items-center gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-12">
+        <div className="order-2 lg:order-1">
+          <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
+        </div>
+        <div className="order-1 lg:order-2">
+          <h2 className="titulo text-[1.75rem] leading-tight text-text0 lg:text-[2.25rem]">
+            Sua noite de poker,<br /><Realce>organizada.</Realce>
+          </h2>
+          <p className="mt-5 max-w-sm t-apoio text-text2">
+            Da primeira entrada ao resultado final, cada parte do jogo tem seu lugar.
+          </p>
+          <div className="mt-7" onClick={() => window.dispatchEvent(new CustomEvent('feature-selecionada', { detail: selecionado }))}>
+            <BotaoOuro href="#recursos">Explorar funcionalidades</BotaoOuro>
+          </div>
+        </div>
       </div>
 
     </Secao>
