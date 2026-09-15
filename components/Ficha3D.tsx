@@ -678,7 +678,7 @@ export function Ficha3D({
         alvoY += (topoDaPilha.y - alvoY) * forcaMesa;
         alvoZ += (topoDaPilha.z - alvoZ) * forcaMesa;
       }
-      c.ficha.visible = !fichaPousouNaMesa || est.ativa;
+      c.ficha.visible = !est.ativa && !fichaPousouNaMesa;
       c.ficha.layers.set(fichaPousouNaMesa && est.ativa ? 1 : 0);
       c.ficha.position.set(alvoX, alvoY, alvoZ);
       c.ficha.scale.setScalar(pose.escala);
@@ -688,22 +688,11 @@ export function Ficha3D({
         pose.giroZ,
       );
 
-      /* A mesa e as pilhas dela, comandadas pela dobra.
-         `estadoMesa` é escrito pela seção enquanto ela rola (ver
-         `mesaSinal.ts`), então quem manda no que se vê é a rolagem, não um
-         relógio correndo num canto da página. */
-      mesa.visible = est.ativa;
-      if (mesa.visible) {
-        /* A mesa já está ali, inteira. As pilhas também ficam paradas; a única
-           peça que chega aqui é a ficha viajante, e ela para no topo. */
-        for (const m of materiaisMesa) m.opacity = 1;
-        pilhasMesa.forEach((pilha) => {
-          pilha.visible = true;
-          pilha.scale.setScalar(1);
-          pilha.position.y = 0.018;
-        });
-        medirTopo();
-      }
+      /* A mesa visual agora pertence ao DOM da própria dobra (`Mesa.tsx`).
+         O grupo 3D fica aqui só como régua invisível para calcular o ponto em
+         que a ficha pousaria, sem desenhar uma segunda mesa no canvas global. */
+      mesa.visible = false;
+      if (est.ativa) medirTopo();
 
       /* As pilhas do FECHO só existem no fim da página. Antes disso seriam objetos parados num
          canto, sem explicação, disputando atenção com o texto que está sendo

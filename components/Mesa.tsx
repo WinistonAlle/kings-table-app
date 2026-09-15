@@ -8,21 +8,13 @@ import { PASSOS } from './AntesDepois';
 
 /* A mesa, de ponta a ponta, com o conteúdo no meio do feltro.
  *
- * O DESENHO da mesa não está aqui: ele vive na cena 3D (`Ficha3D.tsx`), junto
- * com a ficha que atravessa a página. Isso não é organização, é o que torna a
- * coisa possível — a ficha precisa POUSAR numa pilha, e pousar de verdade
- * exige a mesma perspectiva, a mesma luz e o mesmo teste de profundidade. Com
- * a mesa num canvas à parte, o melhor que se consegue é sobrepor uma imagem
- * na outra e torcer para o ângulo bater.
+ * A mesa agora vive aqui, na própria dobra. Quando ela estava no canvas global
+ * da ficha, qualquer regra de recorte ou de ativação virava piscada: a seção
+ * media um ponto, a cena 3D desenhava outro. Como a mesa precisa ficar parada
+ * nesta dobra, ela pertence ao layout desta dobra.
  *
- * (Isto já foi um desenho em SVG, com a mesa de frente e os lugares em volta.
- * Funcionava, mas era um diagrama: a ficha não podia pousar nele, só passar
- * por cima ou por baixo.)
- *
- * O que está AQUI é a seção: o percurso curto em que o bloco fica preso na
- * tela, com o conteúdo no meio e a posição que permite à cena 3D desenhar a
- * mesa inteira atrás dele. O número que liga os dois lados vai por
- * `mesaSinal.ts`.
+ * A cena 3D ainda recebe o sinal por `mesaSinal.ts` para esconder a ficha
+ * viajante enquanto esta dobra está na tela.
  */
 
 const LUGARES = 8;
@@ -60,8 +52,7 @@ export function Mesa() {
       const blocoRect = bloco.getBoundingClientRect();
       const recorteTopo = Math.max(0, secaoRect.top);
       const recorteBaixo = Math.min(window.innerHeight, secaoRect.bottom);
-      const blocoPreenchendoTela = blocoRect.top <= 1 && blocoRect.bottom >= window.innerHeight - 1;
-      const ativa = recorteBaixo > recorteTopo && blocoPreenchendoTela;
+      const ativa = secaoRect.top < window.innerHeight && secaoRect.bottom > 0;
       definirMesa({
         ativa,
         progresso: progressoAtual.current,
@@ -91,7 +82,15 @@ export function Mesa() {
   return (
     <section ref={secao} id="mesa" className="mesa-dobra relative w-full">
       <div ref={grude} className="mesa-grude flex w-full items-center justify-center">
-        <div className="mx-auto w-full max-w-3xl px-6 text-center">
+        <div className="mesa-visual" aria-hidden>
+          <div className="mesa-oval">
+            {Array.from({ length: LUGARES }, (_, i) => (
+              <span key={i} className={`mesa-pilha mesa-pilha--${i + 1}`} />
+            ))}
+          </div>
+        </div>
+
+        <div className="mesa-conteudo mx-auto w-full max-w-3xl px-6 text-center">
           {/* O conteúdo do bloco fica no meio do feltro. Antes havia aqui uma
               faixa de status da mesa, mas ela brigava com as fichas estáticas
               e com a peça 3D que pousa no feltro. */}

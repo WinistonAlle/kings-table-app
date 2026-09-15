@@ -78,7 +78,7 @@ export function Recursos() {
   const grupo = GRUPOS[ativo];
 
   return (
-    <Secao id="recursos" className="py-24 lg:py-32">
+    <Secao id="recursos" className="z-20 bg-bg0 py-24 lg:py-32">
       <div className="max-w-2xl">
         <Rotulo>O que ele faz</Rotulo>
         <Titulo>
