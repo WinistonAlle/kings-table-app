@@ -688,6 +688,24 @@ export function Ficha3D({
         pose.giroZ,
       );
 
+      // Anchor the traveling chip to the wheel's layout while this fold is visible.
+      const ancora = document.getElementById('feature-chip-anchor');
+      const orbita = ancora?.getBoundingClientRect();
+      if (orbita && orbita.bottom > 0 && orbita.top < window.innerHeight) {
+        const meiaLargura = meiaAltura * c.camera.aspect;
+        const centroX = orbita.left + orbita.width / 2;
+        const centroY = orbita.top + orbita.height / 2;
+        c.ficha.visible = true;
+        c.ficha.layers.set(0);
+        c.ficha.position.set(
+          (centroX / window.innerWidth * 2 - 1) * meiaLargura,
+          (1 - centroY / window.innerHeight * 2) * meiaAltura,
+          0,
+        );
+        c.ficha.scale.setScalar(orbita.width / window.innerHeight * meiaAltura / RAIO);
+        c.ficha.rotation.set(0, -0.12, 0);
+      }
+
       /* A mesa visual agora pertence ao DOM da própria dobra (`Mesa.tsx`).
          O grupo 3D fica aqui só como régua invisível para calcular o ponto em
          que a ficha pousaria, sem desenhar uma segunda mesa no canvas global. */

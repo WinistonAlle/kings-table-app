@@ -78,8 +78,9 @@ export function AntesDepois() {
   const [selecionado, setSelecionado] = useState(2);
   return (
     <Secao id="como-funciona" className="py-24 lg:py-32">
-      <div className="features-visao grid items-center gap-8 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)] lg:gap-12">
-        <div className="order-2 lg:order-1">
+      <div className="features-visao grid items-center gap-8 lg:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)] lg:gap-10">
+        <div className="features-orbita relative order-2 lg:order-1">
+          <div id="feature-chip-anchor" className="feature-chip" aria-hidden="true" />
           <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
         </div>
         <div className="order-1 lg:order-2">
