@@ -634,10 +634,8 @@ main > section#heroi { z-index: 0; }
 
 /* A dobra da mesa (Mesa.tsx).
  *
- * A altura de 170vh é o PERCURSO em que os jogadores caem: é ela que
- * transforma a rolagem no relógio da noite. Só existe onde a mesa 3D existe —
- * abaixo de 768px a cena não roda, e 170vh viraria uma tela e meia de preto
- * com um texto grudado no meio. */
+ * A mesa não tem mais percurso próprio: ela é uma dobra estática, com as
+ * pilhas paradas e a ficha 3D pousando no feltro. */
 .mesa-dobra {
   padding-block: 6rem;
 }
@@ -647,17 +645,14 @@ main > section#heroi { z-index: 0; }
 }
 
 /* 769px e não 768: `useTelaPequena` reprova em `max-width: 768px`, então em
-   768 exatos a cena 3D NÃO roda. Com a consulta em 768, essa largura ganharia
-   os 170vh sem a mesa embaixo — uma tela e meia de preto. */
+   768 exatos a cena 3D NÃO roda. */
 @media (min-width: 769px) {
   .mesa-dobra {
-    height: 170vh;
+    min-height: 100vh;
     padding-block: 0;
   }
 
   .mesa-grude {
-    position: sticky;
-    top: 0;
-    height: 100vh;
+    min-height: 100vh;
   }
 }

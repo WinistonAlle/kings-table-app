@@ -19,14 +19,9 @@ import { PASSOS } from './AntesDepois';
  * Funcionava, mas era um diagrama: a ficha não podia pousar nele, só passar
  * por cima ou por baixo.)
  *
- * O que está AQUI é a seção: a altura que dá espaço para a noite acontecer
- * enquanto se rola, o conteúdo grudado no meio da tela, e o contador. O número
- * que liga os dois lados vai por `mesaSinal.ts`.
- *
- * A seção tem 170vh de propósito. Ela precisa ser mais alta que a tela para
- * existir um PERCURSO — é ele que faz os jogadores caírem conforme a pessoa
- * rola, em vez de um relógio correndo sozinho num canto da página. O conteúdo
- * fica `sticky` e ocupa uma tela; o que passa por baixo é a noite.
+ * O que está AQUI é a seção: uma dobra de uma tela com o conteúdo no meio e a
+ * posição que permite à cena 3D desenhar a mesa recortada dentro dela. O
+ * número que liga os dois lados vai por `mesaSinal.ts`.
  */
 
 const LUGARES = 8;
@@ -66,6 +61,7 @@ export function Mesa() {
       const recorteBaixo = Math.min(window.innerHeight, secaoRect.bottom);
       const ativa =
         recorteBaixo > recorteTopo &&
+        secaoRect.bottom > 360 &&
         blocoRect.bottom > 0 &&
         blocoRect.top < window.innerHeight;
       definirMesa({
@@ -92,10 +88,8 @@ export function Mesa() {
     };
   }, [semMesa3D]);
 
-  /* A altura grande da dobra (170vh, no CSS) é o PERCURSO da eliminação, e ela
-     só faz sentido onde a mesa 3D existe. Abaixo de 768px a cena não roda (ver
-     `Cena.tsx`), e 170vh viraria uma tela e meia de preto com um texto grudado
-     no meio: lá a dobra volta a ter a altura do próprio conteúdo. */
+  /* Abaixo de 768px a cena 3D não roda (ver `Cena.tsx`), então a dobra volta a
+     ter a altura do próprio conteúdo. */
   return (
     <section ref={secao} id="mesa" className="mesa-dobra relative w-full">
       <div ref={grude} className="mesa-grude flex w-full items-center justify-center">
