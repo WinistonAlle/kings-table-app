@@ -34,7 +34,7 @@ export default function Mesa() {
   const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer();
 
   const ativo = tournaments.find((t) => t.id === activeTournamentId && t.status !== 'finished');
-  const proximos = tournaments.filter((t) => t.status === 'upcoming' && t.id !== activeTournamentId);
+  const proximos = tournaments.filter((t) => (t.status === 'upcoming' || t.status === 'running') && t.id !== activeTournamentId);
   const nivel = structure[currentLevel];
   const proximo = structure[currentLevel + 1];
 
@@ -56,6 +56,8 @@ export default function Mesa() {
             </KTText>
           </View>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Criar nova mesa"
             style={styles.botaoTopo}
             onPress={() => router.push('/tournament/create' as any)}
           >
@@ -189,16 +191,16 @@ export default function Mesa() {
         {/* --------------------------------------------------- as próximas */}
         {proximos.length ? (
           <>
-            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Marcadas</KTText>
+            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Outras mesas abertas</KTText>
             <View style={{ gap: Space.md }}>
               {proximos.map((t) => (
-                <Pressable key={t.id} onPress={() => { setActive(t.id); router.push(`/tournament/${t.id}` as any); }}>
+                <Pressable key={t.id} accessibilityRole="button" onPress={() => router.push(`/tournament/${t.id}` as any)}>
                   <KTSurface nivel="card" style={styles.marcada}>
                     <Naipe tipo="ouros" tamanho={14} cor={Colors.gold500} />
                     <View style={{ flex: 1 }}>
                       <KTText papel="corpoForte">{t.name}</KTText>
                       <KTText papel="apoio" color={Colors.text2}>
-                        {dinheiro(t.buyIn)} · {t.players.length} inscritos
+                        {t.status === 'running' ? 'Em andamento' : 'Preparando'} · {dinheiro(t.buyIn)} · {t.players.length} inscritos
                       </KTText>
                     </View>
                     <Ionicons name="chevron-forward" size={16} color={Colors.text3} />
@@ -209,7 +211,12 @@ export default function Mesa() {
           </>
         ) : null}
 
-        <View style={{ height: 120 }} />
+        <Pressable accessibilityRole="button" onPress={() => router.push('/history' as never)} style={styles.gerenciar}>
+          <Ionicons name="albums-outline" size={20} color={Colors.gold300} />
+          <View style={{ flex: 1 }}><KTText papel="corpoForte">Todas as mesas</KTText><KTText papel="apoio" color={Colors.text1}>Mesas abertas, resultados e histórico</KTText></View>
+          <Ionicons name="chevron-forward" size={18} color={Colors.text2} />
+        </Pressable>
+        <View style={{ height: 88 }} />
       </ScrollView>
     </KTScreen>
   );
@@ -225,7 +232,7 @@ function Rodape({ rotulo, valor }: { rotulo: string; valor: string }) {
 }
 
 const styles = StyleSheet.create({
-  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xl },
+  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xl, width: '100%', maxWidth: 760, alignSelf: 'center' },
 
   topo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   botaoTopo: {

@@ -49,6 +49,9 @@ export function KTButton({
 
   return (
     <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}
       style={({ pressed }) => [
@@ -102,7 +105,7 @@ const styles = StyleSheet.create({
   fantasma: { borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderStrong },
   perigo:   { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(200,90,90,0.4)' },
   conteudo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  rotulo:   { letterSpacing: 0.2 },
+  rotulo:   { letterSpacing: 0 },
   aresta:   { position: 'absolute', left: 0, right: 0, height: 1 },
   arestaTopo: { top: 0, backgroundColor: 'rgba(255,255,255,0.45)' },
   arestaBase: { bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },

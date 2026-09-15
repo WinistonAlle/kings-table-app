@@ -97,7 +97,7 @@ export default function Perfil() {
 
         {/* --------------------------------------------- o que a conta traz */}
         <View>
-          <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Com uma conta</KTText>
+          <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Em desenvolvimento</KTText>
           <KTSurface nivel="card" padding={0}>
             {[
               { icone: 'cloud-outline',      titulo: 'A liga em todos os aparelhos', nota: 'Hoje os torneios ficam só neste telefone' },
@@ -117,15 +117,15 @@ export default function Perfil() {
             ))}
           </KTSurface>
           <KTButton
-            label="Criar conta"
-            onPress={() => router.push('/(auth)/entrar' as never)}
+            label="Ver minhas mesas"
+            onPress={() => router.push('/history' as never)}
             size="lg"
             fullWidth
             style={{ marginTop: Space.lg }}
           />
           <KTText papel="apoio" color={Colors.text3} style={styles.nota}>
-            Em breve com Google e Apple. Até lá, tudo funciona sem conta: o que
-            está neste telefone continua aqui.
+            Conta e sincronização ainda não estão disponíveis. Suas mesas
+            ficam salvas neste aparelho, sem precisar de cadastro.
           </KTText>
         </View>
 

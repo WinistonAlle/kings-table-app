@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, View, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Space } from '@/constants/tokens';
+import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { KTScreen } from '@/components/ui/Screen';
 import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
@@ -29,7 +29,7 @@ const FORMATOS: { valor: TournamentFormat; nome: string; nota: string; minutos: 
   { valor: 'deep',    nome: 'Deep stack', nota: 'Níveis de 30 min. Noite longa, jogo de verdade.', minutos: 30 },
   { valor: 'regular', nome: 'Regular',    nota: 'Níveis de 20 min. O equilíbrio de sempre.',       minutos: 20 },
   { valor: 'turbo',   nome: 'Turbo',      nota: 'Níveis de 10 min. Pra acabar antes de tarde.',    minutos: 10 },
-  { valor: 'hyper',   nome: 'Hyper',      nota: 'Níveis de 5 min. Loteria, e todo mundo sabe.',    minutos: 5 },
+  { valor: 'hyper',   nome: 'Hyper',      nota: 'Níveis de 5 min. Uma partida mais rápida.',    minutos: 5 },
 ];
 
 const NAIPES = ['espada', 'copas', 'ouros', 'paus'] as const;
@@ -192,7 +192,7 @@ export default function AbrirMesa() {
             uma rolagem. */}
         <View style={styles.barra}>
           <KTButton
-            label={podeAbrir ? `Abrir por R$ ${valor.toLocaleString('pt-BR')}` : 'Dê um nome à mesa'}
+            label={podeAbrir ? 'Criar mesa' : !nome.trim() ? 'Dê um nome à mesa' : 'Informe o valor do buy-in'}
             onPress={abrir}
             disabled={!podeAbrir}
             size="lg"
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   abertura: { alignItems: 'center', paddingTop: Space.lg },
   campoNome: {
     width: '100%', textAlign: 'center',
-    fontFamily: 'CormorantGaramond_600SemiBold', fontSize: 27, color: Colors.text0,
+    fontFamily: Fonts.display, fontSize: 23, color: Colors.text0,
     paddingVertical: Space.lg,
   },
   naipes: { flexDirection: 'row', justifyContent: 'center', gap: Space.md, marginTop: -Space.lg },

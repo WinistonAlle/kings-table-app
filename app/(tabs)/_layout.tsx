@@ -19,6 +19,7 @@ const ICONES = {
   ranking: { on: 'trophy',  off: 'trophy-outline' },
   ai:      { on: 'sparkles', off: 'sparkles-outline' },
   profile: { on: 'person',  off: 'person-outline' },
+  history: { on: 'albums', off: 'albums-outline' },
 } as const;
 
 function Icone({ rota, focado }: { rota: keyof typeof ICONES; focado: boolean }) {
@@ -45,23 +46,27 @@ export default function TabLayout() {
           backgroundColor: 'transparent',
           borderTopColor: Colors.border,
           borderTopWidth: StyleSheet.hairlineWidth,
-          height: Platform.OS === 'ios' ? 88 : 68,
+          height: Platform.OS === 'ios' ? 88 : 76,
           paddingBottom: Platform.OS === 'ios' ? 30 : 10,
-          paddingTop: Space.md,
+          paddingTop: Space.sm,
           elevation: 0,
         },
         tabBarActiveTintColor: Colors.gold200,
         tabBarInactiveTintColor: Colors.text2,
+        tabBarIconStyle: { height: 30, flexGrow: 0 },
         tabBarLabelStyle: {
           fontFamily: Fonts.uiMedium,
           fontSize: 10,
-          letterSpacing: 0.6,
+          lineHeight: 14,
+          flexShrink: 0,
+          letterSpacing: 0,
           marginTop: 2,
         },
       }}
     >
       <Tabs.Screen name="index" options={{ title: 'Mesa', tabBarIcon: ({ focused }) => <Icone rota="index" focado={focused} /> }} />
       <Tabs.Screen name="ranking" options={{ title: 'Liga', tabBarIcon: ({ focused }) => <Icone rota="ranking" focado={focused} /> }} />
+      <Tabs.Screen name="history" options={{ title: 'Mesas', tabBarIcon: ({ focused }) => <Icone rota="history" focado={focused} /> }} />
       <Tabs.Screen name="ai" options={{ title: 'Rainha', tabBarIcon: ({ focused }) => <Icone rota="ai" focado={focused} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: ({ focused }) => <Icone rota="profile" focado={focused} /> }} />
     </Tabs>
