@@ -544,6 +544,13 @@ main > section#heroi { z-index: 0; }
 .recursos-linha dt { font-size: 0.9rem; font-weight: 600; }
 .recursos-linha dt span { font-family: var(--font-mono), monospace; font-size: 0.65rem; color: var(--color-gold500); margin-right: 0.6rem; }
 .recursos-linha dd { font-size: 0.9rem; line-height: 1.6; }
+.recursos-linha dt, .recursos-linha dd { overflow-wrap: anywhere; }
+.recursos-expandir { margin-top: 1rem; }
+.recursos-expandir summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 48px; padding-block: 0.75rem; cursor: pointer; color: var(--color-gold200); font-size: 0.9375rem; list-style: none; }
+.recursos-expandir summary::-webkit-details-marker { display: none; }
+.recursos-expandir summary > span { font-size: 1.4rem; width: 1.5rem; text-align: center; transition: transform 180ms ease; }
+.recursos-expandir[open] summary > span { transform: rotate(45deg); }
+.recursos-expandir summary:focus-visible { outline: 2px solid var(--color-gold300); outline-offset: 4px; }
 .recursos-rodape { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border-top: 1px solid var(--color-lineStrong); padding-top: 1.75rem; margin-top: 2rem; }
 @media (max-width: 768px) {
   .recursos-titulo { font-size: 1.65rem; }

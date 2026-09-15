@@ -88,7 +88,7 @@ export function AntesDepois() {
             Sua noite de poker,<br /><Realce>organizada.</Realce>
           </h2>
           <p className="mt-5 max-w-sm t-apoio text-text2">
-            Da primeira entrada ao resultado final, cada parte do jogo tem seu lugar.
+            Mesas, jogadores, finanças, ligas e estudo. Da primeira entrada à próxima temporada.
           </p>
           <div className="mt-7" onClick={() => window.dispatchEvent(new CustomEvent('feature-selecionada', { detail: selecionado }))}>
             <BotaoOuro href="#recursos">Explorar funcionalidades</BotaoOuro>

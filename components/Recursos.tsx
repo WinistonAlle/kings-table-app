@@ -13,7 +13,7 @@ const CENARIOS = [
   [['Pago', 'Ana · R$ 50'], ['A receber', 'Pedro · R$ 100'], ['Contestado', 'Bia · R$ 50']],
   [['1º · R$ 200', 'Campeão'], ['2º · R$ 120', 'Vice-campeão'], ['3º · R$ 80', 'Terceiro lugar']],
   [['No aparelho', 'Dados salvos'], ['Sem Wi-Fi', 'Mesa funcionando'], ['Toda a liga', 'Resultados reunidos']],
-  [['Conversa', 'Protótipo local'], ['Análise de mãos', 'Planejada'], ['Treino', 'Planejado']],
+  [['Rainha IA', 'Estratégia e memória'], ['Análise de mãos', 'Revisão de decisões'], ['Trilhas', 'Estudo personalizado']],
 ];
 
 export function Recursos() {
@@ -47,27 +47,36 @@ export function Recursos() {
             </select>
           </label>
         <div key={grupo.nome} className="painel-recursos recursos-detalhe" aria-live="polite">
-          <div className="recursos-status"><span aria-hidden />{grupo.futuro ? 'Em desenvolvimento' : 'No King’s Table'}<span className="recursos-contador">{String(ativo + 1).padStart(2, '0')} / 08</span></div>
+          <div className="recursos-status"><span aria-hidden />{grupo.nome}<span className="recursos-contador">{String(ativo + 1).padStart(2, '0')} / {String(FEATURES.length).padStart(2, '0')}</span></div>
           <h3 className="titulo recursos-titulo text-text0">{grupo.resumo}</h3>
           <p className="mt-4 t-apoio text-text1">{grupo.beneficio}</p>
-          <div className="recursos-demo" aria-label={grupo.futuro ? 'Etapas de desenvolvimento' : 'Exemplo ilustrativo da funcionalidade'}>
-            <p className="recursos-demo__legenda">{grupo.futuro ? 'O que vem pela frente' : 'Uma noite com King’s Table · exemplo'}</p>
+          <p className="mt-3 t-micro text-text2">{grupo.itens.length} funcionalidades nesta área</p>
+          <div className="recursos-demo" aria-label="Exemplo ilustrativo da funcionalidade">
+            <p className="recursos-demo__legenda">Uma noite com King’s Table · exemplo</p>
             <div className="recursos-demo__valores">
               {CENARIOS[ativo].map(([valor, legenda], i) => <div key={valor} style={{ animationDelay: `${i * 90}ms` }}><strong>{valor}</strong><span>{legenda}</span></div>)}
             </div>
           </div>
           <dl className="recursos-lista">
-            {grupo.itens.map(([titulo, texto], i) => (
-              <div key={titulo} className="painel-recursos__item recursos-linha" style={{ animationDelay: `${i * 70}ms` }}>
-                <dt className="text-text0"><span aria-hidden>{String(i + 1).padStart(2, '0')}</span>{titulo}</dt>
-                <dd className="text-text2">{texto}</dd>
-              </div>
-            ))}
+            {grupo.itens.slice(0, 6).map((item, i) => <ItemRecurso key={item[0]} item={item} index={i} />)}
           </dl>
+          {grupo.itens.length > 6 && <details className="recursos-expandir">
+            <summary>Ver mais {grupo.itens.length - 6} funcionalidades<span aria-hidden>+</span></summary>
+            <dl className="recursos-lista">
+              {grupo.itens.slice(6).map((item, i) => <ItemRecurso key={item[0]} item={item} index={i + 6} />)}
+            </dl>
+          </details>}
         </div>
         </div>
       </div>
       <div className="recursos-rodape"><p className="t-apoio text-text1">Menos contas. Mais jogo.</p><BotaoOuro href="#lista">Quero organizar minha mesa</BotaoOuro></div>
     </Secao>
   );
+}
+
+function ItemRecurso({ item: [titulo, texto], index }: { item: [string, string]; index: number }) {
+  return <div className="painel-recursos__item recursos-linha" style={{ animationDelay: `${(index % 6) * 70}ms` }}>
+    <dt className="text-text0"><span aria-hidden>{String(index + 1).padStart(2, '0')}</span>{titulo}</dt>
+    <dd className="text-text2">{texto}</dd>
+  </div>;
 }

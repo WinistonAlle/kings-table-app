@@ -14,7 +14,12 @@
   encerra o percurso depois dessa dobra. Nao ha pilha final nem fichas caindo.
 - Sora 800 nos titulos, Playfair Display 700 italica nos destaques.
 - Recursos usa FEATURES como fonte unica, com menu de proximidade no desktop
-  e seletor no celular. Recursos futuros permanecem identificados.
+  e seletor no celular. O catalogo apresenta 106 funcionalidades em oito areas,
+  incluindo todo o escopo ampliado registrado no PROJETO.md do app.
+  Por orientacao do usuario, nao ha etiquetas de disponibilidade por recurso.
+  Cada area mostra seis itens inicialmente e permite expandir os demais.
+  Esta decisao substitui as orientacoes historicas sobre rotular recursos futuros;
+  a inclusao na landing nao significa que a implementacao no sistema terminou.
 - HomeGames usa seis cenas geradas em public/home-games-atlas.png. DriftWall
   pausa fora da viewport e respeita movimento reduzido.
 - Perguntas tem 14 respostas e acordeao nativo centralizado.
