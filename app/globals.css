@@ -711,6 +711,14 @@ main > section#heroi { z-index: 0; }
 /* 769px e não 768: `useTelaPequena` reprova em `max-width: 768px`, então em
    768 exatos a cena 3D NÃO roda. */
 @media (min-width: 769px) {
+  .mesa-oval {
+    width: min(126vw, 174vh);
+  }
+
+  .mesa-pilha {
+    --pilha: clamp(5rem, 8.5vw, 8rem);
+  }
+
   .mesa-dobra {
     height: 145vh;
     padding-block: 0;
