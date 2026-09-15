@@ -20,13 +20,24 @@ export type EstadoMesa = {
   ativa: boolean;
   /** 0 quando a dobra chega, 1 quando ela termina de passar. */
   progresso: number;
+  /** Topo do bloco sticky da mesa em pixels da viewport. */
+  deslocamentoY: number;
+  /** Limites visíveis da própria seção, em pixels da viewport. */
+  recorteTopo: number;
+  recorteBaixo: number;
 };
 
-let estado: EstadoMesa = { ativa: false, progresso: 0 };
+let estado: EstadoMesa = { ativa: false, progresso: 0, deslocamentoY: 0, recorteTopo: 0, recorteBaixo: 0 };
 const inscritos = new Set<(e: EstadoMesa) => void>();
 
 export function definirMesa(novo: EstadoMesa) {
-  if (estado.ativa === novo.ativa && Math.abs(estado.progresso - novo.progresso) < 0.001) {
+  if (
+    estado.ativa === novo.ativa &&
+    Math.abs(estado.progresso - novo.progresso) < 0.001 &&
+    Math.abs(estado.deslocamentoY - novo.deslocamentoY) < 0.5 &&
+    Math.abs(estado.recorteTopo - novo.recorteTopo) < 0.5 &&
+    Math.abs(estado.recorteBaixo - novo.recorteBaixo) < 0.5
+  ) {
     return;
   }
   estado = novo;

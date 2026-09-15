@@ -67,14 +67,62 @@ export function quedasEm(progresso: number) {
 
 export function Mesa() {
   const secao = useRef<HTMLElement>(null);
+  const grude = useRef<HTMLDivElement>(null);
+  const progressoAtual = useRef(0);
   const p = useProgresso(secao);
   const telaPequena = useTelaPequena();
   const semMesa3D = telaPequena !== false;
 
   useEffect(() => {
-    definirMesa({ ativa: true, progresso: Math.min(1, p) });
-    return () => definirMesa({ ativa: false, progresso: 0 });
+    progressoAtual.current = Math.min(1, p);
   }, [p]);
+
+  useEffect(() => {
+    const el = secao.current;
+    const bloco = grude.current;
+    if (!el || semMesa3D) {
+      definirMesa({ ativa: false, progresso: 0, deslocamentoY: 0, recorteTopo: 0, recorteBaixo: 0 });
+      return;
+    }
+    if (!bloco) {
+      definirMesa({ ativa: false, progresso: 0, deslocamentoY: 0, recorteTopo: 0, recorteBaixo: 0 });
+      return;
+    }
+
+    let pedido = 0;
+    const medir = () => {
+      pedido = 0;
+      const secaoRect = el.getBoundingClientRect();
+      const blocoRect = bloco.getBoundingClientRect();
+      const recorteTopo = Math.max(0, secaoRect.top);
+      const recorteBaixo = Math.min(window.innerHeight, secaoRect.bottom);
+      const ativa =
+        recorteBaixo > recorteTopo &&
+        blocoRect.bottom > 0 &&
+        blocoRect.top < window.innerHeight;
+      definirMesa({
+        ativa,
+        progresso: progressoAtual.current,
+        deslocamentoY: blocoRect.top,
+        recorteTopo,
+        recorteBaixo,
+      });
+    };
+    const aoRolar = () => {
+      if (pedido) return;
+      pedido = requestAnimationFrame(medir);
+    };
+
+    medir();
+    window.addEventListener('scroll', aoRolar, { passive: true });
+    window.addEventListener('resize', aoRolar);
+    return () => {
+      if (pedido) cancelAnimationFrame(pedido);
+      window.removeEventListener('scroll', aoRolar);
+      window.removeEventListener('resize', aoRolar);
+      definirMesa({ ativa: false, progresso: 0, deslocamentoY: 0, recorteTopo: 0, recorteBaixo: 0 });
+    };
+  }, [semMesa3D]);
 
   /* Sem a mesa 3D não há percurso: o contador mostra o desfecho. */
   const quedas = semMesa3D ? LUGARES - 1 : quedasEm(Math.min(1, p));
@@ -89,7 +137,7 @@ export function Mesa() {
      no meio: lá a dobra volta a ter a altura do próprio conteúdo. */
   return (
     <section ref={secao} id="mesa" className="mesa-dobra relative w-full">
-      <div className="mesa-grude flex w-full items-center justify-center">
+      <div ref={grude} className="mesa-grude flex w-full items-center justify-center">
         <div className="mx-auto w-full max-w-3xl px-6 text-center">
           {/* O conteúdo do bloco fica no meio do feltro, e é o que o
               organizador de fato olha durante a noite: nível, blinds, quantos

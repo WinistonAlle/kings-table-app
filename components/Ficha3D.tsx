@@ -352,6 +352,7 @@ export function Ficha3D({
 
     const renderer = new THREE.WebGLRenderer({ canvas: cv, alpha: true, antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
+    renderer.autoClear = false;
     renderer.toneMapping = THREE.NoToneMapping;
     renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -366,6 +367,9 @@ export function Ficha3D({
     const ambiente = new THREE.AmbientLight(0x8d7a5e, 1.4);
     const contra = new THREE.DirectionalLight(0xc49c5c, 0.6);
     contra.position.set(1.6, -0.8, -1.2);
+    chave.layers.enable(1);
+    ambiente.layers.enable(1);
+    contra.layers.enable(1);
     scene.add(chave, ambiente, contra);
 
     const face = new THREE.TextureLoader().load('/ficha-face.jpg');
@@ -482,7 +486,7 @@ export function Ficha3D({
        e pousava visivelmente mais gorda que a pilha. Escala não-uniforme em
        grupo que contém objetos de proporção fixa é sempre essa armadilha. */
     mesa.scale.setScalar(MESA_RAIO);
-    /* Fixa. A mesa não cresce, não encolhe e não gira em nenhum momento: a
+    /* Fixa. A mesa não cresce, não encolhe, não gira e não surge em fade: a
        única coisa que se mexe nesta dobra são as FICHAS. Uma mesa que respira
        junto com a rolagem tira o olho de onde a informação está. */
     mesa.visible = false;
@@ -491,10 +495,10 @@ export function Ficha3D({
     /* O feltro. Verde de mesa mesmo, e bem fosco: feltro não tem brilho, e um
        verde com reflexo vira plástico na hora. Escuro o bastante para o texto
        branco que fica por cima continuar legível. */
-    /* Os três materiais da mesa ficam guardados: eles são os únicos que a
-       dobra apaga e acende. As fichas usam os materiais COMPARTILHADOS com a
-       ficha viajante — mexer na opacidade deles apagaria a peça que atravessa
-       a página inteira. */
+    /* Os três materiais da mesa ficam guardados para que ela entre sólida
+       sempre que a dobra estiver ativa. As fichas usam os materiais
+       COMPARTILHADOS com a ficha viajante — mexer na opacidade deles apagaria
+       a peça que atravessa a página inteira. */
     const materiaisMesa: THREE.MeshStandardMaterial[] = [];
 
     const matFeltro = new THREE.MeshStandardMaterial({
@@ -581,6 +585,7 @@ export function Ficha3D({
     const vivas = new Array(LUGARES_NA_MESA).fill(1);
 
     const pilhaVencedora = pilhasMesa[0];
+    mesa.traverse((obj) => obj.layers.set(1));
     const topoDaPilha = new THREE.Vector3();
     const medirTopo = () => {
       mesa.updateMatrixWorld(true);
@@ -654,6 +659,9 @@ export function Ficha3D({
          do vídeo; assim que ela sai do centro, ninguém tem com o que comparar. */
       const meiaAltura = Math.tan((FOV / 2) * (Math.PI / 180)) * c.camera.position.z;
       const desloc = DESLOCAMENTO_X * 2 * meiaAltura * (1 - faixa(p, 0, 0.22));
+      const est = estadoMesa.current;
+      mesa.position.y = -(est.deslocamentoY / (altura / 2)) * meiaAltura;
+      if (est.ativa) medirTopo();
       /* Dentro da pausa, a ficha mira o TOPO DA PILHA vencedora, e esse ponto
          vem do mundo (`localToWorld`), não de uma conta à mão: a pilha é neta
          de um grupo com rotação e escala não-uniforme, e refazer isso na mão é
@@ -683,15 +691,11 @@ export function Ficha3D({
          `estadoMesa` é escrito pela seção enquanto ela rola (ver
          `mesaSinal.ts`), então quem manda no que se vê é a rolagem, não um
          relógio correndo num canto da página. */
-      const est = estadoMesa.current;
-      const entradaMesa = est.ativa
-        ? faixa(est.progresso, 0.0, 0.1) * (1 - faixa(est.progresso, 0.9, 1.0))
-        : 0;
-      mesa.visible = entradaMesa > 0.002;
+      mesa.visible = est.ativa;
       if (mesa.visible) {
-        /* Acende e apaga, e só. O tamanho é o mesmo do primeiro ao último
-           quadro da dobra. */
-        for (const m of materiaisMesa) m.opacity = entradaMesa;
+        /* A mesa já está ali, inteira. A rolagem desta dobra anima as pilhas,
+           não o tampo. */
+        for (const m of materiaisMesa) m.opacity = 1;
         const caidos = quedasEm(est.progresso);
         pilhasMesa.forEach((pilha, i) => {
           /* A pilha 0 é a do campeão e nunca some: é nela que a ficha pousa.
@@ -725,6 +729,30 @@ export function Ficha3D({
         g.rotation.y = mao.x * 0.09 * entrada;
       });
 
+      c.renderer.setScissorTest(false);
+      c.renderer.clear();
+
+      if (mesa.visible) {
+        const topo = Math.max(0, Math.min(altura, est.recorteTopo));
+        const baixo = Math.max(0, Math.min(altura, est.recorteBaixo));
+        const recorteAltura = baixo - topo;
+        if (recorteAltura > 0) {
+          const pixelRatio = c.renderer.getPixelRatio();
+          c.camera.layers.set(1);
+          c.renderer.setScissor(
+            0,
+            Math.round((altura - baixo) * pixelRatio),
+            Math.round(largura * pixelRatio),
+            Math.round(recorteAltura * pixelRatio),
+          );
+          c.renderer.setScissorTest(true);
+          c.renderer.render(c.scene, c.camera);
+          c.renderer.setScissorTest(false);
+          c.renderer.clearDepth();
+        }
+      }
+
+      c.camera.layers.set(0);
       c.renderer.render(c.scene, c.camera);
     };
 
