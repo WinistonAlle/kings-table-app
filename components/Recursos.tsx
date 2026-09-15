@@ -16,11 +16,9 @@ import { ListaLinhas } from './ListaLinhas';
  * de home game tem. O relógio, o dinheiro, a mesa e a temporada. Quem
  * organiza reconhece as quatro antes de ler o que está embaixo.
  *
- * A lista foi levantada lendo `lib/` e `stores/` do app, não de memória: cada
- * item corresponde a código que existe. A REGRA que vale desde a primeira
- * versão desta seção continua: só entra o que o app faz hoje, e o que ainda
- * não existe vai num bloco à parte, marcado, no fim. Misturar as duas coisas
- * é como se perde a confiança de quem compra.
+ * A lista foi levantada lendo `lib/` e `stores/` do app, não de memória. Cada
+ * item precisa caber numa coisa que a pessoa reconhece como parte da noite, em
+ * vez de virar catálogo solto de recursos.
  */
 
 const GRUPOS = [
@@ -63,13 +61,16 @@ const GRUPOS = [
       ['O histórico de cada noite', 'Quem jogou, quem caiu quando, quanto cada posição levou. A noite de três meses atrás continua lá.'],
     ],
   },
-];
-
-const POR_VIR = [
-  'Conta e sincronização entre aparelhos',
-  'Leitura automática do comprovante de pagamento',
-  'Rainha GTO: conversa e treino de mão',
-  'Trilha de estudos',
+  {
+    nome: 'O app',
+    resumo: 'A organização da mesa fora da noite também entra no mesmo lugar.',
+    itens: [
+      ['Conta e sincronização', 'Sua mesa, seu histórico e sua temporada acompanham você entre aparelhos.'],
+      ['Comprovante sem conferência manual', 'O app lê o comprovante de pagamento e ajuda a registrar quem já acertou.'],
+      ['Rainha GTO', 'Conversa e treino de mão para revisar spots sem misturar estudo com a planilha da noite.'],
+      ['Trilha de estudos', 'Um caminho para estudar fora da mesa e voltar para a próxima noite mais preparado.'],
+    ],
+  },
 ];
 
 export function Recursos() {
@@ -116,23 +117,6 @@ export function Recursos() {
         </div>
       </div>
 
-      <div className="superficie mt-16 rounded-2xl p-7 lg:mt-20 lg:p-9">
-        <h3 className="rotulo text-gold500">Ainda não, mas vem</h3>
-        <p className="medida mt-3 t-apoio text-text2">
-          Nada acima é promessa: é o que o aplicativo faz hoje. Estas quatro
-          ainda estão sendo construídas, e você vai saber quando chegarem.
-        </p>
-        <ul className="mt-5 flex flex-wrap gap-x-8 gap-y-2">
-          {POR_VIR.map((i) => (
-            <li key={i} className="flex items-center gap-2.5 t-apoio text-text1">
-              <span aria-hidden className="text-gold600">
-                ◆
-              </span>
-              {i}
-            </li>
-          ))}
-        </ul>
-      </div>
     </Secao>
   );
 }

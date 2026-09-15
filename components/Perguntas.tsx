@@ -15,7 +15,7 @@ import { Rotulo, Secao, Titulo, Realce } from './Secao';
 const PERGUNTAS = [
   {
     p: 'Tem Android?',
-    r: 'Ainda não. O King’s Table começa no iPhone, e o Android vem depois — quem entrar na lista escolhe o aparelho e é avisado quando o dele chegar.',
+    r: 'Ainda não. O King’s Table começa no iPhone, e o Android vem depois. Quem entrar na lista escolhe o aparelho e é avisado quando o dele chegar.',
   },
   {
     p: 'Todo mundo da mesa precisa instalar?',
@@ -23,11 +23,11 @@ const PERGUNTAS = [
   },
   {
     p: 'Quando abre?',
-    r: 'Sem data anunciada, e não vou inventar uma. O relógio, o controle de pagamento, a premiação e o ranking já funcionam; falta a conta e a sincronização entre aparelhos. Quem está na lista sabe primeiro.',
+    r: 'Sem data anunciada, e não vou inventar uma. Quem está na lista sabe primeiro quando a abertura chegar.',
   },
   {
     p: 'Onde ficam os dados da minha mesa?',
-    r: 'Hoje, no seu aparelho — a noite inteira roda offline e nada sai dali. Quando a sincronização chegar, ela será opcional: quem quiser continuar só no telefone, continua.',
+    r: 'A noite roda offline no aparelho, e a sincronização existe para manter seu histórico entre aparelhos. Quem quiser continuar só no telefone, continua.',
   },
 ];
 
