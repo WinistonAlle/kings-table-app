@@ -19,6 +19,28 @@
   pausa fora da viewport e respeita movimento reduzido.
 - Perguntas tem 14 respostas e acordeao nativo centralizado.
 
+## Monetizacao definida para a proxima etapa
+
+As tres assinaturas serao Home, Clube e Pro. O Passe libera os recursos do
+Clube para uma unica noite. A cobranca deve ser feita do organizador, nao de
+cada jogador.
+
+- Home, gratuito: uma mesa ativa, ate 10 jogadores, relogio, estruturas
+  sugeridas, entradas, premiacao e historico local limitado.
+- Clube, R$ 19,90 por mes: mesas e jogadores ilimitados, ranking, historico,
+  estruturas personalizadas, intervalos, convites, compartilhamento, backup,
+  sincronizacao e exportacao.
+- Pro, R$ 39,90 por mes: varias ligas, temporadas, permissoes, ranking
+  configuravel, relatorios, historico por jogador, comprovantes, Rainha IA e
+  notificacoes.
+- Passe, R$ 7,90 por noite: uso completo do Clube em uma noite.
+
+Sugestao anual: Clube R$ 199,90 e Pro R$ 399,90. Lancar com teste gratis de
+14 dias, destacar o Clube e manter o Passe para usuarios ocasionais. Nao
+vender IA como pilar antes de relogio, historico e sincronizacao estarem
+confiaveis. A mensagem central e economizar tempo e eliminar planilha,
+calculadora e discussao no grupo.
+
 As secoes historicas abaixo descrevem tambem implementacoes anteriores.
 
 Documento de passagem. Escrito em 15/09/2026 para quem for continuar o
