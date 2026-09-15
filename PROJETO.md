@@ -81,3 +81,28 @@ O valor principal e tirar a organizacao da cabeca do anfitriao: abrir a mesa,
 controlar o tempo, registrar entradas, fechar a premiacao e manter a historia
 da liga. IA e recursos avancados entram depois que o fluxo basico for
 confiavel, sincronizado e simples de usar.
+
+## Monetizacao decidida
+
+O plano e cobrar do organizador da mesa, nao de cada jogador. Os nomes das
+assinaturas sao Home, Clube e Pro. Tambem existe o Passe para uma unica noite.
+
+- Home, gratuito: uma mesa ativa, ate 10 jogadores, relogio, estruturas
+  sugeridas, entradas, premiacao e historico local limitado.
+- Clube, R$ 19,90 por mes: mesas e jogadores ilimitados, historico completo,
+  ranking, estruturas personalizadas, intervalos, convite, compartilhamento,
+  backup, sincronizacao e exportacao.
+- Pro, R$ 39,90 por mes: varias ligas e temporadas, permissoes, ranking
+  configuravel, relatorios financeiros, historico por jogador, leitura de
+  comprovantes, Rainha IA com limite mensal e notificacoes.
+- Passe, R$ 7,90 por noite: desbloqueia todos os recursos do Clube para uma
+  unica noite, para quem joga ocasionalmente.
+
+Preco anual sugerido: Clube por R$ 199,90 e Pro por R$ 399,90. O desconto
+representa aproximadamente dois meses gratis e deve ser apresentado apenas
+depois que o valor mensal estiver claro.
+
+Plano de lancamento: teste gratis de 14 dias, sem cobrar IA antes de o relogio,
+historico e sincronizacao estarem confiaveis. O Clube e o plano principal a
+destacar. A comunicacao deve vender a economia de tempo e o fim da planilha,
+do grupo confuso e da calculadora, nao apenas uma lista de funcionalidades.
