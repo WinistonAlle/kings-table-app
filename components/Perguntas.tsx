@@ -17,7 +17,7 @@ const PERGUNTAS = [
   ['Meus dados aparecem em outro aparelho?', 'Ainda não. Os dados ficam salvos localmente; conta, sincronização e histórico pessoal entre aparelhos são recursos futuros.'],
   ['A Rainha já analisa minhas mãos com IA?', 'Ainda não. Existe um protótipo com respostas locais sobre alguns fundamentos. IA personalizada, treino de mãos e trilha de estudos estão planejados.'],
   ['Quando será lançado? Terá Android?', 'Ainda não há data anunciada. O lançamento prioriza iPhone; Android fica para uma etapa posterior. A lista de espera recebe as novidades da abertura.'],
-  ['Quanto vai custar?', 'Os preços ainda não foram definidos. Os planos serão divulgados antes da abertura; entrar na lista não exige pagamento.'],
+  ['Quanto vai custar?', 'Home é gratuito. Clube custa R$ 19,90/mês e Pro R$ 39,90/mês. O Passe custa R$ 7,90 e libera o Clube por uma noite. No anual, Clube custa R$ 199,90 e Pro R$ 399,90, com aproximadamente dois meses grátis. Você pode experimentar o Clube por 14 dias; entrar na lista não exige pagamento.'],
 ];
 
 const PRINCIPAIS = [0, 1, 2, 12, 13];

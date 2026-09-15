@@ -26,6 +26,11 @@
 
 ## Monetizacao definida para a proxima etapa
 
+Precos e FAQ atualizados na landing com Home, Clube, Pro e Passe, valores
+mensais e anuais, teste de 14 dias e Clube recomendado. CTAs seguem para
+a lista de espera, sem simular checkout ou ativacao de teste. IA nao e usada
+como argumento de venda dos planos antes da confiabilidade da base.
+
 As tres assinaturas serao Home, Clube e Pro. O Passe libera os recursos do
 Clube para uma unica noite. A cobranca deve ser feita do organizador, nao de
 cada jogador.

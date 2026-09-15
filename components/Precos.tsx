@@ -1,55 +1,50 @@
 import { BotaoOuro, Rotulo, Secao, Titulo, Realce } from './Secao';
 
-/* Preço.
- *
- * ATENÇÃO: os valores abaixo são MARCADOR DE LUGAR. O modelo de cobrança
- * ainda não foi decidido, e inventar preço numa página de vendas é o tipo de
- * chute que custa caro: ele ancora a percepção de valor antes de existir
- * decisão, e mudar depois parece que a empresa não sabe o que faz.
- *
- * A estrutura está pronta para receber os números reais: três colunas, a do
- * meio destacada, e o texto de cada plano dizendo PARA QUEM ele é, não quantos
- * recursos tem.
- */
-
 const PLANOS = [
   {
-    nome: 'Mesa única',
-    preco: null,
-    periodo: 'por mês',
+    nome: 'Home',
+    preco: 'Gratuito',
+    periodo: '',
+    anual: null,
     para: 'Para quem toca um home game e quer parar de usar planilha.',
     itens: [
-      'Um clube, jogadores sem limite',
-      'Relógio, premiação e ranking',
-      'Histórico da temporada',
+      'Uma mesa ativa, até 10 jogadores',
+      'Relógio e estruturas sugeridas',
+      'Entradas e premiação',
+      'Histórico local limitado',
     ],
     cta: 'Entrar na lista',
     destaque: false,
   },
   {
     nome: 'Clube',
-    preco: null,
+    preco: 'R$ 19,90',
     periodo: 'por mês',
+    anual: 'R$ 199,90/ano',
     para: 'Para quem organiza mais de uma mesa ou divide a organização.',
     itens: [
-      'Vários clubes e temporadas',
-      'Organizadores auxiliares',
-      'Comprovante conferido por leitura automática',
-      'Estruturas de blind próprias',
+      'Mesas e jogadores ilimitados',
+      'Ranking e histórico da liga',
+      'Blinds personalizados e intervalos',
+      'Convites, QR Code e compartilhamento',
+      'Backup, sincronização e exportação',
     ],
-    cta: 'Entrar na lista',
+    cta: 'Quero testar o Clube',
     destaque: true,
   },
   {
-    nome: 'Casa',
-    preco: null,
-    periodo: 'sob consulta',
+    nome: 'Pro',
+    preco: 'R$ 39,90',
+    periodo: 'por mês',
+    anual: 'R$ 399,90/ano',
     para: 'Para clube com muitas mesas simultâneas e mais de um organizador.',
     itens: [
       'Tudo do Clube',
-      'Mesas simultâneas',
-      'Marca própria no app',
-      'Suporte direto',
+      'Várias ligas e temporadas',
+      'Permissões para a equipe',
+      'Pontuação configurável',
+      'Relatórios e histórico por jogador',
+      'Comprovantes e notificações',
     ],
     cta: 'Entrar na lista',
     destaque: false,
@@ -62,11 +57,11 @@ export function Precos() {
       <div className="max-w-2xl">
         <Rotulo>Planos</Rotulo>
         <Titulo>
-          Custa menos que <Realce>um buy-in</Realce>.
+          Menos planilha. <Realce>Mais poker.</Realce>
         </Titulo>
         <p className="medida mt-6 t-corpo text-text2">
-          Um mês inteiro de mesas organizadas pelo preço de uma entrada da sua
-          noite. Sem fidelidade, sem taxa por jogador.
+          Deixe a calculadora e a confusão no grupo para trás. Comece grátis ou
+          experimente o Clube por 14 dias. A assinatura é do organizador, não de cada jogador.
         </p>
       </div>
 
@@ -74,13 +69,13 @@ export function Precos() {
         {PLANOS.map((p) => (
           <div
             key={p.nome}
-            className={`superficie flex flex-col rounded-2xl p-8 ${
+            className={`superficie flex flex-col rounded-lg p-8 ${
               p.destaque ? 'border-lineStrong lg:-mt-4 lg:pb-12' : ''
             }`}
           >
             {p.destaque ? (
               <span className="rotulo mb-4 inline-block w-fit rounded-full border border-gold600 bg-gold800 px-3 py-1 text-gold200">
-                Mais escolhido
+                Plano recomendado
               </span>
             ) : null}
 
@@ -89,13 +84,10 @@ export function Precos() {
               {p.para}
             </p>
 
-            {/* Enquanto o preço não está fechado, o lugar dele não pode ficar
-                com um número de mentira nem com a fonte de R$ 49 esticando um
-                texto qualquer. Some o corpo grande e fica só o aviso. */}
-            <div className="mt-7 flex items-baseline gap-2">
+            <div className="mt-7 flex flex-wrap items-baseline gap-2">
               {p.preco ? (
                 <>
-                  <span className="font-mono t-ornamento text-text0">
+                  <span className="titulo text-3xl font-bold text-text0">
                     {p.preco}
                   </span>
                   <span className="t-micro text-text3">{p.periodo}</span>
@@ -104,6 +96,7 @@ export function Precos() {
                 <span className="rotulo text-gold300">em breve</span>
               )}
             </div>
+            {p.anual && <p className="mt-3 t-apoio text-gold200">Ou {p.anual}<span className="mt-1 block t-micro text-text2">Aproximadamente 2 meses grátis no anual.</span></p>}
 
             <ul className="mt-7 flex flex-1 flex-col gap-3">
               {p.itens.map((i) => (
@@ -131,6 +124,14 @@ export function Precos() {
           </div>
         ))}
       </div>
+      <div className="mt-8 flex flex-col gap-6 border-y border-line py-8 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h3 className="titulo t-sub text-gold200">Passe · R$ 7,90 por uma noite</h3>
+          <p className="mt-3 t-apoio text-text2">Todos os recursos do Clube para um encontro, sem assinatura mensal.</p>
+        </div>
+        <a href="#lista" className="shrink-0 t-apoio font-medium text-gold200 underline underline-offset-4">Quero o Passe</a>
+      </div>
+      <p className="mt-6 t-micro text-text2">Teste gratuito de 14 dias do Clube. Entre na lista para receber o convite de acesso.</p>
     </Secao>
   );
 }
