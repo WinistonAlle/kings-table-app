@@ -636,45 +636,6 @@ main > section#heroi { z-index: 0; }
  *
  * A mesa fica fixa dentro da própria dobra, sem parallax nem WebGL ligando e
  * desligando o desenho. */
-.fichas-fundo {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-}
-
-.fichas-janela {
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  overflow: hidden;
-}
-
-.ficha-caindo {
-  position: absolute;
-  top: -100px;
-  width: var(--tamanho);
-  aspect-ratio: 1;
-  border-radius: 50%;
-  background: url('/ficha-face.jpg') center / cover;
-  opacity: 0.18;
-  box-shadow: 0 3px 0 #171411;
-  animation: ficha-queda var(--duracao) var(--atraso) linear infinite;
-}
-
-@keyframes ficha-queda {
-  from { transform: translate3d(0, 0, 0) rotate(0deg); }
-  to { transform: translate3d(var(--deriva), calc(100vh + 200px), 0) rotate(480deg); }
-}
-
-@media (max-width: 768px) {
-  .ficha-caindo:nth-child(n + 7) { display: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fichas-fundo { display: none; }
-}
-
 .mesa-dobra {
   padding-block: 6rem;
 }
