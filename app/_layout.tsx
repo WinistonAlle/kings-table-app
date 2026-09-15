@@ -59,6 +59,7 @@ export default function RootLayout() {
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0807' } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="blinds/[id]" options={{ presentation: 'fullScreenModal' }} />
+        <Stack.Screen name="display/[id]" />
         <Stack.Screen name="tournament/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="tournament/[id]" />
       </Stack>

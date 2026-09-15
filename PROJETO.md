@@ -21,12 +21,24 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 - Tela Mesas com busca, filtros e acesso a resultados, sem trocar a mesa
   ativa apenas para consultar um resultado.
 - Perfil com dados reais e identificacao de recursos futuros.
+- Buy-in livre, estruturas personalizadas com niveis e intervalos, presets
+  salvos e identidade de mesa com naipe e cor persistidos.
+- Relogio separado por torneio.
+- Modo TV/projetor em app/display/[id].tsx: tempo, blinds atuais e seguintes,
+  ante, intervalos, jogadores restantes, entradas, buy-in e premiacao.
+  Acesso pela tela de relogio, sem controles de alteracao na apresentacao.
+- Tela cheia no navegador quando suportada e manutencao da tela ligada
+  enquanto a apresentacao esta em foco, nos aparelhos/navegadores compativeis.
+- Favicon da marca em PNG compativel com o exportador e preview do Expo.
 
 ## Pendencias importantes
 
 - O relogio ja possui estado separado por torneio; falta evoluir a mesma base
   para sincronizacao online entre anfitriao, telas e jogadores.
 - Contas, autenticacao e sincronizacao Supabase nao estao implementadas.
+- O modo TV atual apresenta o estado local no proprio aparelho. Abrir a
+  mesma mesa em outro aparelho ainda depende da sincronizacao online; nao
+  comunicar este recurso como transmissao remota ou compartilhamento ao vivo.
 - IA e leitura de comprovantes nao estao conectadas. Rainha usa base local.
 - Reentradas, add-ons, bounties, cash game e multimesa precisam de regras
   completas no dominio.
@@ -157,6 +169,19 @@ quando fizer sentido, persistencia e comportamento offline bem definido.
 - Diagnosticos, privacidade, exportacao de dados, exclusao de conta e
   gerenciamento de sessoes.
 - Infraestrutura cloud, hibrida ou on-premise para clubes profissionais.
+- Jogo online integrado, com mesa virtual, voz e video. Este e um modulo de
+  longo prazo separado da organizacao presencial, com motor de poker e
+  infraestrutura de comunicacao proprios.
+
+### Ultima entrega e verificacao: modo TV
+
+- Implementacao inicial concluida em 15/09/2026.
+- Validar sempre a continuidade do tempo ao entrar/sair do modo TV, estado
+  pausado, intervalo, fim da estrutura e mesa inexistente.
+- Verificacao visual em desktop 1440x900 e celular 390x844, incluindo
+  ausencia de overflow horizontal, e modo de intervalo em 1280x720.
+- Sincronizacao online, QR Code para participantes e controle remoto ficam
+  pendentes, conforme prioridade 0.
 
 ### Criterio de produto
 
