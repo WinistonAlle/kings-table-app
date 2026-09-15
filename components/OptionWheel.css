@@ -52,6 +52,7 @@
     align-items: center;
   }
   .features-visao { width: 100%; grid-template-columns: minmax(0, 1fr) 20rem; }
+  .features-chamada { transform: translateX(-4rem); }
   .features-visao .option-wheel { height: 38rem; }
   .features-visao .option-wheel__item { left: 350px; font-size: 2rem; }
   .feature-chip { width: 320px; }

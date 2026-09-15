@@ -83,7 +83,7 @@ export function AntesDepois() {
           <div id="feature-chip-anchor" className="feature-chip" aria-hidden="true" />
           <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
         </div>
-        <div className="order-1 lg:order-2">
+        <div className="features-chamada order-1 lg:order-2">
           <h2 className="titulo text-[1.75rem] leading-tight text-text0 lg:text-[2.75rem]">
             Sua noite de poker,<br /><Realce>organizada.</Realce>
           </h2>
