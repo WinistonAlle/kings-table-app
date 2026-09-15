@@ -43,9 +43,9 @@ export function ListaLinhas({
   itens,
   ativo,
   onEscolher,
-  raio = 110,
-  deslocamento = 26,
-  suavizacao = 120,
+  raio = 255,
+  deslocamento = 30,
+  suavizacao = 100,
 }: {
   itens: string[];
   ativo: number;
@@ -114,12 +114,11 @@ export function ListaLinhas({
   const aoMover = (e: React.PointerEvent) => {
     const el = lista.current;
     if (!el) return;
-    const caixa = el.getBoundingClientRect();
-    const y = e.clientY - caixa.top;
     refs.current.forEach((item, i) => {
       if (!item) return;
-      const centro = item.offsetTop + item.offsetHeight / 2;
-      alvos.current[i] = CURVAS.suave(Math.max(0, 1 - Math.abs(y - centro) / raio));
+      const caixa = item.getBoundingClientRect();
+      const centro = caixa.top + caixa.height / 2;
+      alvos.current[i] = CURVAS.linear(Math.max(0, 1 - Math.abs(e.clientY - centro) / raio));
     });
     ligar();
   };
@@ -149,13 +148,11 @@ export function ListaLinhas({
           }}
           className="lista-linhas__item"
         >
-          <span aria-hidden className="lista-linhas__risco" />
           <button
             type="button"
             className="lista-linhas__botao"
             aria-pressed={ativo === i}
             onClick={() => onEscolher(i)}
-            onFocus={() => onEscolher(i)}
           >
             <span className="lista-linhas__numero">{String(i + 1).padStart(2, '0')}</span>
             <span className="lista-linhas__texto">{rotulo}</span>

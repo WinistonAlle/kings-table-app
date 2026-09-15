@@ -1,5 +1,9 @@
-import { Rotulo, Secao, Titulo, Realce } from './Secao';
+'use client';
+
+import { useState } from 'react';
+import { BotaoOuro, Rotulo, Secao, Titulo, Realce } from './Secao';
 import OptionWheel from './OptionWheel';
+import { FEATURE_NAMES } from './features';
 
 /* Antes e depois, numa dobra só.
  *
@@ -71,6 +75,7 @@ export const PASSOS = [
 ];
 
 export function AntesDepois() {
+  const [selecionado, setSelecionado] = useState(2);
   return (
     <Secao id="como-funciona" className="py-24 lg:py-32">
       <div className="max-w-2xl">
@@ -81,16 +86,10 @@ export function AntesDepois() {
       </div>
 
       <div className="mt-10">
-        <OptionWheel items={[
-          'Criação de mesas',
-          'Relógio e blinds',
-          'Ranking de liga',
-          'Jogadores e entradas',
-          'Controle de pagamentos',
-          'Premiação e resultados',
-          'Histórico e uso offline',
-          'Rainha IA · em breve',
-        ]} />
+        <OptionWheel items={FEATURE_NAMES} onChange={setSelecionado} />
+      </div>
+      <div onClick={() => window.dispatchEvent(new CustomEvent('feature-selecionada', { detail: selecionado }))}>
+        <BotaoOuro href="#recursos">Explorar funcionalidades</BotaoOuro>
       </div>
 
     </Secao>
