@@ -56,7 +56,7 @@ export const metadata: Metadata = {
     locale: 'pt_BR',
     type: 'website',
   },
-  icons: { icon: '/marca/coroa.svg' },
+  icons: { icon: '/marca/favicon.svg', apple: '/marca/favicon.svg' },
 };
 
 export default function RootLayout({
