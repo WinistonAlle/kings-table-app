@@ -3,8 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useProgresso, useTelaPequena } from './useRolagem';
 import { definirMesa } from './mesaSinal';
-import { Rotulo, Realce } from './Secao';
-import { PASSOS } from './AntesDepois';
+import { BotaoOuro, Realce } from './Secao';
 
 /* A mesa, de ponta a ponta, com o conteúdo no meio do feltro.
  *
@@ -83,38 +82,21 @@ export function Mesa() {
     <section ref={secao} id="mesa" className="mesa-dobra relative w-full">
       <div ref={grude} className="mesa-grude flex w-full items-center justify-center">
         <div className="mesa-visual" aria-hidden>
-          <div className="mesa-oval">
-            {Array.from({ length: LUGARES }, (_, i) => (
-              <span key={i} className={`mesa-pilha mesa-pilha--${i + 1}`} />
-            ))}
-          </div>
+          <div className="mesa-oval" />
         </div>
 
         <div className="mesa-conteudo mx-auto w-full max-w-3xl px-6 text-center">
-          {/* O conteúdo do bloco fica no meio do feltro. Antes havia aqui uma
-              faixa de status da mesa, mas ela brigava com as fichas estáticas
-              e com a peça 3D que pousa no feltro. */}
-          <Rotulo>Enquanto isso</Rotulo>
-          <h2 className="titulo mt-4 t-secao text-balance text-text0">
-            Três passos, e a noite <Realce>cuida de si</Realce>.
+          <h2 className="titulo t-secao text-balance text-text0">
+            Sua mesa. Sua turma.
+            <br />
+            <Realce>A noite em ordem.</Realce>
           </h2>
-
-          {/* Os três passos vieram da dobra anterior, e o lugar deles é este:
-              embaixo eles descreviam um laço que o leitor tinha que imaginar;
-              aqui em cima do feltro, com as pilhas sumindo em volta, eles são
-              legenda do que está acontecendo. */}
-          <ol className="mt-10 grid gap-7 text-left sm:grid-cols-3 sm:gap-6">
-            {PASSOS.map((passo) => (
-              <li key={passo.n}>
-                <span aria-hidden className="titulo block text-[1.6rem] leading-none text-gold600">
-                  {passo.n}
-                </span>
-                <h3 className="titulo mt-2 t-card text-gold200">{passo.titulo}</h3>
-                <p className="mt-1.5 t-apoio text-text2">{passo.texto}</p>
-              </li>
-            ))}
-          </ol>
-
+          <p className="mx-auto mt-6 max-w-md t-corpo text-text1">
+            Blinds, pagamentos e premiação organizados em um só lugar.
+          </p>
+          <BotaoOuro href="#lista" className="mt-9">
+            Entrar na lista de espera
+          </BotaoOuro>
         </div>
       </div>
     </section>

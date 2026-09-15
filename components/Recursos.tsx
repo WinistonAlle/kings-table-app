@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Rotulo, Secao, Titulo, Realce } from './Secao';
 import { ListaLinhas } from './ListaLinhas';
+import { PASSOS } from './AntesDepois';
 
 /* Tudo que o sistema faz, navegável.
  *
@@ -78,7 +79,7 @@ export function Recursos() {
   const grupo = GRUPOS[ativo];
 
   return (
-    <Secao id="recursos" className="z-20 bg-bg0 py-24 lg:py-32">
+    <Secao id="recursos" className="z-20 py-24 lg:py-32">
       <div className="max-w-2xl">
         <Rotulo>O que ele faz</Rotulo>
         <Titulo>
@@ -86,6 +87,16 @@ export function Recursos() {
           imagina uma.
         </Titulo>
       </div>
+
+      <ol className="mt-12 grid gap-8 border-y border-line py-8 sm:grid-cols-3">
+        {PASSOS.map((passo) => (
+          <li key={passo.n}>
+            <span aria-hidden className="titulo text-gold600">{passo.n}</span>
+            <h3 className="titulo mt-2 t-card text-text0">{passo.titulo}</h3>
+            <p className="mt-2 t-apoio text-text2">{passo.texto}</p>
+          </li>
+        ))}
+      </ol>
 
       <div className="mt-16 grid gap-12 lg:grid-cols-[minmax(0,22rem)_1fr] lg:gap-20">
         <div className="lg:pt-2">
