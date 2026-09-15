@@ -547,7 +547,7 @@ export function Ficha3D({
      * (o oval) achataria as fichas, então cada pilha desfaz essa escala em si
      * mesma: é o preço de fazer o oval por escala em vez de geometria. */
     const pilhasMesa = Array.from({ length: LUGARES_NA_MESA }, (_, i) => {
-      const a = (i / LUGARES_NA_MESA) * Math.PI * 2 + Math.PI / 2;
+      const a = (i / LUGARES_NA_MESA) * Math.PI * 2 + Math.PI / 2 + Math.PI / LUGARES_NA_MESA;
       const g = new THREE.Group();
       /* O X acompanha o oval do tampo à mão, já que o grupo não deforma mais
          nada: é assim que as pilhas seguem a borda em vez de ficarem num
