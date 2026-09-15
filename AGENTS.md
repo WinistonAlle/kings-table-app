@@ -1,3 +1,16 @@
+# King's Table: a landing page
+
+**Leia `PROJETO.md` antes de mexer em qualquer coisa deste repositório.** Ele
+tem o estado do projeto, o que cada arquivo faz, os números de calibração da
+cena 3D, as pendências e as armadilhas que já custaram tempo aqui.
+
+Dois hábitos que valem para todo trabalho neste repositório:
+
+- **Sem travessão** (o caractere "—") em texto escrito para o usuário nem em
+  copy da interface.
+- **Commitar a cada mudança concluída** que passe em `npx tsc --noEmit` e
+  `npm run build`, sem perguntar.
+
 <!-- BEGIN:nextjs-agent-rules -->
 
 # This is NOT the Next.js you know
