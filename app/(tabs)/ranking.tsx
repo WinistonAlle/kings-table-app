@@ -49,14 +49,13 @@ export default function Liga() {
         <View style={styles.vazio}>
           <Coroa tamanho={34} cor={Colors.gold500} />
           <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: Space.lg }}>
-            A liga ainda não começou
+            Nenhum resultado ainda
           </KTText>
           <KTText papel="corpo" color={Colors.text2} style={styles.vazioTexto}>
-            A classificação é montada a partir dos resultados. Ela aparece
-            quando a primeira noite terminar e alguém levantar da mesa campeão.
+            O ranking reúne os resultados das mesas encerradas.
           </KTText>
           <KTButton
-            label="Abrir a primeira mesa"
+            label="Criar mesa"
             onPress={() => router.push('/tournament/create' as any)}
             style={{ marginTop: Space.xl }}
           />
@@ -72,8 +71,8 @@ export default function Liga() {
     <KTScreen>
       <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
         <View style={styles.cabecalho}>
-          <KTText papel="rotulo" color={Colors.gold500}>Temporada</KTText>
-          <KTText papel="titulo" color={Colors.gold100}>Liga do Rei</KTText>
+          <KTText papel="rotulo" color={Colors.text1}>Resultados</KTText>
+          <KTText papel="titulo" color={Colors.gold100}>Ranking</KTText>
           <KTText papel="apoio" color={Colors.text2} style={{ marginTop: 2 }}>
             {classificacao.length} {classificacao.length === 1 ? 'jogador' : 'jogadores'} ·{' '}
             {noites} {noites === 1 ? 'noite' : 'noites'}

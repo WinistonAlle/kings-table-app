@@ -7,7 +7,7 @@ import { KTScreen } from '@/components/ui/Screen';
 import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
 import { KTButton } from '@/components/ui/Button';
-import { Filete, Naipe } from '@/components/ui/Ornamento';
+import { Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsStore, BLIND_PRESETS } from '@/stores/blindsStore';
 import type { TournamentFormat } from '@/types';
@@ -86,35 +86,35 @@ export default function AbrirMesa() {
     <KTScreen edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
         <View style={styles.topo}>
-          <Pressable style={styles.iconeBtn} onPress={() => router.back()} hitSlop={12}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Cancelar criação da mesa" style={styles.iconeBtn} onPress={() => router.canGoBack() ? router.back() : router.replace('/history')} hitSlop={12}>
             <Ionicons name="close" size={19} color={Colors.text1} />
           </Pressable>
-          <KTText papel="rotulo" color={Colors.text2}>Nova mesa</KTText>
+          <KTText papel="subtitulo">Criar mesa</KTText>
           <View style={styles.iconeBtn} />
         </View>
 
         <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {/* -------------------------------------------------------- nome */}
           <View style={styles.abertura}>
-            <Naipe tipo={naipe} tamanho={32} cor={cor} />
-            <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: Space.md }}>
-              Como se chama a noite?
-            </KTText>
+            <KTText papel="rotulo" color={Colors.text1}>Nome da mesa</KTText>
             <TextInput
+              accessibilityLabel="Nome da mesa"
               value={nome}
               onChangeText={setNome}
               placeholder="Quarta da Realeza"
-              placeholderTextColor={Colors.text3}
+              placeholderTextColor={Colors.text2}
               style={[styles.campoNome, semAnelDeFoco]}
-              autoFocus
+              maxLength={60}
               returnKeyType="done"
             />
-            <Filete largura={140} />
           </View>
 
           {/* Marca da mesa: escolha pequena, e é a que dá identidade ao card
               depois. Fica junto do nome porque as duas coisas são a mesma
               pergunta. */}
+          <View style={{ gap: Space.md }}>
+          <KTText papel="rotulo" color={Colors.text1}>Identidade da mesa</KTText>
+          <KTText papel="apoio" color={Colors.text1}>Naipe</KTText>
           <View style={styles.naipes}>
             {NAIPES.map((n) => (
               <Pressable
@@ -130,11 +130,13 @@ export default function AbrirMesa() {
               </Pressable>
             ))}
           </View>
+          <KTText papel="apoio" color={Colors.text1}>Cor</KTText>
           <View style={styles.naipes}>{CORES.map(c => <Pressable key={c} accessibilityRole="button" accessibilityLabel={`Cor ${c}`} accessibilityState={{ selected: c === cor }} onPress={() => setCor(c)} style={[styles.naipeBtn, { borderColor: cor === c ? c : Colors.borderStrong }]}><View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: c }} />{cor === c ? <Ionicons name="checkmark" size={14} color={Colors.bg0} style={{ position: 'absolute' }} /> : null}</Pressable>)}</View>
+          </View>
 
           {/* ------------------------------------------------------ buy-in */}
           <View>
-            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Buy-in</KTText>
+            <KTText papel="rotulo" color={Colors.text1} style={styles.secao}>Valor de entrada (buy-in)</KTText>
             <KTSurface nivel="card" padding={Space.lg}>
               <View style={styles.linhaValor}>
                 <KTText papel="subtitulo" color={Colors.text2}>R$</KTText>
@@ -199,7 +201,7 @@ export default function AbrirMesa() {
           </View>
 
           {/* --------------------------------------------------- reentrada */}
-          <Pressable onPress={() => setReentrada((v) => !v)}>
+          <Pressable accessibilityRole="switch" accessibilityLabel="Permitir reentrada" accessibilityState={{ checked: reentrada }} onPress={() => setReentrada((v) => !v)}>
             <KTSurface nivel="plana" padding={Space.lg} style={styles.formato}>
               <View style={{ flex: 1 }}>
                 <KTText papel="corpoForte" color={Colors.text1}>Permitir reentrada</KTText>
@@ -219,8 +221,11 @@ export default function AbrirMesa() {
         {/* Barra fixa: o botão fica sempre ao alcance do polegar, não no fim de
             uma rolagem. */}
         <View style={styles.barra}>
+          {!podeAbrir && <KTText papel="apoio" color={Colors.text1} style={{ marginBottom: Space.sm }}>
+            {!nome.trim() ? 'Nome da mesa obrigatório' : valor <= 0 ? 'Buy-in deve ser maior que zero' : 'Confira a estrutura de blinds'}
+          </KTText>}
           <KTButton
-            label={podeAbrir ? 'Criar mesa' : !nome.trim() ? 'Dê um nome à mesa' : !valor ? 'Informe o valor do buy-in' : 'Confira os níveis de blinds'}
+            label="Criar mesa"
             onPress={abrir}
             disabled={!podeAbrir}
             size="lg"
@@ -235,7 +240,7 @@ export default function AbrirMesa() {
 const styles = StyleSheet.create({
   topo: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: Space.xl, paddingBottom: Space.md,
+    paddingHorizontal: Space.xl, paddingVertical: Space.md, maxWidth: 760, width: '100%', alignSelf: 'center',
   },
   iconeBtn: {
     width: 40, height: 40, borderRadius: Radius.full,
@@ -244,13 +249,14 @@ const styles = StyleSheet.create({
   },
   conteudo: { paddingHorizontal: Space.xl, gap: Space.xxl, width: '100%', maxWidth: 760, alignSelf: 'center' },
 
-  abertura: { alignItems: 'center', paddingTop: Space.lg },
+  abertura: { gap: Space.md, paddingTop: Space.lg },
   campoNome: {
-    width: '100%', textAlign: 'center',
-    fontFamily: Fonts.display, fontSize: 23, color: Colors.text0,
-    paddingVertical: Space.lg,
+    width: '100%', textAlign: 'left',
+    fontFamily: Fonts.ui, fontSize: 18, color: Colors.text0,
+    paddingVertical: Space.lg, paddingHorizontal: Space.lg,
+    borderWidth: 1, borderColor: Colors.borderStrong, borderRadius: Radius.sm, backgroundColor: Colors.bg1,
   },
-  naipes: { flexDirection: 'row', justifyContent: 'center', gap: Space.md, marginTop: -Space.lg },
+  naipes: { flexDirection: 'row', gap: Space.md },
   naipeBtn: {
     width: 42, height: 42, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
@@ -289,6 +295,7 @@ const styles = StyleSheet.create({
   chaveBolaAtiva: { backgroundColor: Colors.gold100, transform: [{ translateX: 18 }] },
 
   barra: {
+    width: '100%', maxWidth: 760, alignSelf: 'center',
     paddingHorizontal: Space.xl, paddingTop: Space.md, paddingBottom: Space.sm,
     borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: Colors.border,
     backgroundColor: 'rgba(10,8,7,0.9)',

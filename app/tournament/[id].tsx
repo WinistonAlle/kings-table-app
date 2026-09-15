@@ -25,7 +25,7 @@ import { semAnelDeFoco } from '@/components/ui/campo';
  * querer.
  */
 
-const dinheiro = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`;
+const dinheiro = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const FORMATOS: Record<string, string> = {
   deep: 'Deep stack', regular: 'Regular', turbo: 'Turbo',
@@ -48,6 +48,7 @@ export default function Mesa() {
     useTournamentStore();
   const [nome, setNome] = useState('');
   const [erroJogador, setErroJogador] = useState('');
+  const [confirmacaoJogador, setConfirmacaoJogador] = useState('');
   const [mostrarPremios, setMostrarPremios] = useState(false);
 
   const torneio = tournaments.find((t) => t.id === id);
@@ -95,19 +96,21 @@ export default function Mesa() {
     if (!limpo) { setErroJogador('Informe o nome do jogador.'); return; }
     if (torneio.players.some(p => p.name.trim().toLocaleLowerCase('pt-BR') === limpo.toLocaleLowerCase('pt-BR'))) { setErroJogador('Já existe um jogador com esse nome. Use um sobrenome para diferenciar.'); return; }
     addPlayer(torneio.id, { userId: `guest_${Date.now()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
-    setNome(''); setErroJogador('');
+    setNome(''); setErroJogador(''); setConfirmacaoJogador(`${limpo} entrou na mesa.`);
   };
 
   return (
     <KTScreen edges={['top']}>
       <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         {/* ------------------------------------------------------ cabeçalho */}
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar para mesas" onPress={() => router.replace('/history')} style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm, minHeight: 44, alignSelf: 'flex-start' }}>
+          <Ionicons name="chevron-back" size={19} color={Colors.text1} />
+          <KTText color={Colors.text1}>Mesas</KTText>
+        </Pressable>
         <View style={styles.topo}>
-          <Pressable style={styles.iconeBtn} onPress={() => router.back()} hitSlop={12}>
-            <Ionicons name="chevron-back" size={19} color={Colors.text1} />
-          </Pressable>
           <View style={{ flex: 1 }}>
-            <KTText papel="rotulo" color={Colors.gold500}>
+            <KTText papel="rotulo" color={Colors.text1}>{encerrado ? 'Resultado da mesa' : 'Gestão da mesa'}</KTText>
+            <KTText papel="apoio" color={Colors.text1}>
               {FORMATOS[torneio.format] ?? torneio.format} · {dinheiro(torneio.buyIn)}
             </KTText>
             <KTText papel="titulo" color={torneio.color ?? Colors.gold100} numberOfLines={2}>{torneio.name}</KTText>
@@ -126,11 +129,34 @@ export default function Mesa() {
         {!encerrado ? <>
           <KTButton label="Abrir relógio de blinds" size="lg" fullWidth onPress={() => { setActive(torneio.id); router.push(`/blinds/${torneio.id}` as never); }} icone={<Ionicons name="timer-outline" size={22} color={Colors.bg0} />} />
           <View style={{ gap: 12 }}><View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}><Naipe tipo={torneio.suit ?? 'espada'} cor={torneio.color ?? Colors.gold300} tamanho={22} /><KTText papel="subtitulo">Adicionar jogadores</KTText></View><KTText papel="apoio" color={Colors.text1}>Cada nome entra com um buy-in de {dinheiro(torneio.buyIn)} e pagamento a receber.</KTText>
-            <TextInput accessibilityLabel="Nome do novo jogador" value={nome} onChangeText={value => { setNome(value); setErroJogador(''); }} placeholder="Nome e sobrenome" placeholderTextColor={Colors.text2} style={styles.campo} onSubmitEditing={adicionarJogador} returnKeyType="done" maxLength={60} />
+            <TextInput accessibilityLabel="Nome do novo jogador" value={nome} onChangeText={value => { setNome(value); setErroJogador(''); setConfirmacaoJogador(''); }} placeholder="Nome e sobrenome" placeholderTextColor={Colors.text2} style={styles.campo} onSubmitEditing={adicionarJogador} returnKeyType="done" maxLength={60} />
             <KTButton label="Adicionar jogador à mesa" onPress={adicionarJogador} disabled={!nome.trim()} variant="fantasma" fullWidth icone={<Ionicons name="person-add-outline" size={18} color={Colors.gold200} />} />
             {erroJogador ? <KTText accessibilityLiveRegion="polite" color={Colors.danger}>{erroJogador}</KTText> : null}
+            {confirmacaoJogador ? <KTText accessibilityLiveRegion="polite" color={Colors.ok}>{confirmacaoJogador}</KTText> : null}
           </View>
         </> : null}
+
+        {!encerrado && <View>
+          <View style={styles.secaoTopo}>
+            <KTText papel="corpoForte">Jogadores na mesa</KTText>
+            <KTText papel="numero" color={Colors.text1}>{naMesa.length}</KTText>
+          </View>
+          <View style={{ gap: Space.sm }}>
+            {naMesa.map((j) => (
+              <CardJogador
+                key={j.id}
+                jogador={j}
+                emPe={naMesa.length}
+                buyIn={torneio.buyIn}
+                onPagamento={() => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) })}
+                onContador={(campo, d) => updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) })}
+                onEliminar={() => eliminatePlayer(torneio.id, j.id)}
+                onRemover={() => removePlayer(torneio.id, j.id)}
+              />
+            ))}
+            {naMesa.length === 0 && !encerrado && <KTText papel="apoio" color={Colors.text1} style={styles.dica}>Nenhum jogador adicionado</KTText>}
+          </View>
+        </View>}
 
         {/* ---------------------------------------------------- o resumo */}
         <KTSurface nivel="card" padding={0} destaque={encerrado}>
@@ -187,36 +213,6 @@ export default function Mesa() {
               );
             })}
           </KTSurface> : null}
-        </View>
-
-        {/* -------------------------------------------------- na mesa */}
-        <View>
-          <View style={styles.secaoTopo}>
-            <KTText papel="rotulo" color={Colors.text2}>Na mesa</KTText>
-            <KTText papel="rotulo" color={Colors.text3}>{naMesa.length}</KTText>
-          </View>
-
-          <View style={{ gap: Space.sm }}>
-            {naMesa.map((j) => (
-              <CardJogador
-                key={j.id}
-                jogador={j}
-                emPe={naMesa.length}
-                buyIn={torneio.buyIn}
-                onPagamento={() => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) })}
-                onContador={(campo, d) =>
-                  updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) })
-                }
-                onEliminar={() => eliminatePlayer(torneio.id, j.id)}
-                onRemover={() => removePlayer(torneio.id, j.id)}
-              />
-            ))}
-            {naMesa.length === 0 && !encerrado ? (
-              <KTText papel="apoio" color={Colors.text3} style={styles.dica}>
-                Ninguém sentou ainda. Escreva um nome acima para começar.
-              </KTText>
-            ) : null}
-          </View>
         </View>
 
         {/* -------------------------------------------------- já caíram */}
@@ -297,18 +293,20 @@ function CardJogador({
             {entriesOf(jogador)} {entriesOf(jogador) === 1 ? 'entrada' : 'entradas'} · {dinheiro(devido)}
           </KTText>
         </View>
-        <Pressable onPress={onPagamento} style={[styles.selo, { borderColor: `${pago.cor}55` }]} hitSlop={6}>
+        <View style={[styles.selo, { borderColor: `${pago.cor}55` }]}>
           <View style={[styles.seloPonto, { backgroundColor: pago.cor }]} />
           <KTText papel="rotulo" color={pago.cor}>{pago.texto}</KTText>
-        </Pressable>
+        </View>
       </View>
 
       <View style={styles.contadores}>
-        <Contador rotulo="Reentrada" valor={jogador.reEntries}
+        <Contador rotulo="Reentrada" jogador={jogador.name} valor={jogador.reEntries}
           onMenos={() => onContador('reEntries', -1)} onMais={() => onContador('reEntries', 1)} />
-        <Contador rotulo="Add-on" valor={jogador.addOns}
+        <Contador rotulo="Add-on" jogador={jogador.name} valor={jogador.addOns}
           onMenos={() => onContador('addOns', -1)} onMais={() => onContador('addOns', 1)} />
       </View>
+
+      <KTButton label={jogador.paymentStatus === 'pending' ? 'Confirmar pagamento' : jogador.paymentStatus === 'confirmed' ? 'Contestar pagamento' : 'Marcar como pendente'} fullWidth variant="fantasma" size="sm" onPress={onPagamento} icone={<Ionicons name="wallet-outline" size={16} color={Colors.gold200} />} style={{ marginTop: Space.md }} />
 
       {/* A ação que muda o resultado, separada por um filete. */}
       <View style={styles.acaoLinha}>
@@ -333,20 +331,20 @@ function CardJogador({
   );
 }
 
-function Contador({ rotulo, valor, onMenos, onMais }: {
-  rotulo: string; valor: number; onMenos: () => void; onMais: () => void;
+function Contador({ rotulo, jogador, valor, onMenos, onMais }: {
+  rotulo: string; jogador: string; valor: number; onMenos: () => void; onMais: () => void;
 }) {
   return (
     <View style={styles.contador}>
-      <KTText papel="rotulo" color={Colors.text3}>{rotulo}</KTText>
+      <KTText papel="rotulo" color={Colors.text1}>{rotulo}</KTText>
       <View style={styles.contadorBotoes}>
-        <Pressable onPress={onMenos} style={styles.passoBtn} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Diminuir ${rotulo.toLowerCase()} de ${jogador}`} onPress={onMenos} disabled={valor === 0} style={[styles.passoBtn, valor === 0 && { opacity: 0.4 }]} hitSlop={4}>
           <Ionicons name="remove" size={15} color={Colors.text2} />
         </Pressable>
         <KTText papel="numero" size={15} color={valor > 0 ? Colors.gold200 : Colors.text2} style={styles.contadorValor}>
           {valor}
         </KTText>
-        <Pressable onPress={onMais} style={styles.passoBtn} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Adicionar ${rotulo.toLowerCase()} de ${jogador}`} onPress={onMais} style={styles.passoBtn} hitSlop={4}>
           <Ionicons name="add" size={15} color={Colors.text2} />
         </Pressable>
       </View>
@@ -410,15 +408,15 @@ const styles = StyleSheet.create({
   },
   seloPonto: { width: 5, height: 5, borderRadius: 3 },
 
-  contadores: { flexDirection: 'row', gap: Space.md, marginTop: Space.lg },
+  contadores: { flexDirection: 'row', flexWrap: 'wrap', gap: Space.md, marginTop: Space.lg },
   contador: {
-    flex: 1, gap: 6, paddingVertical: Space.md, paddingHorizontal: Space.md,
+    flex: 1, minWidth: 140, gap: 6, paddingVertical: Space.md, paddingHorizontal: Space.md,
     borderRadius: Radius.md, backgroundColor: 'rgba(255,250,235,0.022)',
   },
   contadorBotoes: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   contadorValor: { minWidth: 20, textAlign: 'center' },
   passoBtn: {
-    width: 28, height: 28, borderRadius: Radius.full,
+    width: 40, height: 40, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },

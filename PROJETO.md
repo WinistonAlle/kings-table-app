@@ -30,6 +30,21 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 - Tela cheia no navegador quando suportada e manutencao da tela ligada
   enquanto a apresentacao esta em foco, nos aparelhos/navegadores compativeis.
 - Favicon da marca em PNG compativel com o exportador e preview do Expo.
+- Navegacao com abas Inicio, Mesas, Ranking, Rainha IA e Perfil.
+- Botao Criar mesa permanente no topo de Inicio e Mesas, inclusive durante
+  rolagem e quando ja existem mesas. Cabecalho compartilhado em
+  components/MesasHeader.tsx, com botao de largura inteira no celular.
+- Inicio com mesa em foco, troca de mesa e acessos explicitos a relogio e
+  gestao; fallback para a mesa aberta mais recente quando nao ha mesa ativa.
+- Lista de mesas com busca, filtros, Gerenciar mesa, Abrir relogio e Ver
+  resultado, sem alterar a mesa ativa ao consultar uma mesa encerrada.
+- Criacao com rotulos Nome da mesa, Identidade da mesa e Valor de entrada;
+  botao Criar mesa de nome constante, orientacao de campos obrigatorios e
+  cancelamento acessivel sem abertura automatica do teclado.
+- Gestao com retorno explicito para Mesas, jogadores logo abaixo do
+  formulario, confirmacao ao adicionar e botao Confirmar pagamento.
+- Contadores de reentrada/add-on com alvos maiores, nomes acessiveis,
+  decremento desabilitado em zero e empilhamento em telas estreitas.
 
 ## Pendencias importantes
 
@@ -173,7 +188,7 @@ quando fizer sentido, persistencia e comportamento offline bem definido.
   longo prazo separado da organizacao presencial, com motor de poker e
   infraestrutura de comunicacao proprios.
 
-### Ultima entrega e verificacao: modo TV
+### Entrega e verificacao: modo TV
 
 - Implementacao inicial concluida em 15/09/2026.
 - Validar sempre a continuidade do tempo ao entrar/sair do modo TV, estado
@@ -182,6 +197,17 @@ quando fizer sentido, persistencia e comportamento offline bem definido.
   ausencia de overflow horizontal, e modo de intervalo em 1280x720.
 - Sincronizacao online, QR Code para participantes e controle remoto ficam
   pendentes, conforme prioridade 0.
+
+### Entrega e verificacao: navegacao e descoberta
+
+- Concluida em 15/09/2026, mantendo o preview em http://localhost:8081.
+- Fluxos conferidos no navegador: tela vazia, criacao com buy-in livre,
+  adicao de jogador, retorno a Mesas, abertura de relogio, continuidade do
+  tempo, criacao de segunda mesa, busca e confirmacao de pagamento.
+- Layout conferido em 1440x900, 390x844 e 320x780. Criar mesa permanece
+  visivel depois de rolar a lista; sem overflow horizontal no teste estreito.
+- Testes do dominio, TypeScript e exportacao web passaram. Testes nativos
+  em aparelho real continuam pendentes.
 
 ### Criterio de produto
 

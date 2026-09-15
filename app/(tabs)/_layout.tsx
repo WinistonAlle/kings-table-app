@@ -56,18 +56,18 @@ export default function TabLayout() {
         tabBarIconStyle: { height: 30, flexGrow: 0 },
         tabBarLabelStyle: {
           fontFamily: Fonts.uiMedium,
-          fontSize: 10,
-          lineHeight: 14,
+          fontSize: 12,
+          lineHeight: 16,
           flexShrink: 0,
           letterSpacing: 0,
           marginTop: 2,
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Mesa', tabBarIcon: ({ focused }) => <Icone rota="index" focado={focused} /> }} />
-      <Tabs.Screen name="ranking" options={{ title: 'Liga', tabBarIcon: ({ focused }) => <Icone rota="ranking" focado={focused} /> }} />
+      <Tabs.Screen name="index" options={{ title: 'Início', tabBarIcon: ({ focused }) => <Icone rota="index" focado={focused} /> }} />
       <Tabs.Screen name="history" options={{ title: 'Mesas', tabBarIcon: ({ focused }) => <Icone rota="history" focado={focused} /> }} />
-      <Tabs.Screen name="ai" options={{ title: 'Rainha', tabBarIcon: ({ focused }) => <Icone rota="ai" focado={focused} /> }} />
+      <Tabs.Screen name="ranking" options={{ title: 'Ranking', tabBarIcon: ({ focused }) => <Icone rota="ranking" focado={focused} /> }} />
+      <Tabs.Screen name="ai" options={{ title: 'Rainha IA', tabBarIcon: ({ focused }) => <Icone rota="ai" focado={focused} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: ({ focused }) => <Icone rota="profile" focado={focused} /> }} />
     </Tabs>
   );

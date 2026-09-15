@@ -3,17 +3,18 @@ import { ScrollView, View, StyleSheet, Pressable } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Elevacao, Radius, Space } from '@/constants/tokens';
+import { Colors, Radius, Space } from '@/constants/tokens';
 import { KTScreen } from '@/components/ui/Screen';
 import { KTSurface } from '@/components/ui/Surface';
 import { KTText } from '@/components/ui/Text';
 import { KTButton } from '@/components/ui/Button';
 import { Anel } from '@/components/ui/Anel';
-import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
+import { Coroa, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsTimer } from '@/hooks/useBlindsTimer';
 import { calcularClassificacao } from '@/lib/standings';
 import { prizePool } from '@/lib/payouts';
+import { MesasHeader } from '@/components/MesasHeader';
 
 /* A mesa (home).
  *
@@ -27,14 +28,14 @@ import { prizePool } from '@/lib/payouts';
 const hora = (s: number) =>
   `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
-const dinheiro = (v: number) => `R$ ${v.toLocaleString('pt-BR')}`;
+const dinheiro = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export default function Mesa() {
   const { tournaments, activeTournamentId, setActive } = useTournamentStore();
-  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer(activeTournamentId);
-
-  const ativo = tournaments.find((t) => t.id === activeTournamentId && t.status !== 'finished');
-  const proximos = tournaments.filter((t) => (t.status === 'upcoming' || t.status === 'running') && t.id !== activeTournamentId);
+  const abertas = tournaments.filter(t => t.status === 'upcoming' || t.status === 'running');
+  const ativo = abertas.find(t => t.id === activeTournamentId) ?? abertas[abertas.length - 1];
+  const { currentLevel, secondsRemaining, isRunning, structure } = useBlindsTimer(ativo?.id);
+  const proximos = abertas.filter(t => t.id !== ativo?.id);
   const nivel = structure[currentLevel];
   const proximo = structure[currentLevel + 1];
 
@@ -46,30 +47,18 @@ export default function Mesa() {
 
   return (
     <KTScreen>
+      <MesasHeader title="Início" />
       <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false}>
-        {/* ---------------------------------------------------- cabeçalho */}
-        <View style={styles.topo}>
-          <View>
-            <KTText papel="rotulo" color={Colors.gold500}>Clube privado</KTText>
-            <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: 2 }}>
-              King&apos;s Table
-            </KTText>
-          </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Criar nova mesa"
-            style={styles.botaoTopo}
-            onPress={() => router.push('/tournament/create' as any)}
-          >
-            <Ionicons name="add" size={20} color={Colors.gold200} />
-          </Pressable>
-        </View>
-
-        <Filete largura={92} />
-
         {/* ------------------------------------------------ torneio ao vivo */}
         {ativo ? (
-          <Pressable onPress={() => router.push(`/blinds/${ativo.id}` as any)}>
+          <View style={{ gap: Space.md }}>
+            <View style={styles.secaoTopo}>
+              <KTText papel="corpoForte">Mesa em foco</KTText>
+              <Pressable accessibilityRole="button" onPress={() => router.push('/history')} style={styles.trocar}>
+                <KTText papel="apoio" color={Colors.gold200}>Trocar mesa</KTText>
+                <Ionicons name="swap-horizontal" size={18} color={Colors.gold200} />
+              </Pressable>
+            </View>
             <KTSurface nivel="alta" destaque padding={0} style={styles.palco}>
               {/* Clarão atrás do relógio: é o que faz a peça "acender". */}
               <LinearGradient
@@ -84,14 +73,14 @@ export default function Mesa() {
                     {isRunning ? 'Ao vivo' : 'Pausado'}
                   </KTText>
                 </View>
-                <KTText papel="rotulo" color={Colors.text2}>{ativo.name}</KTText>
+                <KTText papel="corpoForte" numberOfLines={2} style={{ flex: 1, textAlign: 'right' }}>{ativo.name}</KTText>
               </View>
 
               {/* O relógio dentro do anel. */}
               <View style={styles.relogio}>
                 <View style={StyleSheet.absoluteFill as never}>
                   <View style={styles.anelWrap}>
-                    <Anel tamanho={268} progresso={progresso} />
+                    <Anel tamanho={196} progresso={progresso} />
                   </View>
                 </View>
                 <KTText papel="rotulo" color={Colors.gold500}>{nivel?.isBreak ? 'Intervalo' : `Nível ${nivel?.level ?? currentLevel + 1}`}</KTText>
@@ -126,7 +115,7 @@ export default function Mesa() {
                 />
               </View>
             </KTSurface>
-          </Pressable>
+          </View>
         ) : (
           <KTSurface nivel="card" padding={Space.xxl} style={styles.vazio}>
             <Naipe tipo="espada" tamanho={30} cor={Colors.gold400} opacidade={0.55} />
@@ -134,40 +123,23 @@ export default function Mesa() {
               Nenhuma mesa aberta
             </KTText>
             <KTText papel="apoio" color={Colors.text2} style={styles.vazioTexto}>
-              Crie um torneio para começar a noite. O relógio, a premiação e o
-              ranking saem daí.
+              Suas mesas abertas aparecerão aqui.
             </KTText>
-            <KTButton
-              label="Abrir mesa"
-              onPress={() => router.push('/tournament/create' as any)}
-              style={{ marginTop: Space.xl }}
-            />
           </KTSurface>
         )}
 
         {/* --------------------------------------------- gerenciar a mesa */}
         {ativo ? (
-          <Pressable
-            style={styles.gerenciar}
-            onPress={() => {
-              setActive(ativo.id);
-              router.push(`/tournament/${ativo.id}` as any);
-            }}
-          >
-            <View style={{ flex: 1 }}>
-              <KTText papel="corpoForte" color={Colors.text0}>Gerenciar a mesa</KTText>
-              <KTText papel="apoio" color={Colors.text2}>
-                Jogadores, eliminações e premiação
-              </KTText>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={Colors.gold400} />
-          </Pressable>
+          <View style={{ gap: Space.md }}>
+            <KTButton label="Abrir relógio" fullWidth variant="fantasma" onPress={() => { setActive(ativo.id); router.push(`/blinds/${ativo.id}`); }} icone={<Ionicons name="timer-outline" size={22} color={Colors.gold200} />} />
+            <KTButton label="Gerenciar mesa" fullWidth variant="fantasma" onPress={() => { setActive(ativo.id); router.push(`/tournament/${ativo.id}`); }} icone={<Ionicons name="people-outline" size={20} color={Colors.gold200} />} />
+          </View>
         ) : null}
 
         {/* -------------------------------------------------- a temporada */}
         {minhaLinha ? (
           <>
-            <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>A temporada</KTText>
+            <KTText papel="rotulo" color={Colors.text1} style={styles.secao}>Ranking</KTText>
             <KTSurface nivel="card">
               <View style={styles.lider}>
                 <Coroa tamanho={22} />
@@ -181,7 +153,7 @@ export default function Mesa() {
                 <KTText papel="numeroForte" color={Colors.gold200}>{minhaLinha.points}</KTText>
               </View>
               <Pressable style={styles.verTudo} onPress={() => router.push('/ranking' as any)}>
-                <KTText papel="apoio" color={Colors.gold400}>Ver a liga inteira</KTText>
+                <KTText papel="apoio" color={Colors.gold200}>Ver ranking completo</KTText>
                 <Ionicons name="arrow-forward" size={13} color={Colors.gold400} />
               </Pressable>
             </KTSurface>
@@ -194,9 +166,9 @@ export default function Mesa() {
             <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Outras mesas abertas</KTText>
             <View style={{ gap: Space.md }}>
               {proximos.map((t) => (
-                <Pressable key={t.id} accessibilityRole="button" onPress={() => router.push(`/tournament/${t.id}` as any)}>
+                <Pressable key={t.id} accessibilityRole="button" accessibilityLabel={`Gerenciar mesa ${t.name}`} onPress={() => { setActive(t.id); router.push(`/tournament/${t.id}`); }}>
                   <KTSurface nivel="card" style={styles.marcada}>
-                    <Naipe tipo="ouros" tamanho={14} cor={Colors.gold500} />
+                    <Naipe tipo={t.suit ?? 'ouros'} tamanho={18} cor={t.color ?? Colors.gold300} />
                     <View style={{ flex: 1 }}>
                       <KTText papel="corpoForte">{t.name}</KTText>
                       <KTText papel="apoio" color={Colors.text2}>
@@ -226,32 +198,26 @@ function Rodape({ rotulo, valor }: { rotulo: string; valor: string }) {
   return (
     <View style={styles.rodapeCel}>
       <KTText papel="rotulo" color={Colors.text3}>{rotulo}</KTText>
-      <KTText papel="numero" color={Colors.text0} style={{ marginTop: 3 }}>{valor}</KTText>
+      <KTText papel="numero" color={Colors.text0} numberOfLines={1} adjustsFontSizeToFit style={{ marginTop: 3, maxWidth: '100%', textAlign: 'center' }}>{valor}</KTText>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.md, gap: Space.xl, width: '100%', maxWidth: 760, alignSelf: 'center' },
-
-  topo: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
-  botaoTopo: {
-    width: 42, height: 42, borderRadius: Radius.full,
-    alignItems: 'center', justifyContent: 'center',
-    borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderStrong,
-    backgroundColor: Colors.bg1,
-  },
+  conteudo: { paddingHorizontal: Space.xl, paddingTop: Space.sm, gap: Space.lg, width: '100%', maxWidth: 760, alignSelf: 'center' },
+  secaoTopo: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Space.md },
+  trocar: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, minHeight: 44 },
 
   palco: { overflow: 'hidden' },
   brilhoPalco: { position: 'absolute', top: 0, left: 0, right: 0, height: 260 },
   palcoTopo: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: Space.lg,
     paddingHorizontal: Space.lg, paddingTop: Space.lg,
   },
   aoVivo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
   ponto: { width: 6, height: 6, borderRadius: 3, backgroundColor: Colors.ok },
 
-  relogio: { alignItems: 'center', paddingVertical: Space.xxl, minHeight: 286, justifyContent: 'center' },
+  relogio: { alignItems: 'center', paddingVertical: Space.lg, minHeight: 212, justifyContent: 'center' },
   anelWrap: { alignItems: 'center', justifyContent: 'center', flex: 1 },
   horaTexto: { marginVertical: Space.xs },
 
