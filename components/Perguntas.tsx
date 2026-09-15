@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import { Rotulo, Secao, Titulo, Realce } from './Secao';
 
 const PERGUNTAS = [
@@ -17,15 +20,23 @@ const PERGUNTAS = [
   ['Quanto vai custar?', 'Os preços ainda não foram definidos. Os planos serão divulgados antes da abertura; entrar na lista não exige pagamento.'],
 ];
 
+const PRINCIPAIS = [0, 1, 2, 12, 13];
+const ORDENADAS = [
+  ...PRINCIPAIS.map(index => PERGUNTAS[index]),
+  ...PERGUNTAS.filter((_, index) => !PRINCIPAIS.includes(index)),
+];
+
 export function Perguntas() {
+  const [expandido, setExpandido] = useState(false);
+  const perguntas = expandido ? ORDENADAS : ORDENADAS.slice(0, PRINCIPAIS.length);
   return (
     <Secao id="perguntas" className="py-24 lg:py-32">
       <div className="mx-auto max-w-2xl text-center">
         <Rotulo>Antes de entrar</Rotulo>
         <Titulo>Suas dúvidas, <Realce>na mesa.</Realce></Titulo>
       </div>
-      <div className="mx-auto mt-14 max-w-3xl divide-y divide-line border-y border-line">
-        {PERGUNTAS.map(([p, r]) => (
+      <div id="lista-perguntas" className="mx-auto mt-14 max-w-3xl divide-y divide-line border-y border-line">
+        {perguntas.map(([p, r]) => (
           <details key={p} name="duvidas" className="group py-6">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-6 [&::-webkit-details-marker]:hidden">
               <span className="titulo text-[1.1rem] leading-snug text-text0">{p}</span>
@@ -34,6 +45,18 @@ export function Perguntas() {
             <p className="mt-4 max-w-2xl t-apoio text-text1">{r}</p>
           </details>
         ))}
+      </div>
+      <div className="mt-8 flex justify-center">
+        <button
+          type="button"
+          aria-expanded={expandido}
+          aria-controls="lista-perguntas"
+          onClick={() => setExpandido(!expandido)}
+          className="inline-flex min-h-12 items-center gap-3 rounded border border-lineStrong px-6 py-3 t-apoio text-text0 transition-colors hover:border-gold400 hover:text-gold300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold400"
+        >
+          {expandido ? 'Mostrar só as principais' : 'Ver todas as perguntas'}
+          <span aria-hidden className="text-lg">{expandido ? '−' : '+'}</span>
+        </button>
       </div>
     </Secao>
   );
