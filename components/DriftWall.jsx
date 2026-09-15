@@ -88,7 +88,8 @@ const DriftWall = ({
     const unit = tileHeight + gap;
     return columnItems.map(col => {
       const copyHeight = Math.max(unit, col.length * unit);
-      const copies = Math.max(2, Math.ceil((containerHeight * 1.6) / copyHeight) + 1);
+      // Cover the fixed plane plus a full loop offset and an extra safety copy.
+      const copies = Math.ceil((containerHeight * 2) / copyHeight) + 2;
       return { copyHeight, copies };
     });
   }, [columnItems, tileHeight, gap, containerHeight]);
@@ -283,7 +284,7 @@ const DriftWall = ({
       role="group"
       aria-label="Cenas de home games"
     >
-      <div ref={planeRef} className="drift-wall__plane">
+      <div ref={planeRef} className="drift-wall__plane" style={{ height: containerHeight * 2 }}>
         {columnItems.map((col, c) => {
           const meta = columnMeta[c];
           const copies = Array.from({ length: meta.copies });
