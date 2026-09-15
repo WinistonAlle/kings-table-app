@@ -34,6 +34,39 @@ export function HeroVideo() {
 
   const semVideo = pequena === true || menosMovimento;
 
+  /* `canplaythrough` não é contrato forte: se o navegador já tiver carregado
+     o vídeo antes do React prender o handler, ou se decidir que não consegue
+     prometer o arquivo inteiro, o evento pode nunca chegar. O que importa para
+     este herói é menos ambicioso: ter metadados e dados suficientes para
+     buscar frames pela rolagem. */
+  useEffect(() => {
+    if (semVideo) {
+      setPronto(false);
+      return;
+    }
+
+    const v = video.current;
+    if (!v) return;
+
+    const marcarPronto = () => {
+      if (v.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA && Number.isFinite(v.duration)) {
+        setPronto(true);
+      }
+    };
+
+    marcarPronto();
+    v.addEventListener("loadedmetadata", marcarPronto);
+    v.addEventListener("loadeddata", marcarPronto);
+    v.addEventListener("canplay", marcarPronto);
+    v.addEventListener("canplaythrough", marcarPronto);
+    return () => {
+      v.removeEventListener("loadedmetadata", marcarPronto);
+      v.removeEventListener("loadeddata", marcarPronto);
+      v.removeEventListener("canplay", marcarPronto);
+      v.removeEventListener("canplaythrough", marcarPronto);
+    };
+  }, [semVideo]);
+
   /* Escreve o instante do vídeo fora do evento de rolagem. Buscar num vídeo é
      assíncrono; pedir uma busca nova antes de a anterior terminar faz o
      decodificador descartar trabalho e a imagem tremer. */
@@ -102,7 +135,6 @@ export function HeroVideo() {
                 playsInline
                 preload="auto"
                 aria-hidden
-                onCanPlayThrough={() => setPronto(true)}
                 className="h-full w-full object-cover"
               />
 
