@@ -237,7 +237,7 @@ const DriftWall = ({
   const renderTile = (item, id, colIndex) => {
     const inner = (
       <span className="drift-wall__inner">
-        <span role="img" aria-label={item.title ?? ''} className="drift-wall__photo" style={{ backgroundImage: `url(${item.image})`, backgroundSize: '300% 200%', backgroundPosition: item.position }} />
+        <span role="img" aria-label={item.title ?? ''} className="drift-wall__photo" style={{ backgroundImage: `url(${item.image})`, backgroundSize: item.size ?? '300% 200%', backgroundPosition: item.position }} />
         <span className="drift-wall__overlay" aria-hidden="true" />
       </span>
     );
