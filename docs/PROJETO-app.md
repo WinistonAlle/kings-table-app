@@ -1,5 +1,29 @@
 # King's Table App
 
+## Copia online por conta em 16/09/2026
+
+- Perfil web: salvar manualmente mesas, presets e relogios na conta Supabase,
+  consultar data e quantidade, restaurar com confirmacao e recuperar a copia
+  local anterior. Nao restaura automaticamente no login.
+- Validacao Zod do formato versionado, estruturas, referencias, contadores,
+  relogios e tamanho maximo de 5 MB antes de substituir dados locais.
+- Uma copia atual por conta, com revisao otimista: outra atualizacao entre
+  consulta e salvamento bloqueia a substituicao em vez de perder dados.
+- RLS restringe copia ao dono. Corrigidas leitura publica de perfis,
+  leitura de torneios sem liga, recursao dos membros e acesso amplo a
+  comprovantes. Administracao de membros agora restrita ao dono da liga;
+  papeis delegados precisam de implementacao explicita na etapa de permissoes.
+- Migracoes aplicadas no projeto hjxjxhnpcukwimiksbbz, verificacao de
+  seguranca sem alertas. Testes SQL de duas contas, anonimo, versao e conflito
+  executados com rollback; nenhum usuario de teste ficou no banco.
+- Doze suites, TypeScript e export web passaram. Testes do servico usam
+  transporte simulado; fluxo positivo em navegador com conta real ainda
+  precisa ser validado. Preview de teste nao habilita backup remoto.
+- Continua pendente: sincronizacao automatica/em tempo real, fila offline,
+  QR remoto, controle remoto da TV e retencao de varias versoes no servidor.
+  Persistencia local via Zustand/AsyncStorage nao e transacao entre arquivos;
+  uma copia anterior e preservada antes de restaurar para permitir recuperacao.
+
 ## Botoes especulares em 16/09/2026
 
 Revisao: preenchimento gold300 solido, sem degrade, arestas falsas ou sombra

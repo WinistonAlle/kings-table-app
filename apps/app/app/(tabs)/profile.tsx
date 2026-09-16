@@ -12,6 +12,7 @@ import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { calcularClassificacao } from '@/lib/standings';
 import { AccountDetails } from '@/components/AccountDetails';
+import { CloudBackup } from '@/components/CloudBackup';
 
 /* Perfil.
  *
@@ -71,6 +72,8 @@ export default function Perfil() {
             <Filete largura={92} />
           </View>
         </View>
+
+        <CloudBackup />
 
         {/* -------------------------------------------------- o que existe */}
         <KTSurface nivel="card" padding={0}>

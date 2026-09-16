@@ -2,9 +2,15 @@
 
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
-export interface Database {
+interface DatabaseSchema {
   public: {
     Tables: {
+      account_backups: {
+        Row: { owner_id: string; revision: number; snapshot: Json; updated_at: string };
+        Insert: { owner_id: string; revision?: number; snapshot: Json; updated_at?: string };
+        Update: { revision?: number; snapshot?: Json; updated_at?: string };
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -133,7 +139,19 @@ export interface Database {
       };
     };
     Views: {};
-    Functions: {};
+    Functions: {
+      save_account_backup: {
+        Args: { p_snapshot: Json; p_expected_revision: number };
+        Returns: Json;
+      };
+    };
     Enums: {};
   };
 }
+
+// Supabase exige metadados de relacionamentos em todas as tabelas do schema.
+export type Database = {
+  public: Omit<DatabaseSchema['public'], 'Tables'> & {
+    Tables: { [K in keyof DatabaseSchema['public']['Tables']]: DatabaseSchema['public']['Tables'][K] & { Relationships: [] } };
+  };
+};
