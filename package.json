@@ -1,0 +1,16 @@
+{
+  "name": "kings-table",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "site": "npm run dev --workspace=kings-table-site -- --port 3001",
+    "site:build": "npm run build --workspace=kings-table-site",
+    "site:preview": "npm run start --workspace=kings-table-site -- --port 3001",
+    "app": "npm run web --workspace=kings-table-app -- --port 8081",
+    "app:nativo": "npm run start --workspace=kings-table-app -- --port 8081",
+    "testes": "npm run testes --workspace=kings-table-app"
+  }
+}
