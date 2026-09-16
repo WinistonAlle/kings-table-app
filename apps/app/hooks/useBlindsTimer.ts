@@ -1,5 +1,6 @@
-import { useEffect, useRef } from 'react';
-import { AppState, AppStateStatus } from 'react-native';
+import { useCallback } from 'react';
+import { AppState } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { useBlindsStore } from '@/stores/blindsStore';
 import { useTournamentStore } from '@/stores/tournamentStore';
 
@@ -14,39 +15,22 @@ import { useTournamentStore } from '@/stores/tournamentStore';
  */
 export function useBlindsTimer(tournamentId?: string | null) {
   const torneio = useTournamentStore(s => s.tournaments.find(t => t.id === tournamentId));
-  useEffect(() => {
-    if (torneio) useBlindsStore.getState().selectTournament(torneio.id, torneio.blindStructure);
-  }, [torneio?.id, torneio?.blindStructure]);
-  const isRunning = useBlindsStore((s) => s.isRunning);
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
-  useEffect(() => {
-    const limpar = () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
+  // Telas mantidas na pilha nao devem selecionar outra mesa em segundo plano.
+  useFocusEffect(useCallback(() => {
+    if (!torneio) return;
+    useBlindsStore.getState().selectTournament(torneio.id, torneio.blindStructure);
+    const sync = () => {
+      const state = useBlindsStore.getState();
+      if (state.tournamentId !== torneio.id) return;
+      if (torneio.status !== 'running') {
+        if (state.isRunning) state.pause();
+      } else if (state.isRunning) state.sync();
     };
-
-    if (isRunning) {
-      /* Sincroniza já ao montar: a tela pode ter sido aberta muito depois de o
-         nível começar. */
-      useBlindsStore.getState().sync();
-      limpar();
-      intervalRef.current = setInterval(() => useBlindsStore.getState().sync(), 1000);
-    } else {
-      limpar();
-    }
-
-    return limpar;
-  }, [isRunning]);
-
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
-      if (state === 'active') useBlindsStore.getState().sync();
-    });
-    return () => sub.remove();
-  }, []);
+    sync();
+    const interval = setInterval(sync, 1000);
+    const sub = AppState.addEventListener('change', state => { if (state === 'active') sync(); });
+    return () => { clearInterval(interval); sub.remove(); };
+  }, [torneio?.id, torneio?.blindStructure, torneio?.status]));
 
   return useBlindsStore();
 }

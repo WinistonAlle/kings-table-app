@@ -17,7 +17,7 @@ npm install
 
 npm run site      # landing em http://localhost:3001
 npm run app       # app web em http://localhost:8081
-npm run testes    # as oito suites do app
+npm run testes    # suites do app
 ```
 
 ## Antes de mexer
@@ -26,3 +26,5 @@ Leia `docs/PROJETO-site.md` e `docs/PROJETO-app.md`. São documentos de
 passagem, com o porquê de cada decisão e as armadilhas que já custaram
 retrabalho. `docs/PROXIMA-ETAPA.md` diz o que vem a seguir e o que ficou
 como dívida consciente.
+
+O escopo e os estados de cada recurso estao em `docs/CHECKLIST.md`.

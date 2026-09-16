@@ -24,7 +24,9 @@ const DEFAULT_STRUCTURE: BlindLevel[] = [
 
 interface BlindsStore extends EstadoRelogio {
   tournamentId: string | null;
-  clocks: Record<string, EstadoRelogio & { structure: BlindLevel[] }>;
+  handForHand: boolean;
+  setHandForHand: (enabled: boolean) => void;
+  clocks: Record<string, EstadoRelogio & { structure: BlindLevel[]; handForHand?: boolean }>;
   selectTournament: (id: string, structure: BlindLevel[]) => void;
   structure: BlindLevel[];
 
@@ -48,18 +50,28 @@ export const useBlindsStore = create<BlindsStore>()(
   persist(
     (set, get) => ({
       tournamentId: null,
+      handForHand: false,
+      setHandForHand: (enabled) => set({ ...(enabled ? pausar(get().structure, get()) : {}), handForHand: enabled }),
       clocks: {},
       selectTournament: (id, structure) => {
         const atual = get();
         if (atual.tournamentId === id) return;
         const clocks = { ...atual.clocks };
-        if (atual.tournamentId) clocks[atual.tournamentId] = { ...sincronizar(atual.structure, atual), structure: atual.structure };
+        if (atual.tournamentId) {
+          const synced = sincronizar(atual.structure, atual);
+          clocks[atual.tournamentId] = {
+            currentLevel: synced.currentLevel, secondsRemaining: synced.secondsRemaining,
+            levelEndsAt: synced.levelEndsAt, isRunning: synced.isRunning,
+            structure: atual.structure, handForHand: atual.handForHand,
+          };
+        }
         const salvo = clocks[id];
         // Attach the legacy clock without losing its time on the existing table.
         const estado = salvo ?? (!atual.tournamentId && JSON.stringify(atual.structure) === JSON.stringify(structure)
           ? { ...sincronizar(structure, atual), structure }
           : { currentLevel: 0, secondsRemaining: (structure[0]?.durationMinutes ?? 0) * 60, levelEndsAt: null, isRunning: false, structure });
-        set({ ...sincronizar(estado.structure, estado), structure: estado.structure, clocks, tournamentId: id });
+        const handForHand = salvo?.handForHand ?? false;
+        set({ ...sincronizar(estado.structure, handForHand ? pausar(estado.structure, estado) : estado), structure: estado.structure, clocks, tournamentId: id, handForHand });
       },
       structure: DEFAULT_STRUCTURE,
       currentLevel: 0,
@@ -74,12 +86,16 @@ export const useBlindsStore = create<BlindsStore>()(
           secondsRemaining: (structure[0]?.durationMinutes ?? 0) * 60,
           levelEndsAt: null,
           isRunning: false,
+          handForHand: false,
         }),
 
-      start: () => set(iniciar(get())),
+      start: () => { if (!get().handForHand && get().secondsRemaining > 0) set(iniciar(get())); },
       pause: () => set(pausar(get().structure, get())),
-      sync: () => set(sincronizar(get().structure, get())),
-      tick: () => set(sincronizar(get().structure, get())),
+      sync: () => {
+        const state = get();
+        set(sincronizar(state.structure, state.handForHand ? { ...state, isRunning: false, levelEndsAt: null } : state));
+      },
+      tick: () => get().sync(),
 
       nextLevel: () => set(irParaNivel(get().structure, get(), get().currentLevel + 1)),
       prevLevel: () => set(irParaNivel(get().structure, get(), get().currentLevel - 1)),
@@ -91,6 +107,7 @@ export const useBlindsStore = create<BlindsStore>()(
           secondsRemaining: (get().structure[0]?.durationMinutes ?? 0) * 60,
           levelEndsAt: null,
           isRunning: false,
+          handForHand: false,
         }),
     }),
     {

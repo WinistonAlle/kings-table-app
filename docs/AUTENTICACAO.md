@@ -81,6 +81,7 @@ O link PKCE deve ser aberto no mesmo navegador onde o fluxo foi iniciado.
   e-mail real, confirmacao, login, renovacao e recuperacao ainda precisa ser
   validado com uma conta real e os redirects configurados no Supabase.
 - Auth settings respondeu HTTP 200, e-mail habilitado e confirmacao exigida.
-- Advisors ainda reportam os avisos preexistentes de search_path e EXECUTE
-  publico em `handle_new_user`. Revisar antes de lancar publicamente, junto
-  das policies existentes. Nenhuma migracao foi aplicada nesta etapa.
+- Os avisos de search_path e EXECUTE publico em `handle_new_user` foram
+  corrigidos na etapa posterior de copia online, junto das policies de
+  perfis, torneios, membros e comprovantes. Advisors sem alertas nessa
+  verificacao; nenhuma migracao foi aplicada na etapa de autenticacao em si.

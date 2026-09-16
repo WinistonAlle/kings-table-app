@@ -14,6 +14,7 @@ import { useAwakeScreen } from '@/hooks/useAwakeScreen';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { distribuirPremios, entriesOf, prizePool } from '@/lib/payouts';
 import type { BlindLevel } from '@/types';
+import { ClockSound } from '@/components/ClockSound';
 
 const money = (value: number) => value.toLocaleString('pt-BR', {
   style: 'currency', currency: 'BRL', maximumFractionDigits: 2,
@@ -55,7 +56,7 @@ export default function Display() {
   const color = ended ? Colors.text1 : clock.secondsRemaining <= 30 ? Colors.danger
     : clock.secondsRemaining <= 60 ? Colors.warn : tournament.color ?? Colors.gold200;
   const status = !ready ? 'Carregando relógio' : ended ? tournament.status === 'finished' ? 'Torneio encerrado' : 'Torneio cancelado'
-    : done ? 'Estrutura concluída' : clock.isRunning ? current?.isBreak ? 'Intervalo' : 'Em andamento' : 'Relógio pausado';
+    : done ? 'Estrutura concluída' : clock.handForHand ? 'Hand-for-hand · relógio congelado' : clock.isRunning ? current?.isBreak ? 'Intervalo' : 'Em andamento' : 'Relógio pausado';
 
   return (
     <SafeAreaView style={styles.root}>
@@ -75,6 +76,9 @@ export default function Display() {
           </View>
         </View>
         {fullscreen.error && <KTText papel="apoio" color={Colors.warn} accessibilityRole="alert">{fullscreen.error}</KTText>}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 16 }}>
+          <ClockSound />
+        </View>
 
         <View style={[styles.stage, compact && styles.compactStage]}>
           <View style={[styles.side, compact && styles.compactSide]}>

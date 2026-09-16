@@ -14,6 +14,8 @@ const snapshot = {
   blinds: { ...clock, tournamentId: 'mesa-a', clocks: { 'mesa-a': clock } },
 };
 const parsed = parseBackup(snapshot);
+assert.equal(parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true } }).blinds.handForHand, true);
+assert.throws(() => parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true, isRunning: true, levelEndsAt: Date.now() + 60000 } }));
 assert.equal(parsed.tournaments[0].buyIn, 37.5);
 parsed.tournaments[0].name = 'Alterado';
 assert.equal(snapshot.tournaments[0].name, 'Amigos', 'validacao produz copia independente');

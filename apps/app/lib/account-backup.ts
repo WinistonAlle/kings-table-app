@@ -36,6 +36,7 @@ export function captureBackup(userId: string): AccountSnapshot {
       tournamentId: b.tournamentId, clocks: b.clocks, structure: b.structure,
       currentLevel: b.currentLevel, secondsRemaining: b.secondsRemaining,
       levelEndsAt: b.levelEndsAt, isRunning: b.isRunning,
+      handForHand: b.handForHand,
     },
   });
 }
@@ -67,7 +68,7 @@ export async function restoreBackup(userId: string, backup: OnlineBackup) {
   await checkAccount(userId);
   useTournamentStore.setState({ tournaments: snapshot.tournaments, activeTournamentId: snapshot.activeTournamentId });
   usePresetsStore.setState({ presets: snapshot.presets });
-  useBlindsStore.setState(snapshot.blinds);
+  useBlindsStore.setState({ ...snapshot.blinds, handForHand: snapshot.blinds.handForHand ?? false });
   useBlindsStore.getState().sync();
 }
 

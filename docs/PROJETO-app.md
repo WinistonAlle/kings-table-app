@@ -1,5 +1,36 @@
 # King's Table App
 
+Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
+As secoes datadas preservam entregas anteriores; pendencias abaixo foram
+atualizadas para nao contradizer as implementacoes mais recentes.
+
+## Relogio E Qualidade Em 16/09/2026
+
+- Hand-for-hand manual no controle do relogio: pausa preservando o tempo,
+  bloqueia iniciar/avancar/voltar enquanto congelado, persiste por mesa e no
+  backup. Sair deixa pausado ate o organizador retomar. TV apenas apresenta.
+- Avisos sonoros web ativados por gesto: teste de som, ultimo minuto,
+  avancar de nivel (inclui inicio/fim de intervalo) e fim da estrutura.
+  Uma assinatura compartilhada evita sons duplicados ao navegar. Audio
+  dura apenas nesta sessao e requer pagina visivel/contexto ativo. Voz,
+  notificacoes remotas, segundo plano e nativo ainda nao foram implementados.
+- Relogio observa apenas a tela em foco: paginas guardadas na pilha nao
+  selecionam mesas nem mantem intervalos concorrentes. Noite nao iniciada,
+  encerrada ou cancelada e pausada ao abrir o controle/apresentacao.
+- Corrigido salvamento de clocks pausados que podia aninhar o mapa de todos
+  os relogios dentro de cada clock. Agora apenas dados escalares/estrutura.
+- Controle rola em telas baixas; pulso e clarao respeitam movimento reduzido.
+  TV preserva ausencia de controles de alteracao de torneio.
+- 14 suites, TypeScript e export web passaram. Playwright conferiu estado
+  congelado, persistencia, TV somente leitura, ativacao/desativacao de sons
+  e criacao de osciladores no teste/mudanca de nivel. Isso nao substitui
+  verificar volume audivel no dispositivo do usuario.
+- Capturas do navegador antigo falharam inclusive em Inicio; sessao nova
+  capturou celular 390x844 e TV 1440x900, ambas inspecionadas. Testes de
+  largura 320/390/1440 sem overflow horizontal. Dados de QA restaurados.
+- Este e congelamento local, nao coordenacao de rodadas em varias mesas.
+  F022/F023 no checklist mantem o restante do requisito em andamento.
+
 ## Transferencias realizadas em 16/09/2026
 
 - Acerto agora registra pagamentos completos ou parciais, recalcula somente
@@ -207,15 +238,15 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 - Banco remoto possui dez tabelas com RLS e migracao initial_schema de
   20260420000001. Todas reportaram zero linhas apos restauracao. O app permanece
   local: conexao administrativa pronta nao equivale a sincronizacao implementada.
-- Antes de conectar contas e convites: revisar politica de tournaments que permite
-  leitura quando league_id IS NULL, politicas recursivas de league_members e
-  funcao handle_new_user com search_path mutavel e EXECUTE publico. Os advisors
-  reportaram os avisos de search_path e acesso SECURITY DEFINER em 16/09.
+- Politicas de tournaments, league_members e handle_new_user corrigidas na
+  etapa de copia online. Advisors de seguranca sem alertas nessa verificacao.
+  Isso nao substitui a revisao das permissoes dos novos recursos de dominio.
 
 - O relogio ja possui estado separado por torneio; falta evoluir a mesma base
   para sincronizacao online entre anfitriao, telas e jogadores.
 - Contas e autenticacao implementadas em 16/09 conforme a secao de acesso;
-  sincronizacao Supabase e backup remoto ainda nao estao implementados.
+  sincronizacao Supabase ainda pendente; backup manual remoto implementado,
+  com fluxo positivo de conta real ainda nao validado no navegador.
 - .env.local corresponde ao projeto reativado e esta ignorado pelo Git. Falha
   ENOTFOUND de 15/09 superada apos reativacao. Ainda faltam migracoes de dominio,
   permissoes e integracao antes de conectar RSVP remoto, QR Code e telas ao vivo.

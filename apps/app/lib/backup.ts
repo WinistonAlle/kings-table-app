@@ -39,6 +39,7 @@ const tournament = z.object({
   })).optional(),
 }).passthrough();
 const clock = z.object({
+  handForHand: z.boolean().optional(),
   structure: z.array(level).max(500), currentLevel: count,
   secondsRemaining: z.number().nonnegative(), levelEndsAt: z.number().nonnegative().nullable(),
   isRunning: z.boolean(),
@@ -60,6 +61,7 @@ const schema = z.object({
     if (t.invitees && (!unique(t.invitees) || t.invitees.some(i => i.playerId && !t.players.some(p => p.id === i.playerId)))) issue();
   }
   const validClock = (c: z.infer<typeof clock>, tournamentId: string | null) => {
+    if (c.handForHand && c.isRunning) issue();
     if (c.isRunning && (!tournamentId || c.levelEndsAt === null)) issue();
     if (tournamentId && !ids.has(tournamentId)) issue();
     if (c.structure.length && (validarEstrutura(c.structure) || c.currentLevel >= c.structure.length)) issue();

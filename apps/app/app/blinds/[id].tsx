@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { View, Pressable, StyleSheet, Dimensions, Animated, useWindowDimensions } from 'react-native';
+import { View, Pressable, StyleSheet, ScrollView, Animated, useWindowDimensions } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -11,6 +11,9 @@ import { KTButton } from '@/components/ui/Button';
 import { Filete, Naipe } from '@/components/ui/Ornamento';
 import { useBlindsTimer } from '@/hooks/useBlindsTimer';
 import { useTournamentStore } from '@/stores/tournamentStore';
+import { HandForHand } from '@/components/HandForHand';
+import { ClockSound } from '@/components/ClockSound';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /* Relógio de blinds, em paisagem.
  *
@@ -33,17 +36,16 @@ const curto = (n: number) =>
   n >= 1000 ? `${(n / 1000).toFixed(n % 1000 === 0 ? 0 : 1)}K` : String(n);
 
 export default function Relogio() {
+  const reducedMotion = useReducedMotion();
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : undefined;
-  const { structure, currentLevel, secondsRemaining, isRunning, start, pause, nextLevel, prevLevel } =
+  const { structure, currentLevel, secondsRemaining, isRunning, handForHand, start, pause, nextLevel, prevLevel } =
     useBlindsTimer(id);
   const torneio = useTournamentStore((s) =>
     s.tournaments.find((t) => t.id === (id ?? s.activeTournamentId)),
   );
 
   const { width, height } = useWindowDimensions();
-  const L = Math.max(width, height);
-  const A = Math.min(width, height);
 
   const atual = structure[currentLevel];
   const proximo = structure[currentLevel + 1];
@@ -58,7 +60,7 @@ export default function Relogio() {
      tamanho é ilegível de longe, que é justamente quando isto importa. */
   const pulso = useRef(new Animated.Value(1)).current;
   useEffect(() => {
-    if (!critico || !isRunning) {
+    if (reducedMotion || !critico || !isRunning) {
       pulso.setValue(1);
       return;
     }
@@ -70,7 +72,7 @@ export default function Relogio() {
     );
     anim.start();
     return () => anim.stop();
-  }, [critico, isRunning, pulso]);
+  }, [reducedMotion, critico, isRunning, pulso]);
 
   /* Clarão na virada de nível: a mesa inteira precisa perceber sem ninguém
      avisar em voz alta. */
@@ -80,14 +82,17 @@ export default function Relogio() {
   useEffect(() => {
     if (currentLevel === nivelAnterior.current) return;
     nivelAnterior.current = currentLevel;
+    if (reducedMotion) { setVirou(false); clarao.setValue(0); return; }
     setVirou(true);
     clarao.setValue(0);
-    Animated.sequence([
+    const animation = Animated.sequence([
       Animated.timing(clarao, { toValue: 1, duration: 220, useNativeDriver: true }),
       Animated.delay(900),
       Animated.timing(clarao, { toValue: 0, duration: 600, useNativeDriver: true }),
-    ]).start(() => setVirou(false));
-  }, [currentLevel, clarao]);
+    ]);
+    animation.start(() => setVirou(false));
+    return () => animation.stop();
+  }, [currentLevel, clarao, reducedMotion]);
 
   /* O anel tem que caber ENTRE o cabeçalho e os controles, não na altura
      inteira: com 0.74 ele subia por baixo do nome do torneio. */
@@ -95,7 +100,7 @@ export default function Relogio() {
   const anel = retrato ? Math.min(width * 0.78, height * 0.38, 340) : Math.min(height * 0.6, 420);
 
   return (
-    <View style={styles.raiz}>
+    <ScrollView style={styles.raiz} contentContainerStyle={{ flexGrow: 1, minHeight: height }}>
       {/* Feltro: vinheta radial quente ao centro, escurecendo para as bordas. */}
       <LinearGradient colors={[Colors.bg2, Colors.bg0, '#050505']} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} />
       <Grao opacidade={0.045} />
@@ -119,7 +124,7 @@ export default function Relogio() {
       </View>
 
       {/* ------------------------------------------------------ o palco */}
-      <View style={[styles.palco, retrato && { flexDirection: 'column', justifyContent: 'space-evenly', paddingHorizontal: 16 }]}>
+      <View style={[styles.palco, { minHeight: retrato ? anel + 240 : anel + 32 }, retrato && { flexDirection: 'column', justifyContent: 'space-evenly', paddingHorizontal: 16 }]}>
         {/* Esquerda: o nível corrente. */}
         <Lado
           rotulo="Agora"
@@ -137,7 +142,7 @@ export default function Relogio() {
           style={[styles.centro, { width: anel, height: anel }]}
           onPress={isRunning ? pause : start}
           accessibilityRole="button"
-          disabled={secondsRemaining === 0 || torneio?.status !== 'running'}
+          disabled={handForHand || secondsRemaining === 0 || torneio?.status !== 'running'}
           accessibilityLabel={isRunning ? 'Pausar relógio' : 'Iniciar relógio'}
         >
           <View style={StyleSheet.absoluteFill}>
@@ -159,7 +164,7 @@ export default function Relogio() {
               {formatar(secondsRemaining)}
             </KTText>
             <KTText papel="rotulo" color={Colors.text3}>
-              {isRunning ? 'toque para pausar' : 'toque para seguir'}
+              {handForHand ? 'Hand-for-hand' : isRunning ? 'Em andamento' : 'Pausado'}
             </KTText>
           </Animated.View>
         </Pressable>
@@ -177,7 +182,9 @@ export default function Relogio() {
       </View>
 
       <View style={{ alignItems: 'center', paddingBottom: 16, gap: Space.md }}>
-        <KTButton label={torneio?.status === 'upcoming' ? 'Noite ainda não iniciada' : isRunning ? 'Pausar relógio' : secondsRemaining === 0 ? 'Estrutura concluída' : 'Iniciar relógio'} disabled={secondsRemaining === 0 || torneio?.status !== 'running'} onPress={isRunning ? pause : start} icone={<Ionicons name={isRunning ? 'pause' : 'play'} size={18} color={Colors.bg0} />} style={{ alignSelf: 'center' }} />
+        <KTButton label={handForHand ? 'Relógio congelado' : torneio?.status === 'upcoming' ? 'Noite ainda não iniciada' : isRunning ? 'Pausar relógio' : secondsRemaining === 0 ? 'Estrutura concluída' : 'Iniciar relógio'} disabled={handForHand || secondsRemaining === 0 || torneio?.status !== 'running'} onPress={isRunning ? pause : start} icone={<Ionicons name={isRunning ? 'pause' : 'play'} size={18} color={Colors.bg0} />} style={{ alignSelf: 'center' }} />
+        <HandForHand id={id} />
+        <ClockSound />
         {torneio && <Pressable accessibilityRole="button" onPress={() => router.push(`/display/${torneio.id}`)} style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm, padding: Space.sm }}>
           <Ionicons name="tv-outline" size={18} color={Colors.text1} />
           <KTText color={Colors.text1}>Modo TV / projetor</KTText>
@@ -186,7 +193,7 @@ export default function Relogio() {
 
       {/* ---------------------------------------------------- os controles */}
       <View style={styles.rodape}>
-        <Pressable style={styles.passo} onPress={prevLevel} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Nível anterior" disabled={handForHand || currentLevel === 0 || torneio?.status !== 'running'} style={styles.passo} onPress={prevLevel} hitSlop={12}>
           <Ionicons name="play-skip-back" size={15} color={Colors.text2} />
           <KTText papel="rotulo" color={Colors.text2}>Anterior</KTText>
         </Pressable>
@@ -196,7 +203,7 @@ export default function Relogio() {
           <Naipe tipo={torneio?.suit ?? 'espada'} tamanho={16} cor={torneio?.color ?? Colors.gold300} />
         </View>
 
-        <Pressable style={styles.passo} onPress={nextLevel} hitSlop={12}>
+        <Pressable accessibilityRole="button" accessibilityLabel="Próximo nível" disabled={handForHand || currentLevel >= structure.length - 1 || torneio?.status !== 'running'} style={styles.passo} onPress={nextLevel} hitSlop={12}>
           <KTText papel="rotulo" color={Colors.text2}>Próximo</KTText>
           <Ionicons name="play-skip-forward" size={15} color={Colors.text2} />
         </Pressable>
@@ -209,7 +216,7 @@ export default function Relogio() {
           <KTText papel="titulo" color={Colors.gold100}>{atual?.isBreak ? 'Intervalo' : `Nível ${atual?.level ?? currentLevel + 1}`}</KTText>
         </Animated.View>
       ) : null}
-    </View>
+    </ScrollView>
   );
 }
 
