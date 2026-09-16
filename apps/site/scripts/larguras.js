@@ -10,7 +10,7 @@ const puppeteer = require('/Users/winistonalle/Desktop/projetos/pessoal/portfoli
     await p.setViewport({ width: w, height: h });
     const erros = [];
     p.on('pageerror', e => erros.push(e.message));
-    await p.goto('http://localhost:3210', { waitUntil: 'networkidle0' });
+    await p.goto('http://localhost:3001', { waitUntil: 'networkidle0' });
     await new Promise(r => setTimeout(r, 1800));
     const r = await p.evaluate(() => ({
       sobra: document.documentElement.scrollWidth - document.documentElement.clientWidth,

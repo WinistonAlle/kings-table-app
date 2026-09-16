@@ -13,7 +13,7 @@ const puppeteer = require('/Users/winistonalle/Desktop/projetos/pessoal/portfoli
           ({ matches: q.includes('reduce'), media:q, addEventListener(){}, removeEventListener(){}, addListener(){}, removeListener(){} }) });
       });
     }
-    await p.goto('http://localhost:3210',{waitUntil:'networkidle0'});
+    await p.goto('http://localhost:3001',{waitUntil:'networkidle0'});
     await new Promise(r=>setTimeout(r,2000));
     await p.evaluate(() => {
       window.__amostras = [];

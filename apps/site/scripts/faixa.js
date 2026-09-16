@@ -3,7 +3,7 @@ const puppeteer = require('/Users/winistonalle/Desktop/projetos/pessoal/portfoli
   const b = await puppeteer.launch({ executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless:'new',
     args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] });
   const p = await b.newPage(); await p.setViewport({width:1440,height:900});
-  await p.goto('http://localhost:3210',{waitUntil:'networkidle0'});
+  await p.goto('http://localhost:3001',{waitUntil:'networkidle0'});
   await new Promise(r=>setTimeout(r,2500));
   const m = await p.evaluate(() => { const h=document.getElementById('heroi');
     const fim=h.offsetTop+h.offsetHeight-window.innerHeight;

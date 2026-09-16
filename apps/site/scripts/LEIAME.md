@@ -9,7 +9,7 @@ olho.
 
 ```bash
 npm run build
-npx next start -p 3210     # todos os scripts apontam para esta porta
+npx next start -p 3001     # todos os scripts apontam para esta porta
 ```
 
 E rode com `node scripts/<nome>.js`.

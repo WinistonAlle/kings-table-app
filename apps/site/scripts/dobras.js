@@ -7,7 +7,7 @@ const puppeteer = require('/Users/winistonalle/Desktop/projetos/pessoal/portfoli
   });
   const p = await b.newPage();
   await p.setViewport({ width: 1440, height: 900 });
-  await p.goto('http://localhost:3210', { waitUntil: 'networkidle0' });
+  await p.goto('http://localhost:3001', { waitUntil: 'networkidle0' });
   await new Promise(r => setTimeout(r, 2000));
   const r = await p.evaluate(() => {
     const H = window.innerHeight;

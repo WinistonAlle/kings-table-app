@@ -20,7 +20,7 @@ async function irAte(p, alvo) {
     args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] });
   const p = await b.newPage(); await p.setViewport({width:1440,height:900});
   const erros=[]; p.on('pageerror',e=>erros.push(e.message));
-  await p.goto('http://localhost:3210',{waitUntil:'networkidle0'});
+  await p.goto('http://localhost:3001',{waitUntil:'networkidle0'});
   await new Promise(r=>setTimeout(r,2500));
   const s = await p.evaluate(() => { const e=document.getElementById('mesa'); return { topo:e.offsetTop, alt:e.offsetHeight }; });
   console.log('dobra da mesa: topo', s.topo, 'altura', s.alt);

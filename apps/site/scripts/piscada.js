@@ -5,7 +5,7 @@ const OUT = '/private/tmp/claude-501/-Users-winistonalle/b55e52f7-f12c-43df-bc40
     args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox'] });
   const p = await b.newPage();
   await p.setViewport({ width: 1440, height: 900 });
-  await p.goto('http://localhost:3210', { waitUntil: 'networkidle0' });
+  await p.goto('http://localhost:3001', { waitUntil: 'networkidle0' });
   await new Promise(r=>setTimeout(r,2500));
   const fim = await p.evaluate(() => { const e=document.getElementById('heroi'); return e.offsetTop+e.offsetHeight-window.innerHeight; });
   const passos = [];

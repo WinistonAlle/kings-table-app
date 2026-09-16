@@ -116,10 +116,10 @@ produção):
 
 ```bash
 npm run build
-npx next start -p 3210
+npx next start -p 3001
 ```
 
-A porta 3210 é a que os scripts de verificação usam (seção 11).
+A porta 3001 é a que os scripts de verificação usam (seção 11).
 
 ### Verificação mínima antes de qualquer commit
 
@@ -971,8 +971,8 @@ do sistema, com SwiftShader para o WebGL rodar sem GPU:
 args: ['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--no-sandbox']
 ```
 
-**Todos apontam para `http://localhost:3210`.** Suba com
-`npx next start -p 3210` depois de buildar.
+**Todos apontam para `http://localhost:3001`.** Suba com
+`npx next start -p 3001` depois de buildar.
 
 ### O método que vale a pena manter
 

@@ -6,7 +6,7 @@ const OUT='/private/tmp/claude-501/-Users-winistonalle/b55e52f7-f12c-43df-bc40-a
   const p = await b.newPage();
   await p.setViewport({width:1440,height:900});
   const erros=[]; p.on('pageerror',e=>erros.push(e.message));
-  await p.goto('http://localhost:3210',{waitUntil:'networkidle0'});
+  await p.goto('http://localhost:3001',{waitUntil:'networkidle0'});
   await new Promise(r=>setTimeout(r,2200));
   const alvos = await p.evaluate(() => {
     const out=[];
