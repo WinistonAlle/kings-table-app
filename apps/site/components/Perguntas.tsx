@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SpecularRim } from './SpecularRim';
 import { Rotulo, Secao, Titulo, Realce } from './Secao';
 
 const PERGUNTAS = [
@@ -52,8 +53,9 @@ export function Perguntas() {
           aria-expanded={expandido}
           aria-controls="lista-perguntas"
           onClick={() => setExpandido(!expandido)}
-          className="inline-flex min-h-12 items-center gap-3 rounded border border-lineStrong px-6 py-3 t-apoio text-text0 transition-colors hover:border-gold400 hover:text-gold300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold400"
+          className="botao-especular inline-flex min-h-12 items-center gap-3 rounded border border-lineStrong px-6 py-3 t-apoio text-text0 transition-colors hover:border-gold400 hover:text-gold300 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold400"
         >
+          <SpecularRim />
           {expandido ? 'Mostrar só as principais' : 'Ver todas as perguntas'}
           <span aria-hidden className="text-lg">{expandido ? '−' : '+'}</span>
         </button>

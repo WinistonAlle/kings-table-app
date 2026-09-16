@@ -5,6 +5,7 @@ import { useState, type FormEvent } from 'react';
 import { ArrowRight, ArrowLeft, Eye, EyeOff, LoaderCircle, Mail, CheckCircle2 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import { Marca } from './Marca';
+import { SpecularRim } from './SpecularRim';
 import './auth.css';
 
 export type AuthMode = 'login' | 'cadastro' | 'recuperar' | 'nova-senha';
@@ -71,7 +72,7 @@ export function AuthForm({ mode, initialError = '', testAccessUrl }: { mode: Aut
     <section className="auth-content" aria-labelledby="auth-title">
       <Link href="/" className="auth-brand"><Marca /><span>King’s Table</span></Link>
       <div className="auth-heading"><h1 id="auth-title">{c.title}</h1><p>{c.subtitle}</p></div>
-      {success ? <div className="auth-success" role="status"><CheckCircle2 size={28} /><h2>Confira sua caixa de entrada.</h2><p>{success}</p><Link href="/login" className="auth-submit">Ir para o login <ArrowRight size={18} /></Link><button className="auth-text-button" onClick={() => setSuccess('')}>Usar outro e-mail</button></div> :
+      {success ? <div className="auth-success" role="status"><CheckCircle2 size={28} /><h2>Confira sua caixa de entrada.</h2><p>{success}</p><Link href="/login" className="auth-submit"><SpecularRim />Ir para o login <ArrowRight size={18} /></Link><button className="auth-text-button" onClick={() => setSuccess('')}>Usar outro e-mail</button></div> :
         <form onSubmit={submit} className="auth-form">
           <fieldset disabled={pending}>
             {signup && <label htmlFor="name">Seu nome<input id="name" name="name" autoComplete="name" required minLength={2} maxLength={80} placeholder="Como podemos te chamar?" /></label>}
@@ -87,7 +88,7 @@ export function AuthForm({ mode, initialError = '', testAccessUrl }: { mode: Aut
               if (String(data.get('email') || '').trim() || String(data.get('password') || '')) return;
               event.preventDefault();
               window.location.assign(testAccessUrl);
-            }}>{pending ? <><LoaderCircle size={18} className="auth-spinner" /> Aguarde...</> : <>{c.action}<ArrowRight size={18} /></>}</button>
+            }}>{!pending && <SpecularRim />}{pending ? <><LoaderCircle size={18} className="auth-spinner" /> Aguarde...</> : <>{c.action}<ArrowRight size={18} /></>}</button>
           </fieldset>
         </form>}
       <p className="auth-switch">{mode === 'login' ? <>Ainda não tem conta? <Link href="/cadastro">Criar conta</Link></> : <>Já tem uma conta? <Link href="/login">Entrar</Link></>}</p>

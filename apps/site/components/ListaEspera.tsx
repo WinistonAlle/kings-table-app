@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SpecularRim } from './SpecularRim';
 
 /* O destino da página inteira.
  *
@@ -77,6 +78,7 @@ export function ListaEspera() {
           disabled={estado === 'enviando'}
           className="botao-ouro shrink-0 rounded-full px-7 py-3.5 t-apoio font-semibold disabled:opacity-70"
         >
+          {estado !== 'enviando' && <SpecularRim />}
           {estado === 'enviando' ? 'Entrando…' : 'Entrar na lista'}
         </button>
       </div>

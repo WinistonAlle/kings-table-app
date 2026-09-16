@@ -1,4 +1,5 @@
 import { BotaoOuro, Rotulo, Secao, Titulo, Realce } from './Secao';
+import { SpecularRim } from './SpecularRim';
 
 const PLANOS = [
   {
@@ -115,8 +116,9 @@ export function Precos() {
               ) : (
                 <a
                   href="#lista"
-                  className="inline-flex w-full items-center justify-center rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
+                  className="botao-especular inline-flex w-full items-center justify-center rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
                 >
+                  <SpecularRim />
                   {p.cta}
                 </a>
               )}

@@ -198,6 +198,10 @@ p { text-wrap: pretty; }
 /* Botão de ouro: metal, não retângulo amarelo. Claro em cima, escuro embaixo,
    com fio de luz na aresta superior. */
 .botao-ouro {
+  position: relative;
+  isolation: isolate;
+  border-radius: 8px;
+  overflow: visible;
   background: linear-gradient(180deg, var(--color-gold100), var(--color-gold400));
   color: #1a1206;
   box-shadow:
@@ -214,6 +218,23 @@ p { text-wrap: pretty; }
     0 12px 32px rgba(0, 0, 0, 0.5);
 }
 .botao-ouro:active { transform: translateY(1px) scale(0.99); }
+
+.botao-especular {
+  position: relative;
+  isolation: isolate;
+  border-radius: 8px;
+  overflow: visible;
+  background-color: rgba(24, 24, 24, 0.55);
+}
+.botao-ouro:focus-visible, .botao-especular:focus-visible {
+  outline: 2px solid var(--color-gold300);
+  outline-offset: 4px;
+}
+.botao-ouro:disabled { cursor: not-allowed; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .botao-ouro, .botao-especular { transition: none; }
+  .botao-ouro:hover, .botao-ouro:active { transform: none; }
+}
 
 /* Superfície elevada: fio de luz na aresta de cima, sombra embaixo. */
 .superficie {

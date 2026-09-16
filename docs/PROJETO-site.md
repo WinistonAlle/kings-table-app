@@ -1,5 +1,15 @@
 # King's Table: a landing page
 
+## Botoes especulares de 16/09/2026
+
+CTAs do hero, mesa, features, planos, lista de espera, expansao de perguntas,
+Entrar e Criar conta usam o efeito SpecularButton do React Bits com bordas
+douradas que acompanham o mouse e o foco por teclado. Formularios de acesso
+tambem recebem o acabamento. Tamanhos e destinos permanecem inalterados.
+SpecularRim.tsx usa OGL com um renderer compartilhado, pausa quando o brilho
+estabiliza e respeita movimento reduzido. Controles desativados nao animam.
+O preview continua em http://localhost:3001.
+
 ## Acesso web de 16/09/2026
 
 Landing com Entrar e Criar conta. Paginas de login, cadastro, recuperacao e

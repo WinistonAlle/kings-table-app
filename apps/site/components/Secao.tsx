@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { SpecularRim } from './SpecularRim';
 
 /* Peças de layout que se repetem na página inteira. Existirem soltas é o que
    mantém o ritmo: mesma largura de coluna, mesmo respiro entre blocos, mesma
@@ -79,6 +80,7 @@ export function BotaoOuro({
       href={href}
       className={`botao-ouro inline-flex items-center gap-2 rounded-full px-7 py-3.5 t-apoio font-semibold ${className}`}
     >
+      <SpecularRim />
       {children}
     </a>
   );
@@ -94,8 +96,9 @@ export function BotaoFantasma({
   return (
     <a
       href={href}
-      className="inline-flex items-center gap-2 rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
+      className="botao-especular inline-flex items-center gap-2 rounded-full border border-lineStrong px-7 py-3.5 t-apoio font-medium text-text1 transition-colors hover:border-gold500 hover:text-text0"
     >
+      <SpecularRim />
       {children}
     </a>
   );

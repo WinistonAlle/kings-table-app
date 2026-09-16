@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useMenosMovimento, useProgresso, useTelaPequena } from "./useRolagem";
 import { BotaoOuro, Filete } from "./Secao";
+import { SpecularRim } from './SpecularRim';
 
 /* O herói: o vídeo da maleta, raspado pela rolagem.
  *
@@ -221,8 +222,9 @@ export function HeroVideo() {
             <BotaoOuro href="#lista">Entrar na lista</BotaoOuro>
             <a
               href="#como-funciona"
-              className="inline-flex items-center gap-2 rounded-full border border-lineStrong bg-bg0/40 px-7 py-3.5 t-apoio font-medium text-text1 backdrop-blur-sm transition-colors hover:border-gold500 hover:text-text0"
+              className="botao-especular inline-flex items-center gap-2 rounded-full border border-lineStrong bg-bg0/40 px-7 py-3.5 t-apoio font-medium text-text1 backdrop-blur-sm transition-colors hover:border-gold500 hover:text-text0"
             >
+              <SpecularRim />
               Ver como funciona
             </a>
           </div>
