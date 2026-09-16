@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { View, Text, Pressable, ActivityIndicator } from 'react-native';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
@@ -13,9 +13,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [preview, setPreview] = useState(false);
+  const loadedAccount = useRef<string | null>(null);
   useEffect(() => {
     let alive = true;
-    let checking = false;
+    let verification = 0;
     if (process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
       && (new URLSearchParams(window.location.search).get('teste') === '1' || sessionStorage.getItem('kt-test-access') === '1')) {
       sessionStorage.setItem('kt-test-access', '1');
@@ -23,11 +24,10 @@ export function AuthGate({ children }: { children: ReactNode }) {
       return () => { alive = false; };
     }
     async function verify() {
-      if (checking) return;
-      checking = true;
+      const current = ++verification;
       try {
         const { data, error: authError } = await supabase.auth.getUser();
-        if (!alive) return;
+        if (!alive || current !== verification) return;
         if (!data.user) {
           setUser(null);
           if (authError && authError.status !== 401 && authError.status !== 403 && authError.name !== 'AuthSessionMissingError') { setError(true); return; }
@@ -35,18 +35,29 @@ export function AuthGate({ children }: { children: ReactNode }) {
           else setError(true);
           return;
         }
+        if (loadedAccount.current !== data.user.id) setUser(null);
         await loadAccountData(data.user.id);
-        if (alive) { setUser(data.user); setError(false); }
-      } catch { if (alive) { setUser(null); setError(true); } }
-      finally { checking = false; }
+        if (alive && current === verification) {
+          loadedAccount.current = data.user.id;
+          setUser(data.user);
+          setError(false);
+        }
+      } catch { if (alive && current === verification) { setUser(null); setError(true); } }
     }
     void verify();
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         alive = false;
+        ++verification;
+        loadedAccount.current = null;
         setUser(null);
         if (site) window.location.replace(`${site}/login`);
         return;
+      }
+      if (event === 'SIGNED_IN' && loadedAccount.current !== session?.user.id) {
+        ++verification;
+        loadedAccount.current = null;
+        setUser(null);
       }
       setTimeout(() => { if (alive) void verify(); }, 0);
     });

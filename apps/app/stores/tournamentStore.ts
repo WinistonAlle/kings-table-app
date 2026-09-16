@@ -79,9 +79,14 @@ export const useTournamentStore = create<TournamentStore>()(
       }) })),
 
       createTournament: (data) => {
+        const baseId = `t_${Date.now()}`;
+        const existingIds = new Set(get().tournaments.map(t => t.id));
+        let id = baseId;
+        let suffix = 0;
+        while (existingIds.has(id)) id = `${baseId}_${++suffix}`;
         const tournament: Tournament = {
           ...data,
-          id: `t_${Date.now()}`,
+          id,
           status: 'upcoming',
           currentLevel: 0,
           players: [],

@@ -184,7 +184,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 |---|---|---|---|
 | D01 | Backup manual por conta, restauracao confirmada e recuperacao local anterior | implementado | CloudBackup.web.tsx; account-backup.ts; RPC/RLS testados; fluxo com conta real pendente. Nao substitui F084/F085. |
 | D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; validacao positiva com e-mail real e redirects pendente. |
-| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | pendente | Contratos de operacoes e migracoes de dominio antes da integracao. |
+| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md: contrato, lacunas conferidas no banco e gates; troca local serializada. Fila, comandos, migracoes e integracao remota ainda pendentes. |
 | D04 | Transferencias completas/parciais, estorno de registro e saldo restante | implementado | acerto.ts; NightSettlement.tsx; auditoria/CSV/backup e testes locais. |
 | D05 | Despesas, taxas, conciliacao e estornos financeiros reais | pendente | Definir modelo contabil completo; estorno de registro nao devolve dinheiro. |
 | D06 | Biblioteca de premios, chop, aprovacao/recusa e fechamento formal | pendente | Modelo versionado de premiacao e autorizacoes. |
@@ -197,6 +197,15 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Isolamento local: carregamento serializado, falhas de hidratacao bloqueadas
+  e respostas Auth antigas descartadas. Unitarios e Playwright passaram;
+  Auth do teste de corrida e simulado. Cadastro/e-mail real ainda pendentes.
+- Aviso DOM collapsable corrigido no anel SVG; navegador revalidado com
+  zero erros e dois avisos antigos de shadow/pointerEvents do React Native.
+- Criacao local: IDs de mesas nao colidem com outras mesas existentes na conta
+  quando criadas no mesmo milissegundo. Teste cobre rehydrate, jogador isolado
+  e exclusao independente. Identidade global entre aparelhos e idempotencia
+  de operacoes remotas continuam pendentes; esta correcao nao as substitui.
 - Relogio/hand-for-hand: implementacao local e testes de invariantes existem;
   fluxo local de congelamento/TV/reload conferido. Coordenacao remota,
   rodadas multimesa e cobertura do encerramento ainda exigem verificacao.
@@ -217,3 +226,6 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V04 | Layout do controle em 320/390/1440 e leitura visual em 390/1440 | validado | Playwright sem overflow; capturas clock-controls-mobile.png e clock-controls-tv.png inspecionadas em sessao nova. |
 | V05 | TypeScript, 14 suites e export web das alteracoes atuais | validado | npx tsc --noEmit; npm run testes; expo export web, todos passaram. |
 | V06 | Voz, audio nativo/segundo plano e coordenacao multimesa/remota | pendente | Nao implementados nem validados; F022/F023 permanecem em andamento. |
+| V07 | Criacoes locais no mesmo milissegundo, inclusive apos rehydrate | validado | teste-contas.ts: IDs distintos, jogador isolado e exclusao independente; nao cobre concorrencia entre aparelhos. |
+| V08 | Trocas locais concorrentes, erro de leitura e recuperacao da fila | validado | teste-contas.ts: leitura controlada, scopes dos tres stores e dados da conta A preservados. |
+| V09 | Resposta Auth antiga descartada e conta B isolada na UI mobile | validado | Playwright com Auth simulado; account-isolation-mobile.png inspecionada. Nao valida fluxo Auth real. |

@@ -1,9 +1,13 @@
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, G, Line } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, G, Line, type CircleProps } from 'react-native-svg';
 import { Colors, Degrade } from '@/constants/tokens';
-import { useEffect, useRef, useId } from 'react';
-import { Animated, AccessibilityInfo } from 'react-native';
+import { useEffect, useRef, useId, forwardRef } from 'react';
+import { Animated, AccessibilityInfo, Platform } from 'react-native';
 
-const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+// Animated injeta collapsable; SVG no navegador nao aceita esse atributo nativo.
+const AnimatableCircle = forwardRef<Circle, CircleProps & { collapsable?: boolean }>(
+  ({ collapsable, ...props }, ref) => <Circle {...props} ref={ref} {...(Platform.OS === 'web' ? {} : { collapsable })} />,
+);
+const AnimatedCircle = Animated.createAnimatedComponent(AnimatableCircle);
 
 /* Anel de progresso do nível.
  *

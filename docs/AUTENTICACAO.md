@@ -68,6 +68,11 @@ O link PKCE deve ser aberto no mesmo navegador onde o fluxo foi iniciado.
 
 ## Verificacao
 
+- Revisao de concorrencia em 16/09: carregamento dos tres stores serializado,
+  falha de hidratacao bloqueia acesso e verificacoes Auth antigas nao liberam
+  a UI. teste-contas cobre leitura lenta, falha e recuperacao sem apagar dados.
+  Playwright com resposta Auth atrasada/simulada conferiu a conta B isolada;
+  captura mobile inspecionada e sem overflow. Isso nao valida Auth positivo real.
 - TypeScript do site e app, build Next, export Expo web e nove suites passaram,
   incluindo o novo teste de isolamento, restauracao e preservacao por conta.
 - Playwright: login desktop e cadastro mobile sem overflow, mostrar senha,
