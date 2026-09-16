@@ -1,0 +1,3359 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>King's Table — Design</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* King's Table — Design Tokens
+   Black + Champagne (warm muted gold)
+   Typography: Cormorant Garamond (display serif) + Inter Tight (UI) + JetBrains Mono (numbers)
+*/
+
+:root {
+  /* Backgrounds — warm near-black, layered */
+  --kt-bg-0: #0a0807;        /* deepest (canvas bg) */
+  --kt-bg-1: #11100e;        /* base surface */
+  --kt-bg-2: #1a1816;        /* raised card */
+  --kt-bg-3: #242220;        /* top card / input */
+  --kt-bg-4: #2e2b28;        /* hover */
+
+  /* Borders — hairlines, warm */
+  --kt-border: rgba(232, 213, 160, 0.08);
+  --kt-border-strong: rgba(232, 213, 160, 0.18);
+  --kt-border-hot: rgba(232, 213, 160, 0.32);
+
+  /* Text — off-whites, warm */
+  --kt-text-0: #f5ede0;   /* primary */
+  --kt-text-1: #c9bda6;   /* secondary */
+  --kt-text-2: #7a7366;   /* tertiary / label */
+  --kt-text-3: #4a463f;   /* disabled */
+
+  /* Gold — champagne family */
+  --kt-gold-50:  #f6ead0;
+  --kt-gold-100: #ecd9a5;
+  --kt-gold-200: #e8d5a0;   /* primary champagne */
+  --kt-gold-300: #d4bc7e;
+  --kt-gold-400: #b89a5e;
+  --kt-gold-500: #8a723f;
+  --kt-gold-600: #5a4a28;
+  --kt-gold-700: #352c18;
+  --kt-gold-800: #1e1a10;
+
+  /* Accent (tweakable — default deep emerald for felt table hint) */
+  --kt-accent: #3d8a6a;
+  --kt-accent-dim: #1f4a38;
+
+  /* Suit semantic */
+  --kt-suit-red: #c85a5a;
+  --kt-suit-black: #0a0807;
+
+  /* Status */
+  --kt-ok: #78a885;
+  --kt-warn: #d9a74a;
+  --kt-danger: #c85a5a;
+
+  /* Radii — club-like, slightly sharp */
+  --kt-r-xs: 4px;
+  --kt-r-sm: 8px;
+  --kt-r-md: 14px;
+  --kt-r-lg: 20px;
+  --kt-r-xl: 28px;
+
+  /* Fonts */
+  --kt-font-display: 'Cormorant Garamond', 'Cormorant', Georgia, serif;
+  --kt-font-ui: 'Inter Tight', 'Inter', -apple-system, system-ui, sans-serif;
+  --kt-font-mono: 'JetBrains Mono', 'SF Mono', Menlo, monospace;
+
+  /* Motion */
+  --kt-ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Global chip/card texture — subtle diagonal weave */
+.kt-texture-weave {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      rgba(232, 213, 160, 0.012) 0px,
+      rgba(232, 213, 160, 0.012) 1px,
+      transparent 1px,
+      transparent 8px
+    );
+}
+
+/* Engraved gold text effect */
+.kt-gold-engraved {
+  color: var(--kt-gold-200);
+  text-shadow:
+    0 1px 0 rgba(0,0,0,0.6),
+    0 0 14px rgba(232, 213, 160, 0.08);
+}
+
+/* Hairline divider */
+.kt-hr {
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    var(--kt-border-strong) 20%,
+    var(--kt-border-strong) 80%,
+    transparent);
+  border: 0;
+}
+
+/* Reset-ish */
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: var(--kt-font-ui);
+  font-feature-settings: "cv11", "ss01";
+  color: var(--kt-text-0);
+  background: var(--kt-bg-0);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Number styling */
+.kt-num { font-family: var(--kt-font-mono); font-feature-settings: "tnum", "zero"; }
+
+/* Small-caps label */
+.kt-label {
+  font-family: var(--kt-font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--kt-text-2);
+}
+
+/* Button base */
+.kt-btn {
+  font-family: var(--kt-font-ui);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  border: 0;
+  cursor: pointer;
+  transition: transform 0.12s var(--kt-ease), background 0.2s var(--kt-ease), color 0.2s;
+}
+.kt-btn:active { transform: scale(0.98); }
+
+.kt-btn-gold {
+  background: linear-gradient(180deg, var(--kt-gold-200), var(--kt-gold-300));
+  color: #1a1206;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.3),
+    inset 0 -1px 0 rgba(0,0,0,0.15),
+    0 1px 3px rgba(0,0,0,0.4);
+}
+
+.kt-btn-ghost {
+  background: transparent;
+  color: var(--kt-text-0);
+  border: 1px solid var(--kt-border-strong);
+}
+
+.kt-btn-ghost:hover { background: rgba(232, 213, 160, 0.04); }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(232, 213, 160, 0.15); border-radius: 3px; }
+
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  html, body { overflow: hidden; height: 100%; }
+  body { background: #0a0807; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+// iOS.jsx — Simplified iOS 26 (Liquid Glass) device frame
+// Based on the iOS 26 UI Kit + Figma status bar spec. No assets, no deps.
+// Exports: IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard
+
+// ─────────────────────────────────────────────────────────────
+// Status bar
+// ─────────────────────────────────────────────────────────────
+function IOSStatusBar({ dark = false, time = '9:41' }) {
+  const c = dark ? '#fff' : '#000';
+  return (
+    <div style={{
+      display: 'flex', gap: 154, alignItems: 'center', justifyContent: 'center',
+      padding: '21px 24px 19px', boxSizing: 'border-box',
+      position: 'relative', zIndex: 20, width: '100%',
+    }}>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', paddingTop: 1.5 }}>
+        <span style={{
+          fontFamily: '-apple-system, "SF Pro", system-ui', fontWeight: 590,
+          fontSize: 17, lineHeight: '22px', color: c,
+        }}>{time}</span>
+      </div>
+      <div style={{ flex: 1, height: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, paddingTop: 1, paddingRight: 1 }}>
+        <svg width="19" height="12" viewBox="0 0 19 12">
+          <rect x="0" y="7.5" width="3.2" height="4.5" rx="0.7" fill={c}/>
+          <rect x="4.8" y="5" width="3.2" height="7" rx="0.7" fill={c}/>
+          <rect x="9.6" y="2.5" width="3.2" height="9.5" rx="0.7" fill={c}/>
+          <rect x="14.4" y="0" width="3.2" height="12" rx="0.7" fill={c}/>
+        </svg>
+        <svg width="17" height="12" viewBox="0 0 17 12">
+          <path d="M8.5 3.2C10.8 3.2 12.9 4.1 14.4 5.6L15.5 4.5C13.7 2.7 11.2 1.5 8.5 1.5C5.8 1.5 3.3 2.7 1.5 4.5L2.6 5.6C4.1 4.1 6.2 3.2 8.5 3.2Z" fill={c}/>
+          <path d="M8.5 6.8C9.9 6.8 11.1 7.3 12 8.2L13.1 7.1C11.8 5.9 10.2 5.1 8.5 5.1C6.8 5.1 5.2 5.9 3.9 7.1L5 8.2C5.9 7.3 7.1 6.8 8.5 6.8Z" fill={c}/>
+          <circle cx="8.5" cy="10.5" r="1.5" fill={c}/>
+        </svg>
+        <svg width="27" height="13" viewBox="0 0 27 13">
+          <rect x="0.5" y="0.5" width="23" height="12" rx="3.5" stroke={c} strokeOpacity="0.35" fill="none"/>
+          <rect x="2" y="2" width="20" height="9" rx="2" fill={c}/>
+          <path d="M25 4.5V8.5C25.8 8.2 26.5 7.2 26.5 6.5C26.5 5.8 25.8 4.8 25 4.5Z" fill={c} fillOpacity="0.4"/>
+        </svg>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Liquid glass pill — blur + tint + shine
+// ─────────────────────────────────────────────────────────────
+function IOSGlassPill({ children, dark = false, style = {} }) {
+  return (
+    <div style={{
+      height: 44, minWidth: 44, borderRadius: 9999,
+      position: 'relative', overflow: 'hidden',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      boxShadow: dark
+        ? '0 2px 6px rgba(0,0,0,0.35), 0 6px 16px rgba(0,0,0,0.2)'
+        : '0 1px 3px rgba(0,0,0,0.07), 0 3px 10px rgba(0,0,0,0.06)',
+      ...style,
+    }}>
+      {/* blur + tint */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.28)' : 'rgba(255,255,255,0.5)',
+      }} />
+      {/* shine */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 9999,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15), inset -1px -1px 1px rgba(255,255,255,0.08)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+      }} />
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', padding: '0 4px' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Navigation bar — glass pills + large title
+// ─────────────────────────────────────────────────────────────
+function IOSNavBar({ title = 'Title', dark = false, trailingIcon = true }) {
+  const muted = dark ? 'rgba(255,255,255,0.6)' : '#404040';
+  const text = dark ? '#fff' : '#000';
+  const pillIcon = (content) => (
+    <IOSGlassPill dark={dark}>
+      <div style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {content}
+      </div>
+    </IOSGlassPill>
+  );
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column', gap: 10,
+      paddingTop: 62, paddingBottom: 10, position: 'relative', zIndex: 5,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 16px',
+      }}>
+        {/* back chevron */}
+        {pillIcon(
+          <svg width="12" height="20" viewBox="0 0 12 20" fill="none" style={{ marginLeft: -1 }}>
+            <path d="M10 2L2 10l8 8" stroke={muted} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )}
+        {/* trailing ellipsis */}
+        {trailingIcon && pillIcon(
+          <svg width="22" height="6" viewBox="0 0 22 6">
+            <circle cx="3" cy="3" r="2.5" fill={muted}/>
+            <circle cx="11" cy="3" r="2.5" fill={muted}/>
+            <circle cx="19" cy="3" r="2.5" fill={muted}/>
+          </svg>
+        )}
+      </div>
+      {/* large title */}
+      <div style={{
+        padding: '0 16px',
+        fontFamily: '-apple-system, system-ui',
+        fontSize: 34, fontWeight: 700, lineHeight: '41px',
+        color: text, letterSpacing: 0.4,
+      }}>{title}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Grouped list (inset card, r:26) + row (52px)
+// ─────────────────────────────────────────────────────────────
+function IOSListRow({ title, detail, icon, chevron = true, isLast = false, dark = false }) {
+  const text = dark ? '#fff' : '#000';
+  const sec = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const ter = dark ? 'rgba(235,235,245,0.3)' : 'rgba(60,60,67,0.3)';
+  const sep = dark ? 'rgba(84,84,88,0.65)' : 'rgba(60,60,67,0.12)';
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', minHeight: 52,
+      padding: '0 16px', position: 'relative',
+      fontFamily: '-apple-system, system-ui', fontSize: 17,
+      letterSpacing: -0.43,
+    }}>
+      {icon && (
+        <div style={{
+          width: 30, height: 30, borderRadius: 7, background: icon,
+          marginRight: 12, flexShrink: 0,
+        }} />
+      )}
+      <div style={{ flex: 1, color: text }}>{title}</div>
+      {detail && <span style={{ color: sec, marginRight: 6 }}>{detail}</span>}
+      {chevron && (
+        <svg width="8" height="14" viewBox="0 0 8 14" style={{ flexShrink: 0 }}>
+          <path d="M1 1l6 6-6 6" stroke={ter} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      )}
+      {!isLast && (
+        <div style={{
+          position: 'absolute', bottom: 0, right: 0,
+          left: icon ? 58 : 16, height: 0.5, background: sep,
+        }} />
+      )}
+    </div>
+  );
+}
+
+function IOSList({ header, children, dark = false }) {
+  const hc = dark ? 'rgba(235,235,245,0.6)' : 'rgba(60,60,67,0.6)';
+  const bg = dark ? '#1C1C1E' : '#fff';
+  return (
+    <div>
+      {header && (
+        <div style={{
+          fontFamily: '-apple-system, system-ui', fontSize: 13,
+          color: hc, textTransform: 'uppercase',
+          padding: '8px 36px 6px', letterSpacing: -0.08,
+        }}>{header}</div>
+      )}
+      <div style={{
+        background: bg, borderRadius: 26,
+        margin: '0 16px', overflow: 'hidden',
+      }}>{children}</div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Device frame
+// ─────────────────────────────────────────────────────────────
+function IOSDevice({
+  children, width = 402, height = 874, dark = false,
+  title, keyboard = false,
+}) {
+  return (
+    <div style={{
+      width, height, borderRadius: 48, overflow: 'hidden',
+      position: 'relative', background: dark ? '#000' : '#F2F2F7',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.18), 0 0 0 1px rgba(0,0,0,0.12)',
+      fontFamily: '-apple-system, system-ui, sans-serif',
+      WebkitFontSmoothing: 'antialiased',
+    }}>
+      {/* dynamic island */}
+      <div style={{
+        position: 'absolute', top: 11, left: '50%', transform: 'translateX(-50%)',
+        width: 126, height: 37, borderRadius: 24, background: '#000', zIndex: 50,
+      }} />
+      {/* status bar (absolute) */}
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
+        <IOSStatusBar dark={dark} />
+      </div>
+      {/* nav + content */}
+      <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+        {title !== undefined && <IOSNavBar title={title} dark={dark} />}
+        <div style={{ flex: 1, overflow: 'auto' }}>{children}</div>
+        {keyboard && <IOSKeyboard dark={dark} />}
+      </div>
+      {/* home indicator — always on top */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 60,
+        height: 34, display: 'flex', justifyContent: 'center', alignItems: 'flex-end',
+        paddingBottom: 8, pointerEvents: 'none',
+      }}>
+        <div style={{
+          width: 139, height: 5, borderRadius: 100,
+          background: dark ? 'rgba(255,255,255,0.7)' : 'rgba(0,0,0,0.25)',
+        }} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Keyboard — iOS 26 liquid glass
+// ─────────────────────────────────────────────────────────────
+function IOSKeyboard({ dark = false }) {
+  const glyph = dark ? 'rgba(255,255,255,0.7)' : '#595959';
+  const sugg = dark ? 'rgba(255,255,255,0.6)' : '#333';
+  const keyBg = dark ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.85)';
+
+  // special-key icons
+  const icons = {
+    shift: <svg width="19" height="17" viewBox="0 0 19 17"><path d="M9.5 1L1 9.5h4.5V16h8V9.5H18L9.5 1z" fill={glyph}/></svg>,
+    del: <svg width="23" height="17" viewBox="0 0 23 17"><path d="M7 1h13a2 2 0 012 2v11a2 2 0 01-2 2H7l-6-7.5L7 1z" fill="none" stroke={glyph} strokeWidth="1.6" strokeLinejoin="round"/><path d="M10 5l7 7M17 5l-7 7" stroke={glyph} strokeWidth="1.6" strokeLinecap="round"/></svg>,
+    ret: <svg width="20" height="14" viewBox="0 0 20 14"><path d="M18 1v6H4m0 0l4-4M4 7l4 4" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>,
+  };
+
+  const key = (content, { w, flex, ret, fs = 25, k } = {}) => (
+    <div key={k} style={{
+      height: 42, borderRadius: 8.5,
+      flex: flex ? 1 : undefined, width: w, minWidth: 0,
+      background: ret ? '#08f' : keyBg,
+      boxShadow: '0 1px 0 rgba(0,0,0,0.075)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontFamily: '-apple-system, "SF Compact", system-ui',
+      fontSize: fs, fontWeight: 458, color: ret ? '#fff' : glyph,
+    }}>{content}</div>
+  );
+
+  const row = (keys, pad = 0) => (
+    <div style={{ display: 'flex', gap: 6.5, justifyContent: 'center', padding: `0 ${pad}px` }}>
+      {keys.map(l => key(l, { flex: true, k: l }))}
+    </div>
+  );
+
+  return (
+    <div style={{
+      position: 'relative', zIndex: 15, borderRadius: 27, overflow: 'hidden',
+      padding: '11px 0 2px',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      boxShadow: dark
+        ? '0 -2px 20px rgba(0,0,0,0.09)'
+        : '0 -1px 6px rgba(0,0,0,0.018), 0 -3px 20px rgba(0,0,0,0.012)',
+    }}>
+      {/* liquid glass bg — same recipe as nav pills */}
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        backdropFilter: 'blur(12px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+        background: dark ? 'rgba(120,120,128,0.14)' : 'rgba(255,255,255,0.25)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: 27,
+        boxShadow: dark
+          ? 'inset 1.5px 1.5px 1px rgba(255,255,255,0.15)'
+          : 'inset 1.5px 1.5px 1px rgba(255,255,255,0.7), inset -1px -1px 1px rgba(255,255,255,0.4)',
+        border: dark ? '0.5px solid rgba(255,255,255,0.15)' : '0.5px solid rgba(0,0,0,0.06)',
+        pointerEvents: 'none',
+      }} />
+
+      {/* autocorrect bar */}
+      <div style={{
+        display: 'flex', gap: 20, alignItems: 'center',
+        padding: '8px 22px 13px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {['"The"', 'the', 'to'].map((w, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <div style={{ width: 1, height: 25, background: '#ccc', opacity: 0.3 }} />}
+            <div style={{
+              flex: 1, textAlign: 'center',
+              fontFamily: '-apple-system, system-ui', fontSize: 17,
+              color: sugg, letterSpacing: -0.43, lineHeight: '22px',
+            }}>{w}</div>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* key layout */}
+      <div style={{
+        display: 'flex', flexDirection: 'column', gap: 13,
+        padding: '0 6.5px', width: '100%', boxSizing: 'border-box',
+        position: 'relative',
+      }}>
+        {row(['q','w','e','r','t','y','u','i','o','p'])}
+        {row(['a','s','d','f','g','h','j','k','l'], 20)}
+        <div style={{ display: 'flex', gap: 14.25, alignItems: 'center' }}>
+          {key(icons.shift, { w: 45, k: 'shift' })}
+          <div style={{ display: 'flex', gap: 6.5, flex: 1 }}>
+            {['z','x','c','v','b','n','m'].map(l => key(l, { flex: true, k: l }))}
+          </div>
+          {key(icons.del, { w: 45, k: 'del' })}
+        </div>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {key('ABC', { w: 92.25, fs: 18, k: 'abc' })}
+          {key('', { flex: true, k: 'space' })}
+          {key(icons.ret, { w: 92.25, ret: true, k: 'ret' })}
+        </div>
+      </div>
+
+      {/* bottom spacer (emoji+mic area, icons omitted) */}
+      <div style={{ height: 56, width: '100%', position: 'relative' }} />
+    </div>
+  );
+}
+
+Object.assign(window, {
+  IOSDevice, IOSStatusBar, IOSNavBar, IOSGlassPill, IOSList, IOSListRow, IOSKeyboard,
+});
+
+</script>
+<script type="text/babel">
+
+// DesignCanvas.jsx — Figma-ish design canvas wrapper
+// Warm gray grid bg + Sections + Artboards + PostIt notes.
+// No assets, no deps.
+
+const DC = {
+  bg: '#f0eee9',
+  grid: 'rgba(0,0,0,0.06)',
+  label: 'rgba(60,50,40,0.7)',
+  title: 'rgba(40,30,20,0.85)',
+  subtitle: 'rgba(60,50,40,0.6)',
+  postitBg: '#fef4a8',
+  postitText: '#5a4a2a',
+  font: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+};
+
+// ─────────────────────────────────────────────────────────────
+// Main canvas — transform-based pan/zoom viewport
+//
+// Input mapping (Figma-style):
+//   • trackpad pinch  → zoom   (ctrlKey wheel; Safari gesture* events)
+//   • trackpad scroll → pan    (two-finger)
+//   • mouse wheel     → zoom   (notched; distinguished from trackpad scroll)
+//   • middle-drag / primary-drag-on-bg → pan
+//
+// Transform state lives in a ref and is written straight to the DOM
+// (translate3d + will-change) so wheel ticks don't go through React —
+// keeps pans at 60fps on dense canvases.
+// ─────────────────────────────────────────────────────────────
+function DesignCanvas({ children, minScale = 0.1, maxScale = 8, style = {} }) {
+  const vpRef = React.useRef(null);
+  const worldRef = React.useRef(null);
+  const tf = React.useRef({ x: 0, y: 0, scale: 1 });
+
+  const apply = React.useCallback(() => {
+    const { x, y, scale } = tf.current;
+    const el = worldRef.current;
+    if (el) el.style.transform = `translate3d(${x}px, ${y}px, 0) scale(${scale})`;
+  }, []);
+
+  React.useEffect(() => {
+    const vp = vpRef.current;
+    if (!vp) return;
+
+    const zoomAt = (cx, cy, factor) => {
+      const r = vp.getBoundingClientRect();
+      const px = cx - r.left, py = cy - r.top;
+      const t = tf.current;
+      const next = Math.min(maxScale, Math.max(minScale, t.scale * factor));
+      const k = next / t.scale;
+      // keep the world point under the cursor fixed
+      t.x = px - (px - t.x) * k;
+      t.y = py - (py - t.y) * k;
+      t.scale = next;
+      apply();
+    };
+
+    // Mouse-wheel vs trackpad-scroll heuristic. A physical wheel sends
+    // line-mode deltas (Firefox) or large integer pixel deltas with no X
+    // component (Chrome/Safari, typically multiples of 100/120). Trackpad
+    // two-finger scroll sends small/fractional pixel deltas, often with
+    // non-zero deltaX. ctrlKey is set by the browser for trackpad pinch.
+    const isMouseWheel = (e) =>
+      e.deltaMode !== 0 ||
+      (e.deltaX === 0 && Number.isInteger(e.deltaY) && Math.abs(e.deltaY) >= 40);
+
+    const onWheel = (e) => {
+      e.preventDefault();
+      if (isGesturing) return; // Safari: gesture* owns the pinch — discard concurrent wheels
+      if (e.ctrlKey) {
+        // trackpad pinch (or explicit ctrl+wheel)
+        zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.01));
+      } else if (isMouseWheel(e)) {
+        // notched mouse wheel — fixed-ratio step per click
+        zoomAt(e.clientX, e.clientY, Math.exp(-Math.sign(e.deltaY) * 0.18));
+      } else {
+        // trackpad two-finger scroll — pan
+        tf.current.x -= e.deltaX;
+        tf.current.y -= e.deltaY;
+        apply();
+      }
+    };
+
+    // Safari sends native gesture* events for trackpad pinch with a smooth
+    // e.scale; preferring these over the ctrl+wheel fallback gives a much
+    // better feel there. No-ops on other browsers. Safari also fires
+    // ctrlKey wheel events during the same pinch — isGesturing makes
+    // onWheel drop those entirely so they neither zoom nor pan.
+    let gsBase = 1;
+    let isGesturing = false;
+    const onGestureStart = (e) => { e.preventDefault(); isGesturing = true; gsBase = tf.current.scale; };
+    const onGestureChange = (e) => {
+      e.preventDefault();
+      zoomAt(e.clientX, e.clientY, (gsBase * e.scale) / tf.current.scale);
+    };
+    const onGestureEnd = (e) => { e.preventDefault(); isGesturing = false; };
+
+    // Drag-pan: middle button anywhere, or primary button starting on the
+    // canvas background (not inside an artboard).
+    let drag = null;
+    const onPointerDown = (e) => {
+      const onBg = e.target === vp || e.target === worldRef.current;
+      if (!(e.button === 1 || (e.button === 0 && onBg))) return;
+      e.preventDefault();
+      vp.setPointerCapture(e.pointerId);
+      drag = { id: e.pointerId, lx: e.clientX, ly: e.clientY };
+      vp.style.cursor = 'grabbing';
+    };
+    const onPointerMove = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      tf.current.x += e.clientX - drag.lx;
+      tf.current.y += e.clientY - drag.ly;
+      drag.lx = e.clientX; drag.ly = e.clientY;
+      apply();
+    };
+    const onPointerUp = (e) => {
+      if (!drag || e.pointerId !== drag.id) return;
+      vp.releasePointerCapture(e.pointerId);
+      drag = null;
+      vp.style.cursor = '';
+    };
+
+    vp.addEventListener('wheel', onWheel, { passive: false });
+    vp.addEventListener('gesturestart', onGestureStart, { passive: false });
+    vp.addEventListener('gesturechange', onGestureChange, { passive: false });
+    vp.addEventListener('gestureend', onGestureEnd, { passive: false });
+    vp.addEventListener('pointerdown', onPointerDown);
+    vp.addEventListener('pointermove', onPointerMove);
+    vp.addEventListener('pointerup', onPointerUp);
+    vp.addEventListener('pointercancel', onPointerUp);
+    return () => {
+      vp.removeEventListener('wheel', onWheel);
+      vp.removeEventListener('gesturestart', onGestureStart);
+      vp.removeEventListener('gesturechange', onGestureChange);
+      vp.removeEventListener('gestureend', onGestureEnd);
+      vp.removeEventListener('pointerdown', onPointerDown);
+      vp.removeEventListener('pointermove', onPointerMove);
+      vp.removeEventListener('pointerup', onPointerUp);
+      vp.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [apply, minScale, maxScale]);
+
+  const gridSvg = `url("data:image/svg+xml,%3Csvg width='120' height='120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M120 0H0v120' fill='none' stroke='${encodeURIComponent(DC.grid)}' stroke-width='1'/%3E%3C/svg%3E")`;
+  return (
+    <div
+      ref={vpRef}
+      className="design-canvas"
+      style={{
+        height: '100vh', width: '100vw',
+        background: DC.bg,
+        overflow: 'hidden',
+        overscrollBehavior: 'none',
+        touchAction: 'none',
+        position: 'relative',
+        fontFamily: DC.font,
+        boxSizing: 'border-box',
+        ...style,
+      }}
+    >
+      <div
+        ref={worldRef}
+        style={{
+          position: 'absolute', top: 0, left: 0,
+          transformOrigin: '0 0',
+          willChange: 'transform',
+          width: 'max-content', minWidth: '100%',
+          minHeight: '100%',
+          padding: '60px 0 80px',
+          backgroundImage: gridSvg,
+          backgroundSize: '120px 120px',
+        }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section — title + subtitle + h-stack of artboards (no wrap)
+// ─────────────────────────────────────────────────────────────
+function DCSection({ title, subtitle, children, gap = 48 }) {
+  return (
+    <div style={{ marginBottom: 80, position: 'relative' }}>
+      <div style={{ padding: '0 60px 36px' }}>
+        <div style={{
+          fontSize: 22, fontWeight: 600, color: DC.title,
+          letterSpacing: -0.3, marginBottom: 4,
+        }}>{title}</div>
+        {subtitle && (
+          <div style={{
+            fontSize: 14, fontWeight: 400, color: DC.subtitle,
+          }}>{subtitle}</div>
+        )}
+      </div>
+      {/* h-stack — clips offscreen, never wraps */}
+      <div style={{
+        display: 'flex', gap, padding: '0 60px',
+        alignItems: 'flex-start', width: 'max-content',
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Artboard — labeled card
+// ─────────────────────────────────────────────────────────────
+function DCArtboard({ label, children, width, height, style = {} }) {
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      {label && (
+        <div style={{
+          position: 'absolute', bottom: '100%', left: 0,
+          paddingBottom: 8,
+          fontSize: 12, fontWeight: 500, color: DC.label,
+          whiteSpace: 'nowrap',
+        }}>{label}</div>
+      )}
+      <div style={{
+        borderRadius: 2,
+        boxShadow: '0 1px 3px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.06)',
+        overflow: 'hidden',
+        width, height,
+        background: '#fff',
+        ...style,
+      }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Post-it — absolute-positioned sticky note
+// ─────────────────────────────────────────────────────────────
+function DCPostIt({ children, top, left, right, bottom, rotate = -2, width = 180 }) {
+  return (
+    <div style={{
+      position: 'absolute', top, left, right, bottom, width,
+      background: DC.postitBg, padding: '14px 16px',
+      fontFamily: '"Comic Sans MS", "Marker Felt", "Segoe Print", cursive',
+      fontSize: 14, lineHeight: 1.4, color: DC.postitText,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.08)',
+      transform: `rotate(${rotate}deg)`,
+      zIndex: 5,
+    }}>{children}</div>
+  );
+}
+
+Object.assign(window, { DesignCanvas, DCSection, DCArtboard, DCPostIt });
+
+
+</script>
+<script type="text/babel">
+// King's Table — shared visual primitives
+// Crown glyph, suit glyphs, chip stack, ornamental dividers, gold text
+
+const Crown = ({ size = 16, color = 'var(--kt-gold-200)' }) => (
+  <svg width={size} height={size * 0.8} viewBox="0 0 20 16" fill="none">
+    <path d="M2 14h16M2 14l1-8 4 4 3-6 3 6 4-4 1 8" stroke={color} strokeWidth="1.2" strokeLinejoin="round" strokeLinecap="round" fill="none"/>
+    <circle cx="3" cy="6" r="1" fill={color}/>
+    <circle cx="10" cy="4" r="1" fill={color}/>
+    <circle cx="17" cy="6" r="1" fill={color}/>
+  </svg>
+);
+
+const SuitSpade = ({ size = 12, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 12 12" fill={color}>
+    <path d="M6 1C5 3 2 5 2 7.2c0 1.3 1 2.3 2.3 2.3.7 0 1.3-.3 1.7-.8V10L5.2 11h1.6L6 10.7V8.7c.4.5 1 .8 1.7.8C9 9.5 10 8.5 10 7.2 10 5 7 3 6 1z"/>
+  </svg>
+);
+
+const SuitHeart = ({ size = 12, color = '#c85a5a' }) => (
+  <svg width={size} height={size} viewBox="0 0 12 12" fill={color}>
+    <path d="M6 10.5C5 9.5 1.5 7 1.5 4.5 1.5 3 2.7 2 4 2c.8 0 1.5.4 2 1 .5-.6 1.2-1 2-1 1.3 0 2.5 1 2.5 2.5C10.5 7 7 9.5 6 10.5z"/>
+  </svg>
+);
+
+const SuitDiamond = ({ size = 12, color = '#c85a5a' }) => (
+  <svg width={size} height={size} viewBox="0 0 12 12" fill={color}>
+    <path d="M6 1L10 6 6 11 2 6z"/>
+  </svg>
+);
+
+const SuitClub = ({ size = 12, color = 'currentColor' }) => (
+  <svg width={size} height={size} viewBox="0 0 12 12" fill={color}>
+    <circle cx="6" cy="3.5" r="2"/>
+    <circle cx="3.5" cy="7" r="2"/>
+    <circle cx="8.5" cy="7" r="2"/>
+    <path d="M5 9h2v2H5z"/>
+  </svg>
+);
+
+// Chip — concentric ring with notches
+const Chip = ({ size = 28, tone = 'gold', value }) => {
+  const tones = {
+    gold:  { bg: '#b89a5e', edge: '#e8d5a0', dark: '#5a4a28' },
+    black: { bg: '#1a1816', edge: '#7a7366', dark: '#0a0807' },
+    green: { bg: '#2d5a42', edge: '#5a8c70', dark: '#1a3325' },
+    red:   { bg: '#7a2a2a', edge: '#c85a5a', dark: '#4a1515' },
+  };
+  const t = tones[tone] || tones.gold;
+  const r = size / 2;
+  const notches = [0, 45, 90, 135, 180, 225, 270, 315];
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ display: 'block' }}>
+      <defs>
+        <radialGradient id={`chip-${tone}-${size}`} cx="0.35" cy="0.3">
+          <stop offset="0" stopColor={t.edge} stopOpacity="0.5"/>
+          <stop offset="0.5" stopColor={t.bg}/>
+          <stop offset="1" stopColor={t.dark}/>
+        </radialGradient>
+      </defs>
+      <circle cx={r} cy={r} r={r - 0.5} fill={`url(#chip-${tone}-${size})`} stroke={t.dark} strokeWidth="0.5"/>
+      {notches.map(a => (
+        <rect key={a} x={r - 1.2} y={1} width="2.4" height={size * 0.18}
+              fill={t.edge} transform={`rotate(${a} ${r} ${r})`} opacity="0.85"/>
+      ))}
+      <circle cx={r} cy={r} r={r * 0.55} fill={t.bg} stroke={t.edge} strokeWidth="0.5" opacity="0.9"/>
+      {value && (
+        <text x={r} y={r + 2.5} textAnchor="middle"
+              fontFamily="var(--kt-font-mono)" fontSize={size * 0.28}
+              fontWeight="700" fill={t.edge}>{value}</text>
+      )}
+    </svg>
+  );
+};
+
+// Ornamental divider — diamond in the middle
+const Flourish = ({ width = 120, color = 'var(--kt-gold-500)' }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8, width, color }}>
+    <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+    <svg width="8" height="8" viewBox="0 0 8 8"><path d="M4 0L8 4L4 8L0 4Z" fill="currentColor"/></svg>
+    <div style={{ flex: 1, height: 1, background: 'currentColor', opacity: 0.4 }} />
+  </div>
+);
+
+// Gold text
+const GoldText = ({ children, size = 14, weight = 500, style = {} }) => (
+  <span style={{
+    fontFamily: 'var(--kt-font-display)',
+    fontSize: size,
+    fontWeight: weight,
+    color: 'var(--kt-gold-200)',
+    letterSpacing: '0.01em',
+    textShadow: '0 1px 0 rgba(0,0,0,0.4)',
+    ...style,
+  }}>{children}</span>
+);
+
+// Section label with flourish
+const Eyebrow = ({ children, style = {} }) => (
+  <div style={{
+    display: 'flex', alignItems: 'center', gap: 10,
+    fontFamily: 'var(--kt-font-ui)',
+    fontSize: 10, fontWeight: 600, letterSpacing: '0.22em',
+    textTransform: 'uppercase', color: 'var(--kt-gold-400)',
+    ...style,
+  }}>
+    <div style={{ width: 18, height: 1, background: 'currentColor', opacity: 0.5 }} />
+    {children}
+  </div>
+);
+
+// Card — raised dark surface
+const KTCard = ({ children, padding = 16, style = {}, interactive = false, onClick }) => (
+  <div
+    onClick={onClick}
+    className="kt-texture-weave"
+    style={{
+      background: 'linear-gradient(180deg, var(--kt-bg-2), var(--kt-bg-1))',
+      border: '1px solid var(--kt-border)',
+      borderRadius: 'var(--kt-r-md)',
+      padding,
+      cursor: interactive ? 'pointer' : 'default',
+      transition: 'border-color 0.2s, transform 0.12s var(--kt-ease)',
+      ...(interactive ? { ':hover': { borderColor: 'var(--kt-border-hot)' } } : {}),
+      ...style,
+    }}
+  >
+    {children}
+  </div>
+);
+
+// Playing-card mini — 3x4 aspect, suit + rank
+const PlayingCard = ({ rank = 'A', suit = 'spade', size = 40, back = false }) => {
+  const isRed = suit === 'heart' || suit === 'diamond';
+  const SuitComp = { spade: SuitSpade, heart: SuitHeart, diamond: SuitDiamond, club: SuitClub }[suit];
+  const suitColor = isRed ? '#c85a5a' : '#111';
+  if (back) {
+    return (
+      <div style={{
+        width: size, height: size * 1.4, borderRadius: size * 0.08,
+        background: 'linear-gradient(135deg, #3a1f14, #1a0f08)',
+        border: '1px solid var(--kt-gold-500)',
+        position: 'relative', overflow: 'hidden',
+      }}>
+        <div style={{
+          position: 'absolute', inset: 4,
+          borderRadius: size * 0.06,
+          border: '0.5px solid var(--kt-gold-400)',
+          background: 'repeating-linear-gradient(45deg, rgba(232,213,160,0.08) 0 2px, transparent 2px 5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Crown size={size * 0.35} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div style={{
+      width: size, height: size * 1.4, borderRadius: size * 0.08,
+      background: '#f5ede0',
+      border: '1px solid rgba(0,0,0,0.2)',
+      position: 'relative', overflow: 'hidden',
+      fontFamily: 'var(--kt-font-display)',
+      boxShadow: '0 2px 6px rgba(0,0,0,0.4)',
+    }}>
+      <div style={{
+        position: 'absolute', top: 3, left: 4,
+        color: suitColor, fontSize: size * 0.28, fontWeight: 600,
+        lineHeight: 1, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      }}>
+        {rank}
+        <SuitComp size={size * 0.2} color={suitColor} />
+      </div>
+      <div style={{
+        position: 'absolute', inset: 0, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <SuitComp size={size * 0.5} color={suitColor} />
+      </div>
+    </div>
+  );
+};
+
+Object.assign(window, {
+  Crown, SuitSpade, SuitHeart, SuitDiamond, SuitClub,
+  Chip, Flourish, GoldText, Eyebrow, KTCard, PlayingCard,
+});
+
+</script>
+<script type="text/babel">
+// King's Table — Dashboard screen (mobile, PT-BR)
+
+function KTDashboard({ onNavigate }) {
+  const nav = onNavigate || (() => {});
+
+  return (
+    <div style={{
+      background: 'radial-gradient(ellipse at top, #1a1510 0%, var(--kt-bg-0) 55%)',
+      minHeight: '100%',
+      color: 'var(--kt-text-0)',
+      paddingBottom: 100,
+    }}>
+      {/* Header */}
+      <div style={{ padding: '56px 20px 0' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+          <div>
+            <Eyebrow>Boa noite</Eyebrow>
+            <div style={{
+              fontFamily: 'var(--kt-font-display)',
+              fontSize: 34, fontWeight: 500, lineHeight: 1.05,
+              marginTop: 6, color: 'var(--kt-gold-200)',
+              letterSpacing: '-0.01em',
+            }}>
+              Rafael<span style={{ color: 'var(--kt-text-2)', fontStyle: 'italic' }}>,</span>
+            </div>
+            <div style={{
+              fontSize: 14, color: 'var(--kt-text-1)',
+              marginTop: 2,
+            }}>mesa <span className="kt-num">#007</span> · quarta, 22h</div>
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <IconBtn icon="bell" badge={3} />
+            <div style={{
+              width: 38, height: 38, borderRadius: 19,
+              background: 'linear-gradient(135deg, var(--kt-gold-300), var(--kt-gold-500))',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontFamily: 'var(--kt-font-display)',
+              color: '#1a1206', fontWeight: 600, fontSize: 15,
+              border: '1px solid var(--kt-gold-200)',
+            }}>RF</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Hero — Live tournament card */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <LiveTournamentCard onOpen={() => nav('blinds')} />
+      </div>
+
+      {/* Quick actions — radial pie */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <QuickActions onNavigate={nav} />
+      </div>
+
+      {/* Your standing */}
+      <div style={{ padding: '28px 20px 0' }}>
+        <SectionTitle title="Sua temporada" hint="Liga do Rei · abril" onSee={() => nav('ranking')} />
+        <StandingCard />
+      </div>
+
+      {/* Upcoming */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <SectionTitle title="Próximos torneios" onSee={() => nav('create')} seeLabel="ver todos" />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+          <UpcomingRow date="SEX 24" day="24" format="NLH Deep" buyin="R$ 300" players="11/18" />
+          <UpcomingRow date="DOM 26" day="26" format="Turbo" buyin="R$ 150" players="6/12" />
+          <UpcomingRow date="QUA 29" day="29" format="Bounty" buyin="R$ 500" players="4/16" />
+        </div>
+      </div>
+
+      {/* Learn strip */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <LearnStrip onNavigate={nav} />
+      </div>
+    </div>
+  );
+}
+
+// ─────────── Sub-components ───────────
+
+function IconBtn({ icon, badge }) {
+  return (
+    <button className="kt-btn kt-btn-ghost" style={{
+      width: 38, height: 38, borderRadius: 19, padding: 0,
+      position: 'relative', display: 'flex',
+      alignItems: 'center', justifyContent: 'center',
+    }}>
+      {icon === 'bell' && (
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <path d="M8 1v1.5M3.5 6.5C3.5 4 5.5 2 8 2s4.5 2 4.5 4.5V9l1.5 2.5h-12L3.5 9V6.5zM6.5 13a1.5 1.5 0 003 0" stroke="var(--kt-gold-200)" strokeWidth="1.2" strokeLinecap="round"/>
+        </svg>
+      )}
+      {badge > 0 && (
+        <div style={{
+          position: 'absolute', top: 6, right: 6,
+          width: 6, height: 6, borderRadius: 3,
+          background: 'var(--kt-gold-200)',
+        }} />
+      )}
+    </button>
+  );
+}
+
+function LiveTournamentCard({ onOpen }) {
+  const [pulse, setPulse] = React.useState(false);
+  React.useEffect(() => {
+    const i = setInterval(() => setPulse(p => !p), 1400);
+    return () => clearInterval(i);
+  }, []);
+
+  return (
+    <div
+      onClick={onOpen}
+      style={{
+        position: 'relative',
+        borderRadius: 'var(--kt-r-lg)',
+        overflow: 'hidden',
+        cursor: 'pointer',
+        border: '1px solid var(--kt-border-strong)',
+        background: 'linear-gradient(135deg, #1a1510 0%, #0f0d0a 60%, #2a2018 100%)',
+        padding: 20,
+      }}
+    >
+      {/* chip watermark */}
+      <div style={{
+        position: 'absolute', right: -30, top: -30, opacity: 0.22,
+        transform: 'rotate(-8deg)', pointerEvents: 'none',
+      }}>
+        <Chip size={180} tone="gold" />
+      </div>
+
+      {/* LIVE chip */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          padding: '4px 10px 4px 8px',
+          borderRadius: 12,
+          background: 'rgba(200, 90, 90, 0.12)',
+          border: '1px solid rgba(200, 90, 90, 0.3)',
+        }}>
+          <div style={{
+            width: 7, height: 7, borderRadius: 4,
+            background: '#e36a6a',
+            opacity: pulse ? 1 : 0.4,
+            transition: 'opacity 0.6s',
+            boxShadow: pulse ? '0 0 8px #e36a6a' : 'none',
+          }} />
+          <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.2em', color: '#e89595' }}>AO VIVO</span>
+        </div>
+        <div className="kt-label" style={{ color: 'var(--kt-text-2)' }}>Torneio #214</div>
+      </div>
+
+      <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 26, fontWeight: 500, color: 'var(--kt-gold-200)', letterSpacing: '-0.005em' }}>
+        Quarta da Realeza
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--kt-text-1)', marginTop: 2 }}>
+        NLH · Deep stack · R$ 500 buy-in
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 20 }}>
+        <div>
+          <div className="kt-label">Nível 4</div>
+          <div style={{ fontFamily: 'var(--kt-font-mono)', fontSize: 44, fontWeight: 300, color: 'var(--kt-text-0)', lineHeight: 1, letterSpacing: '-0.04em', marginTop: 4 }}>
+            12:47
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--kt-text-2)', marginTop: 4, fontFamily: 'var(--kt-font-mono)' }}>
+            100 / 200 · ante 25
+          </div>
+        </div>
+
+        {/* arc progress */}
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="36" cy="36" r="30" fill="none" stroke="var(--kt-border)" strokeWidth="2" />
+          <circle cx="36" cy="36" r="30" fill="none"
+                  stroke="var(--kt-gold-200)" strokeWidth="2"
+                  strokeDasharray={2 * Math.PI * 30}
+                  strokeDashoffset={2 * Math.PI * 30 * 0.37}
+                  strokeLinecap="round"
+                  transform="rotate(-90 36 36)" />
+          <text x="36" y="40" textAnchor="middle"
+                fontFamily="var(--kt-font-display)" fontSize="16"
+                fill="var(--kt-gold-200)" fontWeight="500">63%</text>
+        </svg>
+      </div>
+
+      {/* footer stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginTop: 18, paddingTop: 14, borderTop: '1px solid var(--kt-border)' }}>
+        <MiniStat label="jogadores" value="9/12" />
+        <MiniStat label="stack médio" value="18.4k" />
+        <MiniStat label="prize pool" value="R$ 6.0k" />
+      </div>
+    </div>
+  );
+}
+
+function MiniStat({ label, value }) {
+  return (
+    <div>
+      <div className="kt-label" style={{ fontSize: 9 }}>{label}</div>
+      <div className="kt-num" style={{ fontSize: 15, color: 'var(--kt-text-0)', marginTop: 3 }}>{value}</div>
+    </div>
+  );
+}
+
+function QuickActions({ onNavigate }) {
+  const actions = [
+    { id: 'create', label: 'Criar torneio', icon: 'plus' },
+    { id: 'ranking', label: 'Ranking', icon: 'trophy' },
+    { id: 'prize', label: 'Premiação', icon: 'stack' },
+    { id: 'proof', label: 'Comprovantes', icon: 'receipt' },
+    { id: 'chat', label: 'IA · Dúvidas', icon: 'chat' },
+    { id: 'train', label: 'Treino GTO', icon: 'target' },
+  ];
+  return (
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(3, 1fr)',
+      gap: 8,
+    }}>
+      {actions.map(a => (
+        <button key={a.id}
+          onClick={() => onNavigate(a.id)}
+          className="kt-texture-weave"
+          style={{
+            background: 'var(--kt-bg-2)',
+            border: '1px solid var(--kt-border)',
+            borderRadius: 'var(--kt-r-md)',
+            padding: '16px 10px 12px',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 8,
+            color: 'var(--kt-text-0)',
+            cursor: 'pointer',
+            fontFamily: 'var(--kt-font-ui)',
+          }}>
+          <ActionIcon kind={a.icon} />
+          <span style={{ fontSize: 11, color: 'var(--kt-text-1)', letterSpacing: '-0.005em' }}>{a.label}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function ActionIcon({ kind }) {
+  const stroke = 'var(--kt-gold-200)';
+  const s = 18;
+  const paths = {
+    plus:    <><path d="M9 2v14M2 9h14" stroke={stroke} strokeWidth="1.3" strokeLinecap="round"/></>,
+    trophy:  <><path d="M5 3h8v3a4 4 0 01-8 0V3z M3 3h2v2a2 2 0 01-2 0M13 3h2v2a2 2 0 002 0 M7 10v3M11 10v3M5 14h8" stroke={stroke} strokeWidth="1.2" strokeLinecap="round" fill="none"/></>,
+    stack:   <><ellipse cx="9" cy="5" rx="6" ry="2" stroke={stroke} strokeWidth="1.2" fill="none"/><path d="M3 5v3c0 1 2.7 2 6 2s6-1 6-2V5M3 8v3c0 1 2.7 2 6 2s6-1 6-2V8M3 11v3c0 1 2.7 2 6 2s6-1 6-2v-3" stroke={stroke} strokeWidth="1.2" fill="none"/></>,
+    receipt: <><path d="M4 2h10v14l-2-1.5L10 16l-2-1.5L6 16l-2-1.5V2z M6 6h6M6 9h6M6 12h4" stroke={stroke} strokeWidth="1.2" strokeLinejoin="round" fill="none"/></>,
+    chat:    <><path d="M2 5a3 3 0 013-3h8a3 3 0 013 3v5a3 3 0 01-3 3H7l-3 3v-3a3 3 0 01-3-3V5z" stroke={stroke} strokeWidth="1.2" fill="none"/><circle cx="6" cy="7.5" r="0.8" fill={stroke}/><circle cx="9" cy="7.5" r="0.8" fill={stroke}/><circle cx="12" cy="7.5" r="0.8" fill={stroke}/></>,
+    target:  <><circle cx="9" cy="9" r="7" stroke={stroke} strokeWidth="1.2" fill="none"/><circle cx="9" cy="9" r="4" stroke={stroke} strokeWidth="1.2" fill="none"/><circle cx="9" cy="9" r="1.2" fill={stroke}/></>,
+  };
+  return (
+    <svg width={s} height={s} viewBox="0 0 18 18">{paths[kind]}</svg>
+  );
+}
+
+function SectionTitle({ title, hint, onSee, seeLabel = 'ver' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+      <div>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)',
+          fontSize: 20, fontWeight: 500,
+          color: 'var(--kt-text-0)',
+          letterSpacing: '-0.005em',
+        }}>{title}</div>
+        {hint && (
+          <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 1, letterSpacing: '-0.01em' }}>{hint}</div>
+        )}
+      </div>
+      {onSee && (
+        <button onClick={onSee} style={{
+          background: 'transparent', border: 0, padding: 0,
+          color: 'var(--kt-gold-300)', fontSize: 12,
+          fontFamily: 'var(--kt-font-ui)', cursor: 'pointer',
+          letterSpacing: '0.02em',
+        }}>{seeLabel} →</button>
+      )}
+    </div>
+  );
+}
+
+function StandingCard() {
+  // Seasonal rank viz: 8 dots showing recent tournaments' placements
+  const results = [1, 3, 2, 7, 2, 5, 1, 4]; // positions
+  return (
+    <div className="kt-texture-weave" style={{
+      marginTop: 12,
+      background: 'linear-gradient(180deg, var(--kt-bg-2), var(--kt-bg-1))',
+      border: '1px solid var(--kt-border)',
+      borderRadius: 'var(--kt-r-lg)',
+      padding: '18px 18px 16px',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12 }}>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)', fontSize: 44,
+          color: 'var(--kt-gold-200)', lineHeight: 1, fontWeight: 500,
+          letterSpacing: '-0.02em',
+        }}>2º</div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 13, color: 'var(--kt-text-0)', fontWeight: 500 }}>
+            <span className="kt-num">1.248</span> pts
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 1 }}>
+            <span style={{ color: 'var(--kt-ok)' }}>+64</span> desde o último torneio
+          </div>
+        </div>
+        <div style={{
+          padding: '5px 10px', borderRadius: 12,
+          fontSize: 10, fontWeight: 600, letterSpacing: '0.12em',
+          background: 'rgba(232,213,160,0.08)',
+          color: 'var(--kt-gold-200)',
+          border: '1px solid var(--kt-border-strong)',
+        }}>ITM 7×</div>
+      </div>
+
+      {/* Form line */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 16, alignItems: 'flex-end', height: 32 }}>
+        {results.map((pos, i) => {
+          const good = pos <= 3;
+          const h = Math.max(6, 32 - (pos - 1) * 4);
+          return (
+            <div key={i} style={{
+              flex: 1, height: h, borderRadius: 2,
+              background: good ? 'var(--kt-gold-300)' : 'rgba(232,213,160,0.2)',
+              position: 'relative',
+            }}>
+              {good && <div style={{
+                position: 'absolute', bottom: -14, left: '50%', transform: 'translateX(-50%)',
+                fontSize: 9, fontFamily: 'var(--kt-font-mono)', color: 'var(--kt-gold-300)',
+              }}>{pos}º</div>}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 22, fontSize: 10, color: 'var(--kt-text-2)', letterSpacing: '0.05em' }}>
+        últimos 8 torneios →
+      </div>
+    </div>
+  );
+}
+
+function UpcomingRow({ date, day, format, buyin, players }) {
+  const [,wd] = date.split(' ');
+  const dow = date.split(' ')[0];
+  return (
+    <div className="kt-texture-weave" style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '12px 14px',
+      background: 'var(--kt-bg-2)',
+      border: '1px solid var(--kt-border)',
+      borderRadius: 'var(--kt-r-md)',
+      cursor: 'pointer',
+    }}>
+      <div style={{
+        width: 44, height: 48, borderRadius: 8,
+        background: 'linear-gradient(180deg, var(--kt-bg-3), var(--kt-bg-1))',
+        border: '1px solid var(--kt-border-strong)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+      }}>
+        <div style={{ fontSize: 8, fontWeight: 600, letterSpacing: '0.15em', color: 'var(--kt-gold-400)' }}>{dow}</div>
+        <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-text-0)', lineHeight: 1, fontWeight: 500 }}>{day}</div>
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, color: 'var(--kt-text-0)', fontWeight: 500 }}>{format}</div>
+        <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 2 }}>
+          <span className="kt-num">{buyin}</span> · <span className="kt-num">{players}</span> confirmados
+        </div>
+      </div>
+      <div style={{
+        fontSize: 10, color: 'var(--kt-gold-300)',
+        fontWeight: 600, letterSpacing: '0.12em',
+      }}>INSCREVER →</div>
+    </div>
+  );
+}
+
+function LearnStrip({ onNavigate }) {
+  return (
+    <div onClick={() => onNavigate('trail')} style={{
+      position: 'relative',
+      borderRadius: 'var(--kt-r-lg)',
+      padding: '18px 20px',
+      background: 'linear-gradient(120deg, #1a2818 0%, #0f0d0a 80%)',
+      border: '1px solid rgba(120, 168, 133, 0.18)',
+      cursor: 'pointer',
+      overflow: 'hidden',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        {/* streak flame chip */}
+        <div style={{
+          width: 46, height: 46, borderRadius: 12,
+          background: 'linear-gradient(135deg, #3d8a6a, #1f4a38)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontFamily: 'var(--kt-font-display)',
+          fontSize: 22, color: 'var(--kt-gold-50)',
+          border: '1px solid rgba(232,213,160,0.25)',
+        }}>
+          <span className="kt-num" style={{ fontFamily: 'var(--kt-font-display)', fontWeight: 500 }}>14</span>
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, color: 'var(--kt-text-0)', fontWeight: 500 }}>
+            Streak de 14 dias
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--kt-text-1)', marginTop: 2 }}>
+            Lição de hoje: 3-bet pots fora de posição
+          </div>
+        </div>
+        <div style={{ color: 'var(--kt-gold-300)', fontSize: 18, fontFamily: 'var(--kt-font-display)' }}>→</div>
+      </div>
+      <div style={{ display: 'flex', gap: 4, marginTop: 14 }}>
+        {[1,1,1,1,1,1,1,0,0].map((v, i) => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            background: v ? '#3d8a6a' : 'rgba(120,168,133,0.15)',
+          }} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+window.KTDashboard = KTDashboard;
+
+</script>
+<script type="text/babel">
+// King's Table — Blinds Clock (landscape, cinematic)
+// Redesign: treat the whole landscape view as a single artifact — dark felt backdrop,
+// ornate gold frame, the time as the focal hero with serif display. Blinds flank as
+// hand-set chips. No app chrome. Feels like an object, not a tool.
+
+let __ktAudio = null;
+function getAudio() {
+  if (__ktAudio) return __ktAudio;
+  try { __ktAudio = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  return __ktAudio;
+}
+function beep({ freq = 880, dur = 0.08, vol = 0.08, type = 'sine' } = {}) {
+  const ctx = getAudio(); if (!ctx) return;
+  if (ctx.state === 'suspended') ctx.resume();
+  const o = ctx.createOscillator(); const g = ctx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.setValueAtTime(0, ctx.currentTime);
+  g.gain.linearRampToValueAtTime(vol, ctx.currentTime + 0.01);
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + dur);
+  o.connect(g); g.connect(ctx.destination);
+  o.start(); o.stop(ctx.currentTime + dur + 0.02);
+}
+function chime() {
+  beep({ freq: 523, dur: 0.4, vol: 0.12, type: 'triangle' });
+  setTimeout(() => beep({ freq: 784, dur: 0.5, vol: 0.12, type: 'triangle' }), 180);
+  setTimeout(() => beep({ freq: 1046, dur: 0.7, vol: 0.1, type: 'triangle' }), 380);
+}
+
+function KTBlindsClock({ compact = false, variant = 'cinematic', onExit, soundOn = true }) {
+  const LEVEL_TOTAL = 1200;
+  const [seconds, setSeconds] = React.useState(767);
+  const [paused, setPaused] = React.useState(false);
+  const [level, setLevel] = React.useState(4);
+  const [sound, setSound] = React.useState(soundOn);
+  const [flashLevel, setFlashLevel] = React.useState(false);
+  const prevSecRef = React.useRef(seconds);
+
+  React.useEffect(() => {
+    if (paused) return;
+    const i = setInterval(() => {
+      setSeconds(s => {
+        const next = s - 1;
+        if (sound && next >= 0 && next <= 10) {
+          beep({ freq: next === 0 ? 1320 : 720, dur: 0.06, vol: 0.06, type: 'sine' });
+        }
+        if (next < 0) { if (sound) chime(); return LEVEL_TOTAL; }
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(i);
+  }, [paused, sound]);
+
+  React.useEffect(() => {
+    if (prevSecRef.current === 0 && seconds === LEVEL_TOTAL) {
+      setLevel(l => l + 1);
+      setFlashLevel(true);
+      setTimeout(() => setFlashLevel(false), 1600);
+    }
+    prevSecRef.current = seconds;
+  }, [seconds]);
+
+  const levels = [
+    { n: 1, sb: 25,  bb: 50,   ante: 0 },
+    { n: 2, sb: 50,  bb: 100,  ante: 0 },
+    { n: 3, sb: 75,  bb: 150,  ante: 0 },
+    { n: 4, sb: 100, bb: 200,  ante: 25 },
+    { n: 5, sb: 150, bb: 300,  ante: 50 },
+    { n: 6, sb: 200, bb: 400,  ante: 50 },
+    { n: 7, sb: 300, bb: 600,  ante: 75 },
+    { n: 8, sb: 500, bb: 1000, ante: 100 },
+  ];
+  const safeLevel = Math.min(Math.max(1, level), levels.length);
+  const cur = levels[safeLevel - 1];
+  const next = levels[safeLevel] || levels[safeLevel - 1];
+  const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
+  const ss = String(seconds % 60).padStart(2, '0');
+  const progress = 1 - seconds / LEVEL_TOTAL;
+  const warn = seconds <= 60;
+  const danger = seconds <= 10;
+
+  return (
+    <div style={{
+      width: '100%', height: '100%',
+      position: 'relative', overflow: 'hidden',
+      background: '#050403',
+      fontFamily: 'var(--kt-font-ui)',
+    }}>
+      {/* ------ LAYER 1: felt backdrop with radial vignette ------ */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        background: `
+          radial-gradient(ellipse 80% 60% at 50% 45%, #1a1a12 0%, #0d0b08 55%, #050403 100%),
+          repeating-linear-gradient(135deg, transparent 0 3px, rgba(232,213,160,0.012) 3px 4px)
+        `,
+      }} />
+
+      {/* subtle film grain */}
+      <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.06, mixBlendMode: 'overlay', pointerEvents: 'none' }}>
+        <filter id="noise"><feTurbulence baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/></filter>
+        <rect width="100%" height="100%" filter="url(#noise)"/>
+      </svg>
+
+      {/* ------ LAYER 2: ornamental top border ------ */}
+      <OrnateBorder position="top" />
+      <OrnateBorder position="bottom" />
+
+      {/* ------ LAYER 3: top meta row ------ */}
+      <div style={{
+        position: 'absolute', top: compact ? 14 : 22, left: 0, right: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: compact ? '0 22px' : '0 40px',
+        zIndex: 5,
+      }}>
+        <button onClick={onExit} style={{
+          background: 'transparent', border: 'none', color: 'var(--kt-gold-300)',
+          fontSize: 10, letterSpacing: '0.25em', cursor: 'pointer',
+          fontFamily: 'var(--kt-font-ui)', fontWeight: 600,
+          display: 'flex', alignItems: 'center', gap: 8,
+        }}>
+          <span style={{ fontSize: 14 }}>‹</span> SAIR
+        </button>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            fontFamily: 'var(--kt-font-display)', fontStyle: 'italic',
+            fontSize: compact ? 14 : 18, color: 'var(--kt-gold-200)',
+            letterSpacing: '0.04em', fontWeight: 400,
+          }}>Quarta da Realeza</div>
+          <div style={{
+            fontSize: 9, letterSpacing: '0.4em', color: 'var(--kt-text-3)',
+            marginTop: 2,
+          }}>NLH DEEP · #214 · 9 PLAYERS</div>
+        </div>
+        <button onClick={() => setSound(s => !s)} style={{
+          background: 'transparent', border: 'none', cursor: 'pointer',
+          color: sound ? 'var(--kt-gold-300)' : 'var(--kt-text-3)',
+          fontSize: 10, letterSpacing: '0.25em', fontWeight: 600,
+          fontFamily: 'var(--kt-font-ui)',
+        }}>
+          {sound ? '♪ SOM' : '⊘ MUDO'}
+        </button>
+      </div>
+
+      {/* ------ LAYER 4: THE HERO — three-column composition ------ */}
+      <div style={{
+        position: 'absolute', inset: 0,
+        display: 'grid',
+        gridTemplateColumns: '1fr auto 1fr',
+        alignItems: 'center',
+        padding: compact ? '60px 24px 80px' : '90px 60px 110px',
+        gap: compact ? 32 : 70,
+        zIndex: 3,
+      }}>
+        {/* LEFT — current blinds as a gold-leaf page */}
+        <BlindPage
+          eyebrow="NOW PLAYING"
+          level={cur.n}
+          sb={cur.sb}
+          bb={cur.bb}
+          ante={cur.ante}
+          accent
+          compact={compact}
+          side="left"
+        />
+
+        {/* CENTER — the time */}
+        <TimeHero
+          mm={mm} ss={ss}
+          progress={progress}
+          warn={warn} danger={danger}
+          paused={paused}
+          onPause={() => { setPaused(p => !p); if (sound) beep({ freq: 440, dur: 0.1, vol: 0.08 }); }}
+          compact={compact}
+          seconds={seconds}
+        />
+
+        {/* RIGHT — next level */}
+        <BlindPage
+          eyebrow="COMING UP"
+          level={next.n}
+          sb={next.sb}
+          bb={next.bb}
+          ante={next.ante}
+          compact={compact}
+          side="right"
+        />
+      </div>
+
+      {/* ------ LAYER 5: bottom control bar — jump +/- level ------ */}
+      <div style={{
+        position: 'absolute', bottom: compact ? 16 : 26, left: 0, right: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        gap: compact ? 18 : 30,
+        zIndex: 5, fontFamily: 'var(--kt-font-ui)',
+      }}>
+        <ChromeBtn onClick={() => { setLevel(l => Math.max(1, l - 1)); setSeconds(LEVEL_TOTAL); }}>
+          ‹ prev level
+        </ChromeBtn>
+        <div style={{
+          fontSize: 9, letterSpacing: '0.3em', color: 'var(--kt-text-3)',
+          fontFamily: 'var(--kt-font-mono)',
+        }}>
+          LEVEL <span style={{ color: 'var(--kt-gold-200)' }}>{String(cur.n).padStart(2,'0')}</span> / {String(levels.length).padStart(2,'0')}
+        </div>
+        <ChromeBtn onClick={() => { setLevel(l => Math.min(levels.length, l + 1)); setSeconds(LEVEL_TOTAL); setFlashLevel(true); setTimeout(()=>setFlashLevel(false),1600); if (sound) chime(); }}>
+          next level ›
+        </ChromeBtn>
+      </div>
+
+      {/* ------ LAYER 6: level-change cinematic flash ------ */}
+      {flashLevel && (
+        <div style={{
+          position: 'absolute', inset: 0, zIndex: 30, pointerEvents: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'radial-gradient(ellipse at center, rgba(232,213,160,0.22), transparent 60%)',
+          animation: 'kt-flash 1.6s ease-out forwards',
+        }}>
+          <div style={{
+            fontFamily: 'var(--kt-font-display)', fontStyle: 'italic',
+            fontSize: compact ? 110 : 180, fontWeight: 500,
+            color: 'var(--kt-gold-100)',
+            textShadow: '0 0 60px rgba(232,213,160,0.6), 0 0 20px rgba(232,213,160,0.4)',
+            animation: 'kt-flash-text 1.6s cubic-bezier(.2,.9,.2,1) forwards',
+            letterSpacing: '0.02em',
+          }}>
+            Level {cur.n}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        @keyframes kt-flash { 0% { opacity: 0; } 15% { opacity: 1; } 100% { opacity: 0; } }
+        @keyframes kt-flash-text {
+          0% { transform: scale(0.6); opacity: 0; letter-spacing: -0.1em; }
+          20% { transform: scale(1.05); opacity: 1; letter-spacing: 0.02em; }
+          100% { transform: scale(1.15); opacity: 0; letter-spacing: 0.08em; }
+        }
+        @keyframes kt-pulse {
+          0%, 100% { opacity: 0.6; } 50% { opacity: 1; }
+        }
+        @keyframes kt-tick-beat {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.02); }
+        }
+        @keyframes kt-danger-pulse {
+          0%, 100% { color: var(--kt-gold-100); text-shadow: 0 0 30px rgba(232,213,160,0.2); }
+          50% { color: #e88585; text-shadow: 0 0 50px rgba(232,100,100,0.5); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// --- TIME HERO ---------------------------------------------------------------
+
+function TimeHero({ mm, ss, progress, warn, danger, paused, onPause, compact, seconds }) {
+  const R = compact ? 130 : 178;         // outer ring radius
+  const ringW = compact ? 3 : 4;         // thin gold ring
+  const size = R * 2 + (compact ? 44 : 60);
+  const C = size / 2;
+  const circ = 2 * Math.PI * R;
+
+  return (
+    <div
+      onClick={onPause}
+      style={{
+        position: 'relative',
+        width: size, height: size,
+        cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        userSelect: 'none',
+      }}
+    >
+      {/* hairline outermost ring with tick ornaments */}
+      <svg width={size} height={size} style={{ position: 'absolute', inset: 0 }}>
+        <defs>
+          <linearGradient id="gold-arc" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#f8ecc8"/>
+            <stop offset="0.5" stopColor="#d4b870"/>
+            <stop offset="1" stopColor="#8a6d36"/>
+          </linearGradient>
+          <radialGradient id="center-glow" cx="0.5" cy="0.5">
+            <stop offset="0" stopColor="rgba(232,213,160,0.08)"/>
+            <stop offset="0.7" stopColor="rgba(232,213,160,0.02)"/>
+            <stop offset="1" stopColor="transparent"/>
+          </radialGradient>
+          <filter id="soft-glow"><feGaussianBlur stdDeviation="4"/></filter>
+        </defs>
+
+        {/* center glow plate */}
+        <circle cx={C} cy={C} r={R - 6} fill="url(#center-glow)" />
+
+        {/* decorative outermost ring */}
+        <circle cx={C} cy={C} r={R + (compact ? 18 : 24)} fill="none"
+                stroke="rgba(232,213,160,0.15)" strokeWidth="0.75" />
+
+        {/* tick marks — 4 cardinal flourishes */}
+        {[0, 90, 180, 270].map(deg => {
+          const rad = (deg - 90) * Math.PI / 180;
+          const r1 = R + (compact ? 14 : 18);
+          const r2 = R + (compact ? 22 : 30);
+          return (
+            <g key={deg}>
+              <line
+                x1={C + Math.cos(rad) * r1} y1={C + Math.sin(rad) * r1}
+                x2={C + Math.cos(rad) * r2} y2={C + Math.sin(rad) * r2}
+                stroke="var(--kt-gold-300)" strokeWidth="1"
+              />
+              <circle
+                cx={C + Math.cos(rad) * (r2 + 4)} cy={C + Math.sin(rad) * (r2 + 4)}
+                r="1.5" fill="var(--kt-gold-200)"
+              />
+            </g>
+          );
+        })}
+
+        {/* 12 subtle minor ticks */}
+        {Array.from({ length: 60 }).map((_, i) => {
+          if (i % 15 === 0) return null; // cardinals drawn above
+          const rad = (i * 6 - 90) * Math.PI / 180;
+          const major = i % 5 === 0;
+          const r1 = R + (compact ? 15 : 20);
+          const r2 = R + (compact ? 18 : 24);
+          return (
+            <line key={i}
+              x1={C + Math.cos(rad) * r1} y1={C + Math.sin(rad) * r1}
+              x2={C + Math.cos(rad) * r2} y2={C + Math.sin(rad) * r2}
+              stroke="var(--kt-gold-500)" strokeWidth={major ? 0.8 : 0.4}
+              opacity={major ? 0.7 : 0.3}
+            />
+          );
+        })}
+
+        {/* progress arc — thin, elegant */}
+        <circle cx={C} cy={C} r={R} fill="none"
+                stroke="rgba(232,213,160,0.06)" strokeWidth={ringW} />
+        <circle cx={C} cy={C} r={R} fill="none"
+                stroke={danger ? '#e06868' : warn ? '#e8a560' : 'url(#gold-arc)'}
+                strokeWidth={ringW + (danger ? 1 : 0)}
+                strokeDasharray={circ}
+                strokeDashoffset={circ * (1 - progress)}
+                strokeLinecap="round"
+                transform={`rotate(-90 ${C} ${C})`}
+                style={{ transition: 'stroke-dashoffset 1s linear, stroke 0.4s' }} />
+
+        {/* second-hand indicator dot on the progress arc */}
+        {(() => {
+          const a = (progress * 360 - 90) * Math.PI / 180;
+          return (
+            <circle
+              cx={C + Math.cos(a) * R}
+              cy={C + Math.sin(a) * R}
+              r={ringW + 2}
+              fill={danger ? '#e88585' : 'var(--kt-gold-100)'}
+              style={{ filter: 'drop-shadow(0 0 6px rgba(232,213,160,0.8))' }}
+            />
+          );
+        })()}
+      </svg>
+
+      {/* ornamental corner flourishes (four diamonds) */}
+      {[[0,0],[1,0],[0,1],[1,1]].map(([x,y],i) => (
+        <div key={i} style={{
+          position: 'absolute',
+          top: y ? 'auto' : -2, bottom: y ? -2 : 'auto',
+          left: x ? 'auto' : -2, right: x ? -2 : 'auto',
+          width: 6, height: 6, background: 'var(--kt-gold-300)',
+          transform: 'rotate(45deg)',
+          opacity: 0.5,
+        }} />
+      ))}
+
+      {/* time text */}
+      <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', pointerEvents: 'none' }}>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)',
+          fontStyle: 'italic',
+          fontSize: 10, letterSpacing: '0.4em',
+          color: 'var(--kt-gold-300)',
+          textTransform: 'uppercase', fontWeight: 400,
+          marginBottom: compact ? 4 : 8,
+        }}>time remaining</div>
+        <div style={{
+          fontFamily: 'var(--kt-font-mono)',
+          fontSize: compact ? 80 : 120,
+          fontWeight: 200,
+          color: danger ? '#e88585' : 'var(--kt-gold-100)',
+          lineHeight: 0.95,
+          letterSpacing: '-0.05em',
+          fontVariantNumeric: 'tabular-nums',
+          textShadow: danger ? '0 0 40px rgba(232,100,100,0.5)' : '0 0 30px rgba(232,213,160,0.2)',
+          animation: danger && !paused ? 'kt-danger-pulse 1s ease-in-out infinite' : 'none',
+        }}>
+          {mm}<span style={{
+            opacity: seconds % 2 && !paused ? 1 : 0.35,
+            transition: 'opacity 0.2s',
+          }}>:</span>{ss}
+        </div>
+        <div style={{
+          marginTop: compact ? 4 : 10,
+          fontSize: 9, letterSpacing: '0.3em', color: 'var(--kt-text-2)',
+        }}>
+          {paused ? (
+            <span style={{ color: '#e8a560', animation: 'kt-pulse 1.2s infinite' }}>❚❚ PAUSED — TAP TO RESUME</span>
+          ) : (
+            <span>TAP TO PAUSE</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- BLIND PAGE (left / right flank) -----------------------------------------
+
+function BlindPage({ eyebrow, level, sb, bb, ante, accent, compact, side }) {
+  const align = side === 'left' ? 'right' : 'left';
+  return (
+    <div style={{
+      textAlign: align,
+      paddingLeft: side === 'right' ? 0 : 0,
+      paddingRight: side === 'left' ? 0 : 0,
+      opacity: accent ? 1 : 0.6,
+      display: 'flex', flexDirection: 'column',
+      alignItems: side === 'left' ? 'flex-end' : 'flex-start',
+      gap: compact ? 6 : 10,
+    }}>
+      {/* eyebrow with flourish */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        flexDirection: side === 'left' ? 'row' : 'row-reverse',
+      }}>
+        <div style={{
+          width: compact ? 18 : 26, height: 1,
+          background: `linear-gradient(${side === 'left' ? 'to right' : 'to left'}, transparent, var(--kt-gold-400))`,
+        }}/>
+        <div style={{
+          fontFamily: 'var(--kt-font-mono)', fontSize: 9, fontWeight: 600,
+          letterSpacing: '0.3em', color: accent ? 'var(--kt-gold-300)' : 'var(--kt-text-3)',
+        }}>{eyebrow}</div>
+      </div>
+
+      {/* level tag */}
+      <div style={{
+        fontFamily: 'var(--kt-font-display)', fontStyle: 'italic',
+        fontSize: compact ? 16 : 22, fontWeight: 400,
+        color: accent ? 'var(--kt-gold-200)' : 'var(--kt-text-2)',
+        letterSpacing: '0.01em',
+      }}>
+        Level {level}
+      </div>
+
+      {/* giant SB/BB */}
+      <div style={{
+        display: 'flex', alignItems: 'baseline',
+        flexDirection: side === 'left' ? 'row' : 'row',
+        gap: compact ? 8 : 12,
+        justifyContent: side === 'left' ? 'flex-end' : 'flex-start',
+        width: '100%',
+      }}>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)',
+          fontSize: compact ? 56 : 86, fontWeight: 400,
+          color: accent ? 'var(--kt-gold-100)' : 'var(--kt-text-1)',
+          lineHeight: 0.9, letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
+        }}>{sb}</div>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)', fontStyle: 'italic',
+          fontSize: compact ? 42 : 64, fontWeight: 300,
+          color: 'var(--kt-text-3)', lineHeight: 1,
+        }}>/</div>
+        <div style={{
+          fontFamily: 'var(--kt-font-display)',
+          fontSize: compact ? 56 : 86, fontWeight: 400,
+          color: accent ? 'var(--kt-gold-100)' : 'var(--kt-text-1)',
+          lineHeight: 0.9, letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
+        }}>{bb}</div>
+      </div>
+
+      {/* small caps SB/BB labels */}
+      <div style={{
+        display: 'flex', gap: compact ? 20 : 30,
+        flexDirection: side === 'left' ? 'row' : 'row',
+        justifyContent: side === 'left' ? 'flex-end' : 'flex-start',
+        fontFamily: 'var(--kt-font-mono)', fontSize: 9,
+        letterSpacing: '0.25em', color: 'var(--kt-text-3)',
+        width: '100%',
+        paddingRight: side === 'left' ? (compact ? 46 : 74) : 0,
+        paddingLeft: side === 'right' ? 0 : 0,
+      }}>
+        <span>SMALL BLIND</span>
+        <span style={{ marginLeft: 'auto' }}>BIG BLIND</span>
+      </div>
+
+      {/* ante */}
+      {ante > 0 && (
+        <div style={{
+          marginTop: compact ? 6 : 12,
+          fontFamily: 'var(--kt-font-mono)', fontSize: 11,
+          letterSpacing: '0.2em', color: 'var(--kt-text-2)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          flexDirection: side === 'left' ? 'row' : 'row-reverse',
+        }}>
+          <span style={{ color: 'var(--kt-text-3)' }}>+ ANTE</span>
+          <span style={{ color: accent ? 'var(--kt-gold-200)' : 'var(--kt-text-1)', fontWeight: 600, fontFamily: 'var(--kt-font-display)', fontSize: 16 }}>{ante}</span>
+        </div>
+      )}
+
+      {/* accent-only live stats */}
+      {accent && !compact && (
+        <div style={{
+          marginTop: 22, paddingTop: 16,
+          borderTop: '1px solid rgba(232,213,160,0.15)',
+          width: '100%',
+          display: 'grid', gridTemplateColumns: '1fr 1fr',
+          gap: 12,
+          textAlign: 'right',
+        }}>
+          <MiniStat label="AVG STACK" value="18.4k" hint="chips" />
+          <MiniStat label="PLAYERS" value="9" hint="/ 12" />
+          <MiniStat label="HAND #" value="47" />
+          <MiniStat label="PRIZE POOL" value="R$6.0k" />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniStat({ label, value, hint }) {
+  return (
+    <div>
+      <div style={{ fontFamily: 'var(--kt-font-mono)', fontSize: 8, letterSpacing: '0.25em', color: 'var(--kt-text-3)' }}>{label}</div>
+      <div style={{ marginTop: 3 }}>
+        <span style={{ fontFamily: 'var(--kt-font-display)', fontSize: 18, color: 'var(--kt-gold-200)', fontWeight: 500 }}>{value}</span>
+        {hint && <span style={{ fontFamily: 'var(--kt-font-mono)', fontSize: 10, color: 'var(--kt-text-3)', marginLeft: 4 }}>{hint}</span>}
+      </div>
+    </div>
+  );
+}
+
+// --- CHROME BUTTON -----------------------------------------------------------
+
+function ChromeBtn({ children, onClick }) {
+  const [h, setH] = React.useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setH(true)} onMouseLeave={() => setH(false)}
+      style={{
+        background: 'transparent',
+        border: '1px solid',
+        borderColor: h ? 'var(--kt-gold-300)' : 'rgba(232,213,160,0.2)',
+        color: h ? 'var(--kt-gold-200)' : 'var(--kt-text-2)',
+        padding: '8px 18px', borderRadius: 2,
+        fontFamily: 'var(--kt-font-mono)', fontSize: 10,
+        letterSpacing: '0.2em', textTransform: 'uppercase',
+        fontWeight: 500, cursor: 'pointer',
+        transition: 'all 0.25s',
+      }}
+    >{children}</button>
+  );
+}
+
+// --- ORNATE BORDER -----------------------------------------------------------
+// A thin gold hairline with central diamond flourish (top & bottom)
+
+function OrnateBorder({ position }) {
+  const isTop = position === 'top';
+  return (
+    <div style={{
+      position: 'absolute', left: 0, right: 0,
+      top: isTop ? 0 : 'auto', bottom: isTop ? 'auto' : 0,
+      height: 60, zIndex: 2, pointerEvents: 'none',
+    }}>
+      <svg width="100%" height="100%" viewBox="0 0 1000 60" preserveAspectRatio="none" style={{ position: 'absolute', inset: 0 }}>
+        <g transform={isTop ? '' : 'translate(0,60) scale(1,-1)'}>
+          {/* hairline */}
+          <line x1="0" y1="30" x2="420" y2="30" stroke="var(--kt-gold-500)" strokeWidth="0.5" opacity="0.4"/>
+          <line x1="580" y1="30" x2="1000" y2="30" stroke="var(--kt-gold-500)" strokeWidth="0.5" opacity="0.4"/>
+          {/* central flourish */}
+          <g transform="translate(500,30)" fill="none" stroke="var(--kt-gold-400)" strokeWidth="0.7">
+            {/* diamond */}
+            <path d="M-8,0 L0,-6 L8,0 L0,6 Z" fill="var(--kt-gold-400)" opacity="0.7"/>
+            {/* flourish left */}
+            <path d="M-12,0 Q-30,0 -40,-6 M-12,0 Q-30,0 -40,6 M-12,0 L-70,0"/>
+            <circle cx="-80" cy="0" r="1.5" fill="var(--kt-gold-400)"/>
+            {/* flourish right */}
+            <path d="M12,0 Q30,0 40,-6 M12,0 Q30,0 40,6 M12,0 L70,0"/>
+            <circle cx="80" cy="0" r="1.5" fill="var(--kt-gold-400)"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+  );
+}
+
+window.KTBlindsClock = KTBlindsClock;
+
+</script>
+<script type="text/babel">
+// King's Table — Tournament creation flow (multi-step)
+
+function KTCreateTournament({ onExit }) {
+  const [step, setStep] = React.useState(0);
+  const [data, setData] = React.useState({
+    name: 'Quinta dos Reis',
+    format: 'deep',
+    buyin: 300,
+    rebuys: true,
+    players: ['RF','LC','JM','AS','BP','TL'],
+    startingStack: 20000,
+    levelMinutes: 20,
+  });
+
+  const formats = [
+    { id: 'deep', name: 'Deep Stack', sub: '20k · 20 min', meta: '~4h30' },
+    { id: 'regular', name: 'Regular', sub: '10k · 15 min', meta: '~3h' },
+    { id: 'turbo', name: 'Turbo', sub: '5k · 10 min', meta: '~1h45' },
+    { id: 'hyper', name: 'Hyper', sub: '3k · 5 min', meta: '~45min' },
+    { id: 'bounty', name: 'Bounty', sub: '10k · 15 min', meta: 'com prêmio por eliminação' },
+  ];
+
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a1510, #0a0807 60%)', minHeight: '100%', paddingBottom: 120 }}>
+      {/* Header */}
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>novo torneio</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', fontWeight: 500, marginTop: 2 }}>
+            {['Identidade','Estrutura','Jogadores','Revisar'][step]}
+          </div>
+        </div>
+        <div className="kt-num" style={{ fontSize: 13, color: 'var(--kt-text-2)' }}>{step+1}/4</div>
+      </div>
+
+      {/* Step dots */}
+      <div style={{ display: 'flex', gap: 6, padding: '16px 20px 8px' }}>
+        {[0,1,2,3].map(i => (
+          <div key={i} style={{
+            flex: 1, height: 3, borderRadius: 2,
+            background: i <= step ? 'var(--kt-gold-200)' : 'rgba(232,213,160,0.15)',
+            transition: 'background 0.3s',
+          }} />
+        ))}
+      </div>
+
+      {/* Steps */}
+      <div style={{ padding: '16px 20px' }}>
+        {step === 0 && <StepIdentity data={data} setData={setData} />}
+        {step === 1 && <StepStructure data={data} setData={setData} formats={formats} />}
+        {step === 2 && <StepPlayers data={data} setData={setData} />}
+        {step === 3 && <StepReview data={data} formats={formats} />}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        padding: '16px 20px 34px',
+        background: 'linear-gradient(180deg, transparent, var(--kt-bg-0) 30%)',
+        display: 'flex', gap: 10,
+      }}>
+        {step > 0 && (
+          <button onClick={() => setStep(s => s - 1)} className="kt-btn kt-btn-ghost" style={{ height: 50, padding: '0 18px', borderRadius: 25, fontSize: 14 }}>
+            Voltar
+          </button>
+        )}
+        <button
+          onClick={() => step < 3 ? setStep(s => s + 1) : onExit()}
+          className="kt-btn kt-btn-gold"
+          style={{ flex: 1, height: 50, borderRadius: 25, fontSize: 14, letterSpacing: '0.05em', fontWeight: 600 }}>
+          {step < 3 ? 'Continuar →' : '✦  Embaralhar cartas'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, children, hint }) {
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <Eyebrow style={{ marginBottom: 8 }}>{label}</Eyebrow>
+      {children}
+      {hint && <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 6 }}>{hint}</div>}
+    </div>
+  );
+}
+
+function TextInput({ value, onChange, placeholder }) {
+  return (
+    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{
+        width: '100%', height: 52, padding: '0 16px',
+        background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border-strong)',
+        borderRadius: 'var(--kt-r-md)', color: 'var(--kt-text-0)',
+        fontFamily: 'var(--kt-font-display)', fontSize: 20, outline: 'none',
+      }}/>
+  );
+}
+
+function StepIdentity({ data, setData }) {
+  const icons = ['♠','♥','♦','♣','♔','⚜'];
+  return (
+    <div>
+      <Field label="Nome do torneio">
+        <TextInput value={data.name} onChange={v => setData({ ...data, name: v })} placeholder="Ex: Quarta da Realeza" />
+      </Field>
+      <Field label="Ícone">
+        <div style={{ display: 'flex', gap: 8 }}>
+          {icons.map((c, i) => (
+            <button key={i} onClick={() => setData({ ...data, icon: i })}
+              style={{
+                flex: 1, height: 52, borderRadius: 'var(--kt-r-md)',
+                background: data.icon === i ? 'rgba(232,213,160,0.1)' : 'var(--kt-bg-2)',
+                border: `1px solid ${data.icon === i ? 'var(--kt-gold-300)' : 'var(--kt-border)'}`,
+                color: 'var(--kt-gold-200)', fontSize: 22,
+                cursor: 'pointer',
+                fontFamily: 'var(--kt-font-display)',
+              }}>{c}</button>
+          ))}
+        </div>
+      </Field>
+      <Field label="Data">
+        <div style={{ display: 'flex', gap: 8 }}>
+          <TextInput value="qui, 24 abr · 20h" onChange={() => {}} />
+        </div>
+      </Field>
+      <Field label="Liga">
+        <div style={{
+          height: 52, padding: '0 16px', borderRadius: 'var(--kt-r-md)',
+          background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <span style={{ fontFamily: 'var(--kt-font-display)', fontSize: 18, color: 'var(--kt-gold-200)' }}>Liga do Rei · abril</span>
+          <span style={{ color: 'var(--kt-text-2)', fontSize: 14 }}>▾</span>
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+function StepStructure({ data, setData, formats }) {
+  return (
+    <div>
+      <Field label="Formato">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {formats.map(f => {
+            const sel = data.format === f.id;
+            return (
+              <button key={f.id} onClick={() => setData({ ...data, format: f.id })}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  padding: '14px 16px', borderRadius: 'var(--kt-r-md)',
+                  background: sel ? 'rgba(232,213,160,0.06)' : 'var(--kt-bg-2)',
+                  border: `1px solid ${sel ? 'var(--kt-gold-300)' : 'var(--kt-border)'}`,
+                  cursor: 'pointer', textAlign: 'left', color: 'var(--kt-text-0)',
+                }}>
+                <div style={{
+                  width: 10, height: 10, borderRadius: 5,
+                  border: `1.5px solid ${sel ? 'var(--kt-gold-200)' : 'var(--kt-text-3)'}`,
+                  background: sel ? 'var(--kt-gold-200)' : 'transparent',
+                  flexShrink: 0,
+                }}/>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 17, color: sel ? 'var(--kt-gold-200)' : 'var(--kt-text-0)', fontWeight: 500 }}>{f.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 1, fontFamily: 'var(--kt-font-mono)' }}>{f.sub}</div>
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--kt-text-2)', letterSpacing: '0.08em' }}>{f.meta}</div>
+              </button>
+            );
+          })}
+        </div>
+      </Field>
+
+      <Field label="Buy-in" hint="Garantia mínima do pote">
+        <div style={{
+          display: 'flex', alignItems: 'baseline', gap: 10,
+          padding: '14px 16px', background: 'var(--kt-bg-2)',
+          border: '1px solid var(--kt-border-strong)', borderRadius: 'var(--kt-r-md)',
+        }}>
+          <span style={{ color: 'var(--kt-text-2)', fontSize: 16 }}>R$</span>
+          <span className="kt-num" style={{ fontFamily: 'var(--kt-font-display)', fontSize: 32, color: 'var(--kt-gold-200)', fontWeight: 500, flex: 1 }}>
+            {data.buyin.toLocaleString('pt-BR')}
+          </span>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {[100, 300, 500, 1000].map(v => (
+              <button key={v} onClick={() => setData({ ...data, buyin: v })}
+                style={{
+                  padding: '6px 10px', borderRadius: 10,
+                  background: data.buyin === v ? 'var(--kt-gold-300)' : 'var(--kt-bg-3)',
+                  color: data.buyin === v ? '#1a1206' : 'var(--kt-text-1)',
+                  border: 0, cursor: 'pointer', fontSize: 11, fontWeight: 600,
+                }}>{v}</button>
+            ))}
+          </div>
+        </div>
+      </Field>
+
+      <Field label="Re-entradas & Add-ons">
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Toggle label="Re-entradas" value={data.rebuys} on={() => setData({ ...data, rebuys: !data.rebuys })} />
+          <Toggle label="Add-on" value={false} />
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+function Toggle({ label, value, on }) {
+  return (
+    <button onClick={on} style={{
+      flex: 1, display: 'flex', alignItems: 'center', gap: 10,
+      padding: '12px 14px', borderRadius: 'var(--kt-r-md)',
+      background: value ? 'rgba(232,213,160,0.06)' : 'var(--kt-bg-2)',
+      border: `1px solid ${value ? 'var(--kt-gold-300)' : 'var(--kt-border)'}`,
+      cursor: 'pointer', color: 'var(--kt-text-0)',
+    }}>
+      <div style={{
+        width: 30, height: 18, borderRadius: 9,
+        background: value ? 'var(--kt-gold-300)' : 'var(--kt-bg-4)',
+        position: 'relative', transition: 'background 0.2s',
+      }}>
+        <div style={{
+          position: 'absolute', top: 2, left: value ? 14 : 2,
+          width: 14, height: 14, borderRadius: 7,
+          background: value ? '#1a1206' : 'var(--kt-text-2)',
+          transition: 'left 0.2s',
+        }}/>
+      </div>
+      <span style={{ fontSize: 13, color: 'var(--kt-text-0)' }}>{label}</span>
+    </button>
+  );
+}
+
+function StepPlayers({ data, setData }) {
+  const roster = [
+    { i: 'RF', name: 'Rafael F.', status: 'host' },
+    { i: 'LC', name: 'Lucas C.',  status: 'confirmed' },
+    { i: 'JM', name: 'João M.',   status: 'confirmed' },
+    { i: 'AS', name: 'Ana S.',    status: 'confirmed' },
+    { i: 'BP', name: 'Bruno P.',  status: 'pending' },
+    { i: 'TL', name: 'Thaís L.',  status: 'pending' },
+    { i: 'MR', name: 'Marco R.',  status: 'available' },
+    { i: 'CV', name: 'Caio V.',   status: 'available' },
+    { i: 'RS', name: 'Renato S.', status: 'available' },
+  ];
+
+  return (
+    <div>
+      <Field label="Jogadores convidados">
+        <div className="kt-texture-weave" style={{
+          padding: 12, borderRadius: 'var(--kt-r-md)',
+          background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border)',
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ fontSize: 12, color: 'var(--kt-text-1)' }}>
+              <span className="kt-num" style={{ color: 'var(--kt-gold-200)', fontSize: 16 }}>6</span> confirmados · <span className="kt-num" style={{ color: 'var(--kt-text-2)' }}>2</span> pendentes
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--kt-gold-300)' }}>+ adicionar</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {roster.map(p => <PlayerRow key={p.i} {...p} />)}
+          </div>
+        </div>
+      </Field>
+    </div>
+  );
+}
+
+function PlayerRow({ i, name, status }) {
+  const statusMap = {
+    host: { color: 'var(--kt-gold-200)', label: 'HOST' },
+    confirmed: { color: 'var(--kt-ok)', label: '✓ CONF.' },
+    pending: { color: 'var(--kt-warn)', label: 'PEND.' },
+    available: { color: 'var(--kt-text-2)', label: '+ CONVIDAR' },
+  };
+  const s = statusMap[status];
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 12,
+      padding: '8px 4px',
+    }}>
+      <div style={{
+        width: 32, height: 32, borderRadius: 16,
+        background: 'linear-gradient(135deg, var(--kt-gold-500), var(--kt-gold-700))',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--kt-font-display)', fontSize: 12, fontWeight: 600,
+        color: 'var(--kt-gold-100)', border: '1px solid var(--kt-border-strong)',
+      }}>{i}</div>
+      <div style={{ flex: 1, fontSize: 14, color: 'var(--kt-text-0)' }}>{name}</div>
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.15em', color: s.color }}>{s.label}</div>
+    </div>
+  );
+}
+
+function StepReview({ data, formats }) {
+  const fmt = formats.find(f => f.id === data.format);
+  const prize = data.buyin * 6;
+  return (
+    <div>
+      {/* Ornamental card */}
+      <div className="kt-texture-weave" style={{
+        padding: '24px 20px', borderRadius: 'var(--kt-r-lg)',
+        background: 'linear-gradient(180deg, #1a1510, #0f0d0a)',
+        border: '1px solid var(--kt-gold-500)',
+        textAlign: 'center', position: 'relative', overflow: 'hidden',
+      }}>
+        <Flourish width={120} />
+        <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 13, color: 'var(--kt-gold-400)', letterSpacing: '0.3em', marginTop: 10 }}>
+          LIGA DO REI · ABRIL
+        </div>
+        <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 28, color: 'var(--kt-gold-200)', marginTop: 6, fontWeight: 500 }}>
+          {data.name}
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--kt-text-2)', marginTop: 4 }}>quinta, 24 de abril · 20h</div>
+        <Flourish width={120} />
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+        <StatBlock label="Formato" value={fmt.name} sub={fmt.sub} />
+        <StatBlock label="Buy-in" value={`R$ ${data.buyin}`} sub={data.rebuys ? '+ re-entradas' : 'freezeout'} />
+        <StatBlock label="Jogadores" value="6/9" sub="2 pendentes" />
+        <StatBlock label="Prize pool est." value={`R$ ${prize.toLocaleString('pt-BR')}`} sub="60/30/10" />
+      </div>
+    </div>
+  );
+}
+
+function StatBlock({ label, value, sub }) {
+  return (
+    <div style={{
+      padding: 14, borderRadius: 'var(--kt-r-md)',
+      background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border)',
+    }}>
+      <Eyebrow>{label}</Eyebrow>
+      <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', marginTop: 6, fontWeight: 500 }} className="kt-num">{value}</div>
+      <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 2 }}>{sub}</div>
+    </div>
+  );
+}
+
+window.KTCreateTournament = KTCreateTournament;
+
+</script>
+<script type="text/babel">
+// King's Table — Ranking / Leaderboard
+
+function KTRanking({ onExit }) {
+  const [tab, setTab] = React.useState('liga');
+  const players = [
+    { pos: 1, name: 'Lucas Corrêa',   i: 'LC', pts: 1412, itm: 9,  delta: '+82',  prize: 'R$ 4.2k' },
+    { pos: 2, name: 'Rafael Freitas', i: 'RF', pts: 1248, itm: 7,  delta: '+64',  prize: 'R$ 3.1k', you: true },
+    { pos: 3, name: 'Ana Soares',     i: 'AS', pts: 1106, itm: 6,  delta: '+22',  prize: 'R$ 2.4k' },
+    { pos: 4, name: 'João Matos',     i: 'JM', pts: 987,  itm: 5,  delta: '−18',  prize: 'R$ 1.8k' },
+    { pos: 5, name: 'Bruno Paz',      i: 'BP', pts: 840,  itm: 4,  delta: '+12',  prize: 'R$ 1.2k' },
+    { pos: 6, name: 'Thaís Lima',     i: 'TL', pts: 765,  itm: 4,  delta: '+34',  prize: 'R$ 900' },
+    { pos: 7, name: 'Marco Reis',     i: 'MR', pts: 612,  itm: 3,  delta: '−6',   prize: '—' },
+    { pos: 8, name: 'Caio Vilar',     i: 'CV', pts: 488,  itm: 2,  delta: '+8',   prize: '—' },
+  ];
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a1510, #0a0807 60%)', minHeight: '100%', paddingBottom: 40 }}>
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>ranking</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 24, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Liga do Rei</div>
+        </div>
+        <Crown size={24} />
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 4, padding: '20px 20px 0' }}>
+        {[['liga','Abril'], ['all','Geral'], ['history','Histórico']].map(([id, l]) => (
+          <button key={id} onClick={() => setTab(id)}
+            style={{
+              padding: '8px 14px', borderRadius: 16,
+              background: tab === id ? 'var(--kt-gold-200)' : 'transparent',
+              color: tab === id ? '#1a1206' : 'var(--kt-text-1)',
+              border: `1px solid ${tab === id ? 'var(--kt-gold-200)' : 'var(--kt-border-strong)'}`,
+              fontSize: 12, fontWeight: 600, letterSpacing: '0.04em',
+              cursor: 'pointer', fontFamily: 'var(--kt-font-ui)',
+            }}>{l}</button>
+        ))}
+      </div>
+
+      {/* Podium */}
+      <div style={{ padding: '24px 20px 0', display: 'flex', alignItems: 'flex-end', gap: 8, justifyContent: 'center' }}>
+        <PodiumCol pos={2} player={players[1]} height={100} />
+        <PodiumCol pos={1} player={players[0]} height={140} />
+        <PodiumCol pos={3} player={players[2]} height={70} />
+      </div>
+
+      {/* Full table */}
+      <div style={{ padding: '28px 20px 0' }}>
+        <div style={{ display: 'flex', gap: 10, padding: '0 4px 10px', borderBottom: '1px solid var(--kt-border)' }}>
+          <div style={{ width: 30 }}/>
+          <div style={{ flex: 1 }}><Eyebrow>jogador</Eyebrow></div>
+          <div style={{ width: 56, textAlign: 'right' }}><Eyebrow>ITM</Eyebrow></div>
+          <div style={{ width: 72, textAlign: 'right' }}><Eyebrow>pontos</Eyebrow></div>
+        </div>
+        {players.map(p => <RankRow key={p.pos} {...p} />)}
+      </div>
+    </div>
+  );
+}
+
+function PodiumCol({ pos, player, height }) {
+  const colors = { 1: 'var(--kt-gold-200)', 2: '#d4d4d4', 3: '#c89060' };
+  return (
+    <div style={{ flex: 1, maxWidth: 100, textAlign: 'center' }}>
+      <div style={{
+        width: 54, height: 54, borderRadius: 27, margin: '0 auto 8px',
+        background: 'linear-gradient(135deg, var(--kt-gold-500), var(--kt-gold-700))',
+        border: `2px solid ${colors[pos]}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--kt-font-display)', fontSize: 18, fontWeight: 600,
+        color: 'var(--kt-gold-100)',
+      }}>{player.i}</div>
+      <div style={{ fontSize: 11, color: 'var(--kt-text-0)', fontWeight: 500, marginBottom: 2 }}>{player.name.split(' ')[0]}</div>
+      <div className="kt-num" style={{ fontSize: 11, color: 'var(--kt-text-2)', marginBottom: 8 }}>{player.pts} pts</div>
+      <div style={{
+        height, width: '100%',
+        background: `linear-gradient(180deg, ${colors[pos]}22, ${colors[pos]}08)`,
+        border: `1px solid ${colors[pos]}44`,
+        borderRadius: '6px 6px 0 0',
+        display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+        paddingTop: 14,
+        fontFamily: 'var(--kt-font-display)', fontSize: 34, fontWeight: 500,
+        color: colors[pos],
+      }}>{pos}º</div>
+    </div>
+  );
+}
+
+function RankRow({ pos, name, i, pts, itm, delta, you }) {
+  const isUp = delta.startsWith('+');
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 10,
+      padding: '12px 4px', borderBottom: '1px solid var(--kt-border)',
+      background: you ? 'rgba(232,213,160,0.03)' : 'transparent',
+    }}>
+      <div className="kt-num" style={{ width: 24, fontSize: 13, color: you ? 'var(--kt-gold-200)' : 'var(--kt-text-2)', fontWeight: 600 }}>{pos}</div>
+      <div style={{
+        width: 30, height: 30, borderRadius: 15,
+        background: 'linear-gradient(135deg, var(--kt-gold-600), var(--kt-gold-700))',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--kt-font-display)', fontSize: 11, fontWeight: 600,
+        color: 'var(--kt-gold-100)', border: `1px solid ${you ? 'var(--kt-gold-300)' : 'var(--kt-border-strong)'}`,
+      }}>{i}</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, color: 'var(--kt-text-0)', fontWeight: you ? 600 : 400 }}>
+          {name} {you && <span style={{ fontSize: 9, color: 'var(--kt-gold-300)', letterSpacing: '0.15em', marginLeft: 6 }}>VOCÊ</span>}
+        </div>
+        <div style={{ fontSize: 10, color: isUp ? 'var(--kt-ok)' : 'var(--kt-danger)', fontFamily: 'var(--kt-font-mono)', marginTop: 1 }}>{delta}</div>
+      </div>
+      <div style={{ width: 56, textAlign: 'right' }}>
+        <span className="kt-num" style={{ fontSize: 12, color: 'var(--kt-text-1)' }}>{itm}×</span>
+      </div>
+      <div style={{ width: 72, textAlign: 'right' }}>
+        <span className="kt-num" style={{ fontSize: 14, color: 'var(--kt-gold-200)', fontWeight: 500 }}>{pts}</span>
+      </div>
+    </div>
+  );
+}
+
+window.KTRanking = KTRanking;
+
+</script>
+<script type="text/babel">
+// King's Table — Prize Pool organizer
+
+function KTPrize({ onExit }) {
+  const pool = 6000;
+  const distribution = [
+    { pos: 1, pct: 50, value: 3000, name: 'Campeão',   player: 'Lucas C.',   status: 'pending' },
+    { pos: 2, pct: 30, value: 1800, name: 'Vice',      player: 'Rafael F.',  status: 'paid' },
+    { pos: 3, pct: 20, value: 1200, name: 'Terceiro',  player: 'Ana S.',     status: 'paid' },
+  ];
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a1510, #0a0807 60%)', minHeight: '100%', paddingBottom: 40 }}>
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>premiação</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Quarta #214</div>
+        </div>
+      </div>
+
+      {/* Prize pool hero */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <div className="kt-texture-weave" style={{
+          position: 'relative',
+          padding: '28px 20px',
+          borderRadius: 'var(--kt-r-lg)',
+          background: 'linear-gradient(180deg, #1a1510, #0f0d0a)',
+          border: '1px solid var(--kt-gold-500)',
+          textAlign: 'center', overflow: 'hidden',
+        }}>
+          {/* Stacked chips viz */}
+          <div style={{ position: 'absolute', left: -20, top: 20, opacity: 0.3 }}>
+            <Chip size={80} tone="gold" />
+          </div>
+          <div style={{ position: 'absolute', right: -20, top: 40, opacity: 0.25 }}>
+            <Chip size={60} tone="green" />
+          </div>
+
+          <Eyebrow style={{ justifyContent: 'center' }}>Prize pool</Eyebrow>
+          <div className="kt-num" style={{
+            fontFamily: 'var(--kt-font-display)', fontSize: 56, fontWeight: 500,
+            color: 'var(--kt-gold-200)', lineHeight: 1, marginTop: 8,
+            letterSpacing: '-0.02em',
+            textShadow: '0 0 30px rgba(232,213,160,0.2)',
+          }}>R$ 6.000</div>
+          <div style={{ fontSize: 12, color: 'var(--kt-text-2)', marginTop: 8 }}>
+            <span className="kt-num">12</span> buy-ins · <span className="kt-num">R$ 500</span> cada
+          </div>
+          <Flourish width={160} />
+        </div>
+      </div>
+
+      {/* Distribution bar */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <Eyebrow>Distribuição ITM</Eyebrow>
+        <div style={{
+          display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden',
+          marginTop: 10, background: 'var(--kt-bg-2)',
+        }}>
+          {distribution.map((d, i) => (
+            <div key={d.pos} style={{
+              flex: d.pct,
+              background: i === 0 ? 'var(--kt-gold-200)' : i === 1 ? 'var(--kt-gold-400)' : 'var(--kt-gold-600)',
+              borderRight: i < 2 ? '1px solid var(--kt-bg-0)' : 0,
+            }} />
+          ))}
+        </div>
+        <div style={{ display: 'flex', marginTop: 6 }}>
+          {distribution.map(d => (
+            <div key={d.pos} style={{ flex: d.pct, fontSize: 10, color: 'var(--kt-text-2)', fontFamily: 'var(--kt-font-mono)' }}>
+              {d.pct}%
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Winners list */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {distribution.map(d => <WinnerRow key={d.pos} {...d} />)}
+        </div>
+      </div>
+
+      {/* Pay all */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <button className="kt-btn kt-btn-gold" style={{ width: '100%', height: 50, borderRadius: 25, fontSize: 14, fontWeight: 600, letterSpacing: '0.05em' }}>
+          ✦  Gerar recibos para todos
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function WinnerRow({ pos, name, player, value, status }) {
+  const statuses = {
+    paid:    { color: 'var(--kt-ok)',    label: '✓ PAGO',     bg: 'rgba(120,168,133,0.1)' },
+    pending: { color: 'var(--kt-warn)',  label: 'PENDENTE',   bg: 'rgba(217,167,74,0.08)' },
+    disputed:{ color: 'var(--kt-danger)',label: 'CONTESTADO', bg: 'rgba(200,90,90,0.1)' },
+  };
+  const s = statuses[status];
+  return (
+    <div className="kt-texture-weave" style={{
+      display: 'flex', alignItems: 'center', gap: 14,
+      padding: '14px 16px', borderRadius: 'var(--kt-r-md)',
+      background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border)',
+    }}>
+      <div style={{
+        width: 38, height: 38, borderRadius: 19,
+        background: 'linear-gradient(135deg, var(--kt-gold-400), var(--kt-gold-700))',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontFamily: 'var(--kt-font-display)', fontSize: 16, color: 'var(--kt-gold-100)',
+        border: '1px solid var(--kt-gold-300)',
+      }}>{pos}º</div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 16, color: 'var(--kt-gold-200)', fontWeight: 500 }}>{name}</div>
+        <div style={{ fontSize: 11, color: 'var(--kt-text-1)', marginTop: 1 }}>{player}</div>
+      </div>
+      <div style={{ textAlign: 'right' }}>
+        <div className="kt-num" style={{ fontSize: 18, color: 'var(--kt-text-0)', fontWeight: 500 }}>R$ {value.toLocaleString('pt-BR')}</div>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.15em', color: s.color, marginTop: 2 }}>{s.label}</div>
+      </div>
+    </div>
+  );
+}
+
+window.KTPrize = KTPrize;
+
+</script>
+<script type="text/babel">
+// King's Table — Payment proof analysis (IA reading)
+
+function KTProof({ onExit }) {
+  const [stage, setStage] = React.useState('analyzing'); // analyzing → done
+  React.useEffect(() => {
+    const t = setTimeout(() => setStage('done'), 2600);
+    return () => clearTimeout(t);
+  }, []);
+
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a1510, #0a0807 60%)', minHeight: '100%', paddingBottom: 40 }}>
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>comprovante</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Leitura por IA</div>
+        </div>
+      </div>
+
+      {/* Receipt preview */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div style={{
+          margin: '0 auto',
+          width: '100%',
+          aspectRatio: '3/4',
+          background: '#f5ede0',
+          color: '#1a1206',
+          borderRadius: 'var(--kt-r-md)',
+          padding: 18,
+          position: 'relative', overflow: 'hidden',
+          fontFamily: 'var(--kt-font-mono)', fontSize: 10,
+          boxShadow: '0 8px 30px rgba(0,0,0,0.5)',
+          border: '1px solid var(--kt-gold-500)',
+        }}>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 16, color: '#0a0807', marginBottom: 8 }}>
+            Comprovante PIX
+          </div>
+          <div style={{ height: 1, background: '#bfa97a', marginBottom: 10 }}/>
+          <ReceiptRow k="Destinatário" v="Rafael Freitas" scan={stage === 'analyzing'} delay={0} />
+          <ReceiptRow k="CPF" v="***.437.***-21" scan={stage === 'analyzing'} delay={400} />
+          <ReceiptRow k="Valor" v="R$ 500,00" scan={stage === 'analyzing'} delay={800} highlight />
+          <ReceiptRow k="Data" v="22/04/26 21:47" scan={stage === 'analyzing'} delay={1200} />
+          <ReceiptRow k="Banco origem" v="Nubank" scan={stage === 'analyzing'} delay={1600} />
+          <ReceiptRow k="E2E" v="E20221042026..." scan={stage === 'analyzing'} delay={2000} />
+          {/* moving scan line */}
+          {stage === 'analyzing' && (
+            <div style={{
+              position: 'absolute', left: 0, right: 0, height: 30,
+              background: 'linear-gradient(180deg, transparent, rgba(232,213,160,0.5), transparent)',
+              animation: 'ktScan 2.6s linear',
+              top: 0,
+            }}/>
+          )}
+          <style>{`@keyframes ktScan { 0%{top:0} 100%{top:100%} }`}</style>
+        </div>
+      </div>
+
+      {/* AI result card */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <div className="kt-texture-weave" style={{
+          padding: 18, borderRadius: 'var(--kt-r-md)',
+          background: stage === 'done' ? 'rgba(120,168,133,0.06)' : 'var(--kt-bg-2)',
+          border: `1px solid ${stage === 'done' ? 'var(--kt-ok)' : 'var(--kt-border-strong)'}`,
+          transition: 'all 0.4s',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 28, height: 28, borderRadius: 14,
+              background: stage === 'done' ? 'var(--kt-ok)' : 'rgba(232,213,160,0.1)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: stage === 'done' ? '#0a0807' : 'var(--kt-gold-200)',
+              fontSize: 14,
+            }}>{stage === 'done' ? '✓' : '✦'}</div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, color: 'var(--kt-text-0)', fontWeight: 500 }}>
+                {stage === 'done' ? 'Pagamento confirmado' : 'Lendo comprovante…'}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--kt-text-2)', marginTop: 2 }}>
+                {stage === 'done'
+                  ? 'Valor, destinatário e data conferem com o buy-in.'
+                  : 'Extraindo destinatário, valor e data.'}
+              </div>
+            </div>
+          </div>
+
+          {stage === 'done' && (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 16 }}>
+              <MatchCell label="Jogador" a="Rafael F." ok/>
+              <MatchCell label="Valor esperado" a="R$ 500" ok/>
+              <MatchCell label="Torneio" a="Quarta #214" ok/>
+              <MatchCell label="Data" a="22/04 21:47" ok/>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ padding: '20px 20px 0', display: 'flex', gap: 10 }}>
+        <button className="kt-btn kt-btn-ghost" style={{ flex: 1, height: 48, borderRadius: 24, fontSize: 13 }}>
+          Contestar
+        </button>
+        <button className="kt-btn kt-btn-gold" style={{ flex: 2, height: 48, borderRadius: 24, fontSize: 13, fontWeight: 600 }}>
+          ✓  Marcar como pago
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ReceiptRow({ k, v, scan, delay, highlight }) {
+  return (
+    <div style={{
+      display: 'flex', justifyContent: 'space-between',
+      padding: '6px 0', borderBottom: '1px dashed #bfa97a66',
+      position: 'relative',
+    }}>
+      <span style={{ color: '#5a4a2a' }}>{k}</span>
+      <span style={{ color: highlight ? '#1a1206' : '#3a2e18', fontWeight: highlight ? 700 : 400, fontSize: highlight ? 12 : 10 }}>{v}</span>
+    </div>
+  );
+}
+
+function MatchCell({ label, a, ok }) {
+  return (
+    <div>
+      <Eyebrow>{label}</Eyebrow>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
+        <div style={{ color: 'var(--kt-ok)', fontSize: 12 }}>✓</div>
+        <span style={{ fontSize: 13, color: 'var(--kt-text-0)' }}>{a}</span>
+      </div>
+    </div>
+  );
+}
+
+window.KTProof = KTProof;
+
+</script>
+<script type="text/babel">
+// King's Table — AI Chat + GTO Training + Study Trail
+
+// ─── CHAT ───
+function KTChat({ onExit }) {
+  const [input, setInput] = React.useState('');
+  const messages = [
+    { from: 'ai', text: 'Bom te ver de novo, Rafael. Quer revisar a mão de ontem ou um conceito novo?', suggest: true },
+    { from: 'me', text: 'Ontem abri UTG com AJo e fui 3-bet pelo button. Foldei. Foi certo?' },
+    { from: 'ai',
+      text: 'Depende do stack. Com 100bb, AJo UTG é marginal contra um 3-bet do BTN: fold é defensável, call OOP é tecnicamente -EV.',
+      chart: true,
+    },
+    { from: 'ai', text: 'Quer ver a frequência GTO em 3-bet pots 100bb?', suggest: true },
+  ];
+
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a1510, #0a0807 60%)', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '56px 20px 16px', display: 'flex', alignItems: 'center', gap: 14, borderBottom: '1px solid var(--kt-border)' }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{
+          width: 38, height: 38, borderRadius: 19,
+          background: 'linear-gradient(135deg, #3d8a6a, #1f4a38)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          border: '1px solid var(--kt-gold-300)',
+        }}>
+          <Crown size={18} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 18, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Rainha</div>
+          <div style={{ fontSize: 10, color: 'var(--kt-ok)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{ width: 5, height: 5, borderRadius: 3, background: 'var(--kt-ok)' }}/>
+            treinadora GTO · online
+          </div>
+        </div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '20px 20px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        {messages.map((m, i) => <ChatBubble key={i} {...m} />)}
+      </div>
+
+      {/* Suggestion chips */}
+      <div style={{ padding: '0 20px 10px', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {['Como defender do BB?', 'Ranges por posição', 'O que é minimum defense?'].map(s => (
+          <div key={s} style={{
+            padding: '7px 12px', borderRadius: 14,
+            background: 'rgba(232,213,160,0.05)',
+            border: '1px solid var(--kt-border-strong)',
+            fontSize: 11, color: 'var(--kt-gold-200)',
+          }}>{s}</div>
+        ))}
+      </div>
+
+      {/* Input */}
+      <div style={{ padding: '8px 16px 30px', display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{
+          flex: 1, height: 46, padding: '0 16px',
+          background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border-strong)',
+          borderRadius: 23, display: 'flex', alignItems: 'center',
+          color: 'var(--kt-text-2)', fontSize: 14,
+        }}>Pergunte sobre GTO, mãos, ranges…</div>
+        <button className="kt-btn kt-btn-gold" style={{ width: 46, height: 46, borderRadius: 23, padding: 0, fontSize: 16 }}>↑</button>
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({ from, text, suggest, chart }) {
+  const me = from === 'me';
+  return (
+    <div style={{ display: 'flex', justifyContent: me ? 'flex-end' : 'flex-start' }}>
+      <div style={{
+        maxWidth: '82%',
+        padding: '10px 14px',
+        borderRadius: me ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+        background: me
+          ? 'linear-gradient(135deg, var(--kt-gold-300), var(--kt-gold-400))'
+          : 'var(--kt-bg-2)',
+        border: me ? 0 : '1px solid var(--kt-border)',
+        color: me ? '#1a1206' : 'var(--kt-text-0)',
+        fontSize: 14, lineHeight: 1.45,
+      }}>
+        {text}
+        {chart && (
+          <div style={{ marginTop: 10, padding: 10, background: 'rgba(0,0,0,0.2)', borderRadius: 10 }}>
+            <div style={{ fontSize: 9, color: 'var(--kt-gold-300)', letterSpacing: '0.15em', marginBottom: 6 }}>AJO UTG vs 3-BET BTN</div>
+            <div style={{ display: 'flex', gap: 2, height: 18 }}>
+              <div style={{ flex: 62, background: 'var(--kt-danger)', borderRadius: '2px 0 0 2px' }}/>
+              <div style={{ flex: 22, background: 'var(--kt-warn)' }}/>
+              <div style={{ flex: 16, background: 'var(--kt-ok)', borderRadius: '0 2px 2px 0' }}/>
+            </div>
+            <div style={{ display: 'flex', marginTop: 4, fontSize: 9, color: 'var(--kt-text-1)', fontFamily: 'var(--kt-font-mono)' }}>
+              <div style={{ flex: 62 }}>fold 62%</div>
+              <div style={{ flex: 22 }}>call 22%</div>
+              <div style={{ flex: 16 }}>4b 16%</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── GTO TRAINING ───
+function KTTrain({ onExit }) {
+  return (
+    <div style={{
+      background: 'radial-gradient(circle at center, #1a3a2a 0%, #0a1a14 45%, #0a0807 100%)',
+      minHeight: '100%', paddingBottom: 40, position: 'relative', overflow: 'hidden',
+    }}>
+      {/* felt texture */}
+      <div style={{ position: 'absolute', inset: 0, background: 'repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0 2px, transparent 2px 5px)', pointerEvents: 'none' }}/>
+
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14, position: 'relative' }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>treino gto</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 20, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Mão 12 · turno</div>
+        </div>
+        <div className="kt-num" style={{ fontSize: 12, color: 'var(--kt-gold-300)' }}>acerto 83%</div>
+      </div>
+
+      {/* Pot */}
+      <div style={{ textAlign: 'center', padding: '28px 0 0', position: 'relative' }}>
+        <Eyebrow style={{ justifyContent: 'center' }}>Pote</Eyebrow>
+        <div className="kt-num" style={{ fontFamily: 'var(--kt-font-display)', fontSize: 36, color: 'var(--kt-gold-200)', fontWeight: 500, marginTop: 4 }}>4.200</div>
+      </div>
+
+      {/* Board */}
+      <div style={{ padding: '20px 0 0', display: 'flex', justifyContent: 'center', gap: 6 }}>
+        <PlayingCard rank="K" suit="spade" size={46}/>
+        <PlayingCard rank="9" suit="heart" size={46}/>
+        <PlayingCard rank="5" suit="spade" size={46}/>
+        <PlayingCard rank="2" suit="diamond" size={46}/>
+        <div style={{ width: 46, height: 46 * 1.4, borderRadius: 4, border: '1px dashed var(--kt-gold-500)', background: 'rgba(232,213,160,0.03)' }}/>
+      </div>
+
+      {/* Hero hand */}
+      <div style={{ padding: '32px 20px 0' }}>
+        <div style={{ textAlign: 'center', marginBottom: 10 }}>
+          <Eyebrow style={{ justifyContent: 'center' }}>Sua mão</Eyebrow>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+          <PlayingCard rank="A" suit="spade" size={60}/>
+          <PlayingCard rank="T" suit="spade" size={60}/>
+        </div>
+      </div>
+
+      {/* Reasoning panel — real-time */}
+      <div style={{ padding: '24px 20px 0' }}>
+        <div className="kt-texture-weave" style={{
+          padding: 14, borderRadius: 'var(--kt-r-md)',
+          background: 'rgba(10,12,10,0.8)',
+          border: '1px solid var(--kt-border-strong)',
+          backdropFilter: 'blur(8px)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <div style={{ width: 6, height: 6, borderRadius: 3, background: 'var(--kt-gold-200)' }}/>
+            <Eyebrow>Raciocínio solver</Eyebrow>
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--kt-text-1)', lineHeight: 1.5 }}>
+            Você tem <span style={{ color: 'var(--kt-gold-200)' }}>nut flush draw + overcard</span>.
+            Equity contra o range do vilão: <span className="kt-num" style={{ color: 'var(--kt-gold-200)' }}>~41%</span>.
+            Semi-bluff raise é <strong style={{ color: 'var(--kt-gold-200)' }}>+EV</strong> por fold-equity adicional.
+          </div>
+        </div>
+      </div>
+
+      {/* Action bar */}
+      <div style={{ padding: '20px 16px 0' }}>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <ActionBtn label="Fold"  freq="8%"  tone="danger"/>
+          <ActionBtn label="Call"  freq="32%" tone="neutral"/>
+          <ActionBtn label="Raise" freq="60%" tone="gold" recommended/>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 10, color: 'var(--kt-text-2)', letterSpacing: '0.08em' }}>
+          <span>FREQUÊNCIA GTO</span>
+          <span>toque para jogar</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionBtn({ label, freq, tone, recommended }) {
+  const tones = {
+    gold: { bg: 'linear-gradient(180deg, var(--kt-gold-200), var(--kt-gold-400))', color: '#1a1206', border: 'var(--kt-gold-200)' },
+    neutral: { bg: 'var(--kt-bg-3)', color: 'var(--kt-text-0)', border: 'var(--kt-border-strong)' },
+    danger: { bg: 'var(--kt-bg-3)', color: 'var(--kt-text-1)', border: 'var(--kt-border)' },
+  };
+  const t = tones[tone];
+  return (
+    <div style={{
+      flex: 1, padding: '12px 8px', borderRadius: 'var(--kt-r-md)',
+      background: t.bg, border: `1px solid ${t.border}`, color: t.color,
+      textAlign: 'center', position: 'relative',
+    }}>
+      {recommended && <div style={{
+        position: 'absolute', top: -8, left: '50%', transform: 'translateX(-50%)',
+        padding: '2px 8px', borderRadius: 8, background: 'var(--kt-gold-200)',
+        color: '#1a1206', fontSize: 9, fontWeight: 700, letterSpacing: '0.15em',
+      }}>GTO</div>}
+      <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 17, fontWeight: 500 }}>{label}</div>
+      <div className="kt-num" style={{ fontSize: 11, opacity: 0.7, marginTop: 2 }}>{freq}</div>
+    </div>
+  );
+}
+
+// ─── STUDY TRAIL ───
+function KTTrail({ onExit }) {
+  const lessons = [
+    { id: 1, title: 'Posição e ranges', state: 'done', xp: 30 },
+    { id: 2, title: 'Pré-flop 3-bet', state: 'done', xp: 45 },
+    { id: 3, title: 'Minimum defense', state: 'done', xp: 40 },
+    { id: 4, title: '3-bet pots OOP', state: 'active', xp: 50 },
+    { id: 5, title: 'Double barrels', state: 'locked', xp: 55 },
+    { id: 6, title: 'River bet sizing', state: 'locked', xp: 60 },
+    { id: 7, title: 'ICM late game', state: 'boss', xp: 120 },
+  ];
+
+  return (
+    <div style={{ background: 'radial-gradient(ellipse at top, #1a2818 0%, #0a0807 55%)', minHeight: '100%', paddingBottom: 40 }}>
+      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button onClick={onExit} className="kt-btn kt-btn-ghost" style={{ width: 36, height: 36, borderRadius: 18, padding: 0 }}>
+          <svg width="14" height="14" viewBox="0 0 14 14"><path d="M9 2L3 7l6 5" stroke="var(--kt-gold-200)" strokeWidth="1.4" fill="none" strokeLinecap="round"/></svg>
+        </button>
+        <div style={{ flex: 1 }}>
+          <Eyebrow>trilha de estudos</Eyebrow>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', fontWeight: 500 }}>Fundamentos GTO</div>
+        </div>
+      </div>
+
+      {/* XP / streak */}
+      <div style={{ padding: '16px 20px 0', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+        <MetaCard icon="🔥" label="streak" value="14" sub="dias" />
+        <MetaCard icon="✧"  label="xp total" value="485" />
+        <MetaCard icon="♔"  label="nível" value="4" sub="iniciante" />
+      </div>
+
+      {/* Path */}
+      <div style={{ padding: '28px 40px 0', position: 'relative' }}>
+        <svg style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }} width="100%" height="100%" preserveAspectRatio="none">
+          <path d="M 60 40 C 180 80, 20 140, 140 200 S 40 340, 160 400 S 20 540, 140 600 S 60 740, 180 800"
+                stroke="var(--kt-border-strong)" strokeWidth="1" strokeDasharray="4 6" fill="none"/>
+        </svg>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 22, position: 'relative' }}>
+          {lessons.map((l, i) => <LessonNode key={l.id} lesson={l} i={i} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MetaCard({ icon, label, value, sub }) {
+  return (
+    <div className="kt-texture-weave" style={{
+      padding: 12, borderRadius: 'var(--kt-r-md)',
+      background: 'var(--kt-bg-2)', border: '1px solid var(--kt-border)',
+      textAlign: 'center',
+    }}>
+      <div style={{ fontSize: 18, fontFamily: 'var(--kt-font-display)', color: 'var(--kt-gold-200)' }}>{icon}</div>
+      <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: 'var(--kt-gold-200)', fontWeight: 500, marginTop: 2 }} className="kt-num">{value}</div>
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.15em', color: 'var(--kt-text-2)', textTransform: 'uppercase', marginTop: 1 }}>{label}</div>
+      {sub && <div style={{ fontSize: 9, color: 'var(--kt-text-2)', marginTop: 1 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function LessonNode({ lesson, i }) {
+  const side = i % 2 === 0 ? 'left' : 'right';
+  const isDone = lesson.state === 'done';
+  const isActive = lesson.state === 'active';
+  const isBoss = lesson.state === 'boss';
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: side === 'left' ? 'flex-start' : 'flex-end',
+      paddingLeft: side === 'left' ? 0 : 40,
+      paddingRight: side === 'right' ? 0 : 40,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexDirection: side === 'right' ? 'row-reverse' : 'row' }}>
+        <div style={{
+          width: isBoss ? 70 : 56, height: isBoss ? 70 : 56, borderRadius: isBoss ? 16 : 28,
+          background: isDone ? 'linear-gradient(135deg, var(--kt-gold-300), var(--kt-gold-500))'
+                   : isActive ? 'linear-gradient(135deg, #3d8a6a, #1f4a38)'
+                   : isBoss ? 'linear-gradient(135deg, #7a2a2a, #3a1515)'
+                   : 'var(--kt-bg-2)',
+          border: isActive ? '2px solid var(--kt-gold-200)' : '1px solid var(--kt-border-strong)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: isDone ? '#1a1206' : 'var(--kt-gold-200)',
+          fontFamily: 'var(--kt-font-display)', fontSize: isBoss ? 28 : 20,
+          boxShadow: isActive ? '0 0 20px rgba(232,213,160,0.2)' : 'none',
+          position: 'relative',
+        }}>
+          {isDone ? '✓' : isBoss ? <Crown size={30}/> : lesson.id}
+          {isActive && <div style={{
+            position: 'absolute', top: -6, right: -6, padding: '2px 6px',
+            borderRadius: 8, background: 'var(--kt-gold-200)',
+            color: '#1a1206', fontSize: 8, fontWeight: 700, letterSpacing: '0.1em',
+          }}>HOJE</div>}
+        </div>
+        <div style={{ textAlign: side === 'right' ? 'right' : 'left' }}>
+          <div style={{ fontSize: 13, color: isActive ? 'var(--kt-gold-200)' : 'var(--kt-text-0)', fontWeight: isActive ? 600 : 500 }}>{lesson.title}</div>
+          <div className="kt-num" style={{ fontSize: 10, color: 'var(--kt-gold-400)', marginTop: 2 }}>+{lesson.xp} XP</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+Object.assign(window, { KTChat, KTTrain, KTTrail });
+
+</script>
+
+<script type="text/babel">
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "goldTone": "metallic",
+  "accent": "emerald",
+  "bgDarkness": 100,
+  "timerVariant": "radial",
+  "typographyPair": "sans",
+  "density": "airy"
+}/*EDITMODE-END*/;
+
+function applyTweaks(t) {
+  const r = document.documentElement.style;
+  // Gold tones
+  const golds = {
+    warm:      ['#f2d79a','#e8c878','#d4af6a','#b58d48','#8a6a2a','#5a4220','#2a1f10'],
+    champagne: ['#f6ead0','#ecd9a5','#e8d5a0','#d4bc7e','#b89a5e','#8a723f','#5a4a28'],
+    metallic:  ['#fff1c8','#f5dc92','#e8c878','#c49a4e','#8a6a2a','#4d3818','#281c0c'],
+    restrained:['#ebe0c8','#d9c89a','#c9a961','#b08d48','#8a6a2a','#5a4220','#2a1f10'],
+  };
+  const g = golds[t.goldTone] || golds.champagne;
+  r.setProperty('--kt-gold-50',  g[0]);
+  r.setProperty('--kt-gold-100', g[1]);
+  r.setProperty('--kt-gold-200', g[2]);
+  r.setProperty('--kt-gold-300', g[3]);
+  r.setProperty('--kt-gold-400', g[4]);
+  r.setProperty('--kt-gold-500', g[5]);
+  r.setProperty('--kt-gold-600', g[6]);
+
+  // Accent
+  const accents = {
+    emerald:   { a: '#3d8a6a', d: '#1f4a38' },
+    bordeaux:  { a: '#8a3d3d', d: '#4a1f1f' },
+    sapphire:  { a: '#4a6a9a', d: '#1f2e4a' },
+    amber:     { a: '#c49a4e', d: '#6a4a18' },
+    none:      { a: '#6a6a6a', d: '#3a3a3a' },
+  };
+  const a = accents[t.accent] || accents.emerald;
+  r.setProperty('--kt-accent', a.a);
+  r.setProperty('--kt-accent-dim', a.d);
+
+  // Darkness
+  const d = Math.max(60, Math.min(100, t.bgDarkness || 100));
+  const k = d / 100;
+  r.setProperty('--kt-bg-0', `rgb(${10*k}, ${8*k}, ${7*k})`);
+  r.setProperty('--kt-bg-1', `rgb(${17*k}, ${16*k}, ${14*k})`);
+  r.setProperty('--kt-bg-2', `rgb(${26*k}, ${24*k}, ${22*k})`);
+  r.setProperty('--kt-bg-3', `rgb(${36*k}, ${34*k}, ${32*k})`);
+
+  // Typography
+  if (t.typographyPair === 'mono') {
+    r.setProperty('--kt-font-display', '"JetBrains Mono", monospace');
+  } else if (t.typographyPair === 'sans') {
+    r.setProperty('--kt-font-display', '"Inter Tight", sans-serif');
+  } else {
+    r.setProperty('--kt-font-display', '"Cormorant Garamond", serif');
+  }
+}
+applyTweaks(TWEAKS);
+
+// ─── Tweaks panel ───
+function TweaksPanel({ tweaks, setTweaks, visible, onClose }) {
+  if (!visible) return null;
+  const update = k => v => {
+    const next = { ...tweaks, [k]: v };
+    setTweaks(next);
+    applyTweaks(next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+  };
+  return (
+    <div style={{
+      position: 'fixed', right: 16, bottom: 16, width: 280, zIndex: 1000,
+      background: 'rgba(15, 13, 10, 0.95)',
+      backdropFilter: 'blur(20px)',
+      border: '1px solid var(--kt-gold-500)',
+      borderRadius: 14, padding: 14,
+      fontFamily: 'var(--kt-font-ui)', color: 'var(--kt-text-0)',
+      boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <Crown size={14}/>
+          <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 15, color: 'var(--kt-gold-200)' }}>Tweaks</div>
+        </div>
+        <button onClick={onClose} style={{ background: 'transparent', border: 0, color: 'var(--kt-text-2)', cursor: 'pointer', fontSize: 14 }}>×</button>
+      </div>
+
+      <TweakRow label="Gold tone" options={['warm','champagne','metallic','restrained']} value={tweaks.goldTone} onChange={update('goldTone')} />
+      <TweakRow label="Acento" options={['emerald','bordeaux','sapphire','amber','none']} value={tweaks.accent} onChange={update('accent')} />
+      <TweakRow label="Timer" options={['radial','typographic']} value={tweaks.timerVariant} onChange={update('timerVariant')} />
+      <TweakRow label="Tipografia" options={['serif','sans','mono']} value={tweaks.typographyPair} onChange={update('typographyPair')} />
+      <TweakRow label="Densidade" options={['compact','regular','airy']} value={tweaks.density} onChange={update('density')} />
+      <TweakSlider label="Escuridão" value={tweaks.bgDarkness} min={60} max={100} onChange={update('bgDarkness')} />
+    </div>
+  );
+}
+
+function TweakRow({ label, options, value, onChange }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', color: 'var(--kt-text-2)', textTransform: 'uppercase', marginBottom: 5 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 3, flexWrap: 'wrap' }}>
+        {options.map(o => (
+          <button key={o} onClick={() => onChange(o)}
+            style={{
+              padding: '4px 9px', borderRadius: 10,
+              background: value === o ? 'var(--kt-gold-200)' : 'transparent',
+              color: value === o ? '#1a1206' : 'var(--kt-text-1)',
+              border: `1px solid ${value === o ? 'var(--kt-gold-200)' : 'var(--kt-border-strong)'}`,
+              fontSize: 10, cursor: 'pointer', fontFamily: 'var(--kt-font-ui)',
+              textTransform: 'capitalize',
+            }}>{o}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TweakSlider({ label, value, min, max, onChange }) {
+  return (
+    <div style={{ marginBottom: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
+        <div style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.18em', color: 'var(--kt-text-2)', textTransform: 'uppercase' }}>{label}</div>
+        <div className="kt-num" style={{ fontSize: 10, color: 'var(--kt-gold-300)' }}>{value}</div>
+      </div>
+      <input type="range" min={min} max={max} value={value} onChange={e => onChange(+e.target.value)}
+        style={{ width: '100%', accentColor: 'var(--kt-gold-200)' }}/>
+    </div>
+  );
+}
+
+// ─── App shell ───
+function App() {
+  const [tweaks, setTweaks] = React.useState(TWEAKS);
+  const [tweaksVisible, setTweaksVisible] = React.useState(false);
+  const [focus, setFocus] = React.useState(null); // null = canvas; 'dashboard', 'blinds' etc = full-bleed
+
+  React.useEffect(() => {
+    const onMsg = e => {
+      const d = e.data;
+      if (!d || !d.type) return;
+      if (d.type === '__activate_edit_mode') setTweaksVisible(true);
+      if (d.type === '__deactivate_edit_mode') setTweaksVisible(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  return (
+    <>
+      <DesignCanvas>
+        <div style={{ padding: '20px 60px 40px' }}>
+          <div style={{ marginBottom: 30 }}>
+            <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 48, color: 'var(--kt-gold-200)', fontWeight: 500 }}>
+              King's Table
+            </div>
+            <div style={{ fontSize: 14, color: '#7a7366', maxWidth: 580, marginTop: 4, lineHeight: 1.5 }}>
+              App de home game de poker. Clube exclusivo em preto e champagne.
+              9 módulos, mobile-first, pensado como uma coleção de ferramentas elegantes
+              para quem organiza partidas.
+            </div>
+            <div style={{ fontSize: 11, color: '#5a4a2a', marginTop: 10, letterSpacing: '0.08em' }}>
+              ARRASTE PARA NAVEGAR · ROLE PARA ZOOM · TOQUE EM UMA TELA PARA ABRIR EM FULL-BLEED
+            </div>
+          </div>
+
+          <DCSection title="1 · Núcleo do app" subtitle="Dashboard e relógio de blinds — as duas telas mais usadas." gap={56}>
+            <ScreenArtboard label="Dashboard · home" onFocus={() => setFocus('dashboard')}>
+              <IOSDevice dark>
+                <KTDashboard onNavigate={() => {}}/>
+              </IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Relógio de blinds · landscape" width={760} height={430} onFocus={() => setFocus('blinds')}>
+              <LandscapeFrame>
+                <KTBlindsClock variant={tweaks.timerVariant} compact/>
+              </LandscapeFrame>
+            </ScreenArtboard>
+          </DCSection>
+
+          <DCSection title="2 · Criação & organização" subtitle="Fluxo de criação de torneio em 4 passos + ranking da liga.">
+            <ScreenArtboard label="Criar torneio · passo 1/4" onFocus={() => setFocus('create')}>
+              <IOSDevice dark><KTCreateTournament onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Ranking · Liga do Rei" onFocus={() => setFocus('ranking')}>
+              <IOSDevice dark><KTRanking onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Premiação · prize pool" onFocus={() => setFocus('prize')}>
+              <IOSDevice dark><KTPrize onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Comprovante · leitura IA" onFocus={() => setFocus('proof')}>
+              <IOSDevice dark><KTProof onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+          </DCSection>
+
+          <DCSection title="3 · IA & aprendizado" subtitle="Três modos: chat, treino contra solver e trilha gamificada.">
+            <ScreenArtboard label="Chat · Rainha (GTO)" onFocus={() => setFocus('chat')}>
+              <IOSDevice dark><KTChat onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Treino contra IA GTO" onFocus={() => setFocus('train')}>
+              <IOSDevice dark><KTTrain onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+            <ScreenArtboard label="Trilha · fundamentos" onFocus={() => setFocus('trail')}>
+              <IOSDevice dark><KTTrail onExit={() => {}}/></IOSDevice>
+            </ScreenArtboard>
+          </DCSection>
+
+          <div style={{ padding: '0 0 40px', maxWidth: 640 }}>
+            <div style={{ fontFamily: 'var(--kt-font-display)', fontSize: 22, color: '#2a2018', fontWeight: 500, marginBottom: 8 }}>
+              Sistema visual
+            </div>
+            <div style={{ fontSize: 12, color: '#5a4a2a', lineHeight: 1.6 }}>
+              <strong>Paleta:</strong> near-black aquecido (#0a0807) + champagne (#e8d5a0). Acento esmeralda opcional (hint de feltro da mesa).<br/>
+              <strong>Tipografia:</strong> Cormorant Garamond para display (elegância editorial), Inter Tight para UI, JetBrains Mono para blinds e valores.<br/>
+              <strong>Ornamento:</strong> coroa + naipes minimalistas, flourishes com losango, texturas em hachura diagonal 135°.<br/>
+              <strong>Interações novas:</strong> anel radial no timer com ticks de relógio analógico, podium em colunas, trilha de estudos em zigue-zague com nó boss, reading de comprovante com scan line.
+            </div>
+          </div>
+        </div>
+      </DesignCanvas>
+
+      {/* Focused full-bleed overlay */}
+      {focus && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
+          zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 40,
+        }} onClick={() => setFocus(null)}>
+          <div onClick={e => e.stopPropagation()} style={{ position: 'relative' }}>
+            {focus === 'blinds' ? (
+              <LandscapeFrame width={920} height={520}>
+                <KTBlindsClock variant={tweaks.timerVariant}/>
+              </LandscapeFrame>
+            ) : (
+              <IOSDevice dark>
+                {focus === 'dashboard' && <KTDashboard onNavigate={setFocus}/>}
+                {focus === 'create' && <KTCreateTournament onExit={() => setFocus(null)}/>}
+                {focus === 'ranking' && <KTRanking onExit={() => setFocus(null)}/>}
+                {focus === 'prize' && <KTPrize onExit={() => setFocus(null)}/>}
+                {focus === 'proof' && <KTProof onExit={() => setFocus(null)}/>}
+                {focus === 'chat' && <KTChat onExit={() => setFocus(null)}/>}
+                {focus === 'train' && <KTTrain onExit={() => setFocus(null)}/>}
+                {focus === 'trail' && <KTTrail onExit={() => setFocus(null)}/>}
+              </IOSDevice>
+            )}
+            <button onClick={() => setFocus(null)} style={{
+              position: 'absolute', top: -44, right: 0,
+              background: 'transparent', border: '1px solid var(--kt-border-strong)',
+              color: 'var(--kt-gold-200)', padding: '6px 14px', borderRadius: 16,
+              cursor: 'pointer', fontSize: 12, fontFamily: 'var(--kt-font-ui)',
+            }}>✕ fechar</button>
+          </div>
+        </div>
+      )}
+
+      <TweaksPanel tweaks={tweaks} setTweaks={setTweaks} visible={tweaksVisible} onClose={() => setTweaksVisible(false)} />
+    </>
+  );
+}
+
+// Wraps an iOS device at scale with a label on a canvas
+function ScreenArtboard({ label, width = 402, height = 874, children, onFocus }) {
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <div style={{
+        position: 'absolute', bottom: '100%', left: 0, paddingBottom: 10,
+        fontSize: 11, fontWeight: 500, color: 'rgba(60,50,40,0.7)',
+        whiteSpace: 'nowrap', letterSpacing: '0.02em',
+      }}>{label}</div>
+      <div onClick={onFocus} style={{ width, height, cursor: 'zoom-in', position: 'relative' }}>
+        {children}
+        {/* hover caption */}
+        <div style={{
+          position: 'absolute', top: 10, right: 10, zIndex: 100,
+          padding: '3px 8px', borderRadius: 8,
+          background: 'rgba(0,0,0,0.6)', color: 'var(--kt-gold-200)',
+          fontSize: 9, letterSpacing: '0.15em', fontWeight: 600,
+          pointerEvents: 'none',
+        }}>↗ ABRIR</div>
+      </div>
+    </div>
+  );
+}
+
+// Landscape device — simplified, for the blinds clock
+function LandscapeFrame({ width = 760, height = 430, children }) {
+  return (
+    <div style={{
+      width, height, borderRadius: 38, overflow: 'hidden',
+      position: 'relative', background: '#000',
+      boxShadow: '0 40px 80px rgba(0,0,0,0.4), 0 0 0 1px rgba(0,0,0,0.3)',
+      border: '8px solid #0a0807',
+    }}>
+      {children}
+      <div style={{
+        position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+        width: 5, height: 100, borderRadius: 3,
+        background: 'rgba(255,255,255,0.25)',
+      }}/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "King's Table",
+    "slug": "kings-table-app",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "scheme": "kingstable",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0a0807"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kingstable.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0a0807"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.kingstable.app"
+    },
+    "web": {
+      "favicon": "./assets/marca/favicon.png",
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-font",
+        {
+          "fonts": []
+        }
+      ],
+      "expo-splash-screen"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
