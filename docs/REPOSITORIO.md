@@ -48,7 +48,8 @@ Nao continuar tarefas na pasta antiga ou nas copias arquivadas.
 
 ## Proxima etapa
 
-Cadastro e login ainda nao foram implementados. Continuam pendentes a
-conexao efetiva dos tokens compartilhados e a configuracao local do
-Supabase em `apps/app` (o `.env.local` original esta no arquivo de
-recuperacao, nao foi publicado no GitHub).
+Paginas e sessao web de cadastro e login implementadas; detalhes e testes
+em `AUTENTICACAO.md`. A configuracao local do Supabase foi recuperada para
+as duas aplicacoes e permanece fora do GitHub. Continuam pendentes a
+validacao positiva por e-mail real, a sincronizacao das mesas e a conexao
+efetiva dos tokens compartilhados.

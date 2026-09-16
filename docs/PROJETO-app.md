@@ -1,5 +1,14 @@
 # King's Table App
 
+## Autenticacao web em 16/09/2026
+
+Monorepo em `kings-table`, com acesso pela landing e sessao compartilhada
+com o app web. Login, cadastro, recuperacao e nova senha em `apps/site`.
+App web protegido por AuthGate; Perfil mostra conta e permite sair. Dados
+locais separados por conta, sem sincronizacao remota nesta etapa. Nove
+suites de testes, incluindo isolamento de mesas, presets e relogios.
+Configuracao e validacoes pendentes em `docs/AUTENTICACAO.md` na raiz.
+
 ## Estado em 15/09/2026
 
 App Expo SDK 54, Expo Router, React Native e Zustand. Preview web na porta

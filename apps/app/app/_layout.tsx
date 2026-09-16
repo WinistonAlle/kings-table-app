@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { AuthGate } from '@/components/AuthGate';
 /* Três famílias, três papéis, e nada além disso.
    - Sora: a voz da marca nos títulos. Geométrica e SEM SERIFA — substituiu a
      Cormorant Garamond, que era uma garalda de corpo de texto e sumia em
@@ -56,6 +57,7 @@ export default function RootLayout() {
   return (
     <>
       <StatusBar style="light" />
+      <AuthGate>
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#0a0807' } }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="blinds/[id]" options={{ presentation: 'fullScreenModal' }} />
@@ -63,6 +65,7 @@ export default function RootLayout() {
         <Stack.Screen name="tournament/create" options={{ presentation: 'modal' }} />
         <Stack.Screen name="tournament/[id]" />
       </Stack>
+      </AuthGate>
     </>
   );
 }

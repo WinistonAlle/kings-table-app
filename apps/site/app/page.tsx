@@ -8,6 +8,8 @@ import { Precos } from '@/components/Precos';
 import { Perguntas } from '@/components/Perguntas';
 import { Fechamento, Rodape } from '@/components/Rodape';
 import { HomeGames } from '@/components/HomeGames';
+import { AcessoNav } from '@/components/AcessoNav';
+import '@/components/auth.css';
 
 /* Sete dobras, na ordem da cabeça de quem chega:
    1. o que é (herói), 1b. o que ele FAZ, em uma frase (a promessa, que era
@@ -23,6 +25,7 @@ import { HomeGames } from '@/components/HomeGames';
 export default function Home() {
   return (
     <main>
+      <AcessoNav />
       <Cena />
       <HeroVideo />
       <Promessa />

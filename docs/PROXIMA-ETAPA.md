@@ -1,5 +1,10 @@
 # Próxima etapa: a sessão compartilhada
 
+Atualizacao de 16/09/2026: as paginas e a integracao de sessao web foram
+implementadas. Consultar `AUTENTICACAO.md` para o estado atual, configuracao
+e validacoes pendentes. O texto abaixo preserva o planejamento anterior,
+nao deve ser usado como diagnostico atual.
+
 Registrado em 16/09/2026, a pedido do usuário, ao fechar a unificação.
 
 ## O que precisa existir

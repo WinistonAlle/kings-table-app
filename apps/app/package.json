@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts"
+    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
@@ -19,6 +19,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@kings-table/ui": "^0.0.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
+    "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "^2.104.0",
     "babel-preset-expo": "^55.0.17",
     "expo": "~54.0.33",

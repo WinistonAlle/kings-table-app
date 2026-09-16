@@ -11,6 +11,7 @@ import { KTButton } from '@/components/ui/Button';
 import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { calcularClassificacao } from '@/lib/standings';
+import { AccountDetails } from '@/components/AccountDetails';
 
 /* Perfil.
  *
@@ -64,7 +65,8 @@ export default function Perfil() {
           <KTText papel="titulo" color={Colors.gold100} style={{ marginTop: Space.lg }}>
             King&apos;s Table
           </KTText>
-          <KTText papel="apoio" color={Colors.text2}>Clube privado · sem conta</KTText>
+          <KTText papel="apoio" color={Colors.text2}>Seu clube privado</KTText>
+          <AccountDetails />
           <View style={{ marginTop: Space.lg }}>
             <Filete largura={92} />
           </View>
@@ -100,7 +102,7 @@ export default function Perfil() {
           <KTText papel="rotulo" color={Colors.text2} style={styles.secao}>Em desenvolvimento</KTText>
           <KTSurface nivel="card" padding={0}>
             {[
-              { icone: 'cloud-outline',      titulo: 'A liga em todos os aparelhos', nota: 'Hoje os torneios ficam só neste telefone' },
+              { icone: 'cloud-outline',      titulo: 'A liga em todos os aparelhos', nota: 'Por enquanto, suas mesas ficam salvas neste aparelho' },
               { icone: 'people-outline',     titulo: 'Cada jogador com seu histórico', nota: 'Ranking pessoal, ROI e evolução por temporada' },
               { icone: 'receipt-outline',    titulo: 'Comprovante conferido por IA',  nota: 'Foto do PIX, valor e destinatário confirmados' },
               { icone: 'sparkles-outline',   titulo: 'A Rainha com memória',          nota: 'Análise das suas mãos, não respostas genéricas' },
@@ -124,8 +126,8 @@ export default function Perfil() {
             style={{ marginTop: Space.lg }}
           />
           <KTText papel="apoio" color={Colors.text3} style={styles.nota}>
-            Conta e sincronização ainda não estão disponíveis. Suas mesas
-            ficam salvas neste aparelho, sem precisar de cadastro.
+            Suas mesas ficam salvas neste aparelho. A sincronização entre
+            aparelhos será adicionada em uma próxima etapa.
           </KTText>
         </View>
 

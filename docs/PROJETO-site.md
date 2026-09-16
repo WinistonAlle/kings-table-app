@@ -1,5 +1,13 @@
 # King's Table: a landing page
 
+## Acesso web de 16/09/2026
+
+Landing com Entrar e Criar conta. Paginas de login, cadastro, recuperacao e
+nova senha conectadas ao Supabase Auth e ao app web. Configuracao, limites e
+testes registrados em `docs/AUTENTICACAO.md`, na raiz do monorepo. As
+referencias historicas abaixo sobre ausencia de cadastro foram substituidas
+por esta etapa. Os previews continuam nas portas 3001 e 8081.
+
 ## Revisao visual de 15/09/2026
 
 - Preview de desenvolvimento: http://localhost:3001 (manter esta porta).
