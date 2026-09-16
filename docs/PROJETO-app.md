@@ -45,6 +45,22 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 
 ## Implementado
 
+- Resumo e exportacao em components/NightExport.tsx: previa selecionavel,
+  copia no navegador, compartilhamento nativo e abertura do WhatsApp.
+  Resumo separa classificacao parcial de resultado final, bolo registrado,
+  valores marcados como pagos, pendentes e contestados; nao simula PIX nem
+  pagamento de premios. Mesa vazia bloqueia envio, mantendo previa e CSV.
+- CSV web de jogadores/pagamentos/assentos/resultado, estrutura com intervalos
+  e auditoria detalhada. UTF-8 com BOM, separador ponto-e-virgula, aspas
+  escapadas e neutralizacao de formulas em campos textuais. Arquivos gerados
+  localmente, sem enviar dados a servidores nem alterar a mesa. Exportacao
+  CSV nativa, ranking e importacao ficam para as proximas etapas.
+- Decima suite em testes/teste-exportacao.ts: totais, estados, ordenacao,
+  vazios, resultado final, escaping, formulas e ausencia de mutacao.
+  Playwright validou copia real, download e ausencia de overflow em 320,
+  390 e 768px com uma mesa temporaria no modo de teste, removida apos a
+  verificacao. TypeScript, dez suites e exportacao web passaram.
+
 - Assentos em components/SeatManager.tsx: sorteio em mesas de 2 a 12 lugares,
   lugares separados da colocacao final, lista ordenada, selecao manual de lugar
   livre e troca atomica entre dois jogadores. Sorteio substitui lugares somente
@@ -132,7 +148,8 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 
 - O relogio ja possui estado separado por torneio; falta evoluir a mesma base
   para sincronizacao online entre anfitriao, telas e jogadores.
-- Contas, autenticacao e sincronizacao Supabase nao estao implementadas.
+- Contas e autenticacao implementadas em 16/09 conforme a secao de acesso;
+  sincronizacao Supabase e backup remoto ainda nao estao implementados.
 - .env.local corresponde ao projeto reativado e esta ignorado pelo Git. Falha
   ENOTFOUND de 15/09 superada apos reativacao. Ainda faltam migracoes de dominio,
   permissoes e integracao antes de conectar RSVP remoto, QR Code e telas ao vivo.
