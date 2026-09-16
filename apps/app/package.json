@@ -17,6 +17,7 @@
     "@expo-google-fonts/sora": "^0.4.2",
     "@expo/metro-runtime": "^6.1.2",
     "@expo/vector-icons": "^15.0.3",
+    "@kings-table/ui": "^0.0.0",
     "@react-native-async-storage/async-storage": "^2.2.0",
     "@supabase/supabase-js": "^2.104.0",
     "babel-preset-expo": "^55.0.17",
