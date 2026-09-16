@@ -8,6 +8,10 @@ export const ORGANIZER = '__organizer__';
 const cents = (value: number) => Math.round(value * 100);
 const brl = (value: number) => (value / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+export function settlementFingerprint(t: Tournament) {
+  return JSON.stringify([t.status, t.buyIn, [...t.players].sort((a, b) => a.id.localeCompare(b.id)).map(p => [p.id, p.buyIns, p.reEntries, p.addOns, p.paymentStatus, p.position, p.prize])]);
+}
+
 export function settlement(t: Tournament): Settlement {
   const invalid = (error: string): Settlement => ({ balances: [], transfers: [], error });
   if (t.status !== 'finished') return invalid('O acerto fica disponível depois de encerrar a noite.');
@@ -28,6 +32,19 @@ export function settlement(t: Tournament): Settlement {
   if (!Number.isSafeInteger(pool) || pool !== balances.reduce((s, b) => s + b.prizeCents, 0)) return invalid('A soma dos prêmios não corresponde ao total das entradas.');
   const held = balances.reduce((s, b) => s + b.paidCents, 0);
   balances.push({ id: ORGANIZER, name: 'Caixa do organizador', cents: -held, entriesCents: 0, paidCents: 0, prizeCents: 0 });
+  const recorded = t.settlementPayments ?? [];
+  const baseline = settlementFingerprint(t);
+  if (new Set(recorded.map(p => p.id)).size !== recorded.length) return invalid('Existem transferências duplicadas no histórico.');
+  for (const payment of recorded.filter(p => !p.voidedAt)) {
+    if (payment.baseline !== baseline) return invalid('Entradas ou prêmios mudaram depois de um acerto registrado. Confira o histórico e estorne os registros incompatíveis antes de continuar.');
+    const from = balances.find(b => b.id === payment.from);
+    const to = balances.find(b => b.id === payment.to);
+    if (!from || !to || from === to || !Number.isSafeInteger(payment.cents) || payment.cents <= 0) return invalid('Existe uma transferência inválida no histórico. Confira e estorne o registro.');
+    // Pagamento real reduz a divida do remetente e o credito do destinatario.
+    from.cents += payment.cents;
+    to.cents -= payment.cents;
+    if (![from.cents, to.cents].every(Number.isSafeInteger)) return invalid('Valores acima do limite seguro de cálculo.');
+  }
   const debtors = balances.filter(b => b.cents < 0).map(b => ({ id: b.id, amount: -b.cents }));
   const creditors = balances.filter(b => b.cents > 0).map(b => ({ id: b.id, amount: b.cents }));
   const transfers: SettlementTransfer[] = [];
@@ -47,12 +64,30 @@ export function settlement(t: Tournament): Settlement {
   return { balances, transfers, error: null };
 }
 
+export function recordSettlement(t: Tournament, from: string, to: string, amount: number): { tournament: Tournament; error: string | null } {
+  const plan = settlement(t);
+  const fail = (error: string) => ({ tournament: t, error });
+  if (plan.error) return fail(plan.error);
+  const debtor = plan.balances.find(b => b.id === from);
+  const creditor = plan.balances.find(b => b.id === to);
+  if (!Number.isSafeInteger(amount) || amount <= 0 || !debtor || !creditor || from === to || debtor.cents >= 0 || creditor.cents <= 0 || amount > Math.min(-debtor.cents, creditor.cents)) return fail('Informe um valor positivo que não ultrapasse o saldo de quem paga e de quem recebe.');
+  const payment = { id: `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`, from, to, cents: amount, at: new Date().toISOString(), baseline: settlementFingerprint(t) };
+  return { tournament: { ...t, settlementPayments: [...(t.settlementPayments ?? []), payment] }, error: null };
+}
+
+export function voidSettlement(t: Tournament, paymentId: string): Tournament {
+  if (!t.settlementPayments?.some(p => p.id === paymentId && !p.voidedAt)) return t;
+  return { ...t, settlementPayments: t.settlementPayments.map(p => p.id === paymentId && !p.voidedAt ? { ...p, voidedAt: new Date().toISOString() } : p) };
+}
+
 export function settlementSummary(t: Tournament, plan: Settlement) {
   if (plan.error) return plan.error;
   const name = (id: string) => plan.balances.find(b => b.id === id)!.name.replace(/[\r\n]+/g, ' ');
   return [
     `King's Table · Acerto de ${t.name.replace(/[\r\n]+/g, ' ')}`,
-    'Sugestão considerando entradas confirmadas no caixa do organizador e nenhum prêmio pago ainda.',
+    'Saldo restante após os acertos registrados. Entradas confirmadas consideradas no caixa do organizador.',
+    ...((t.settlementPayments ?? []).filter(p => !p.voidedAt).length ? ['ACERTOS REGISTRADOS', ...(t.settlementPayments ?? []).filter(p => !p.voidedAt).map(p => `${name(p.from)} → ${name(p.to)}: ${brl(p.cents)}`)] : []),
+    'AINDA FALTA PAGAR',
     ...plan.transfers.map((x, i) => `${i + 1}. ${name(x.from)} → ${name(x.to)}: ${brl(x.cents)}`),
     ...(plan.transfers.length ? [] : ['Todos os saldos estão zerados.']),
     'Confira os registros antes de transferir. Esta lista não confirma pagamentos bancários.',

@@ -1,5 +1,27 @@
 # King's Table App
 
+## Transferencias realizadas em 16/09/2026
+
+- Acerto agora registra pagamentos completos ou parciais, recalcula somente
+  o saldo restante e permite estornar o registro sem apagar o historico.
+  Confirmacao explicita para registro e estorno; nao transfere dinheiro.
+- Lancamentos possuem ID, partes, centavos inteiros, data, base financeira
+  e data de estorno. Persistidos na mesa, incluidos no backup online, no
+  historico de alteracoes, resumo da noite e CSV especifico de transferencias.
+- Registro valida os saldos atuais no store, rejeita valores negativos,
+  fracionarios em centavos, partes invalidas, excesso e duplicacao apos quitar.
+- Se entradas, pagamentos ou premios mudarem com lancamentos ativos, bloqueia
+  novos acertos e pede revisao. Estornos continuam acessiveis no historico;
+  nao cancela transferencia bancaria nem devolve dinheiro automaticamente.
+- Entradas confirmadas continuam independentes de transferencias do acerto:
+  nao marcar a entrada novamente para registrar pagamento de premio/acerto.
+- Suite do acerto ampliada com parcial, quitacao, estorno idempotente,
+  conflito de base, auditoria, serializacao, CSV e preservacao no backup.
+  Treze suites, TypeScript e export web passaram. Navegador verificou parcial,
+  recarga, estorno e auditoria persistidos, com dados temporarios removidos.
+- Ainda faltam no financeiro completo: cash-in/cash-out de cash game,
+  despesas, taxas, estornos financeiros reais e conciliacao bancaria.
+
 ## Acerto sugerido em 16/09/2026
 
 - Mesa encerrada ganhou Acerto da noite: saldos individuais, caixa do
@@ -7,14 +29,14 @@
 - Calculo em centavos inteiros: premio menos entradas pendentes. Entradas
   confirmadas sao consideradas ja recebidas no caixa, sem cobrar novamente.
   O organizador aparece como caixa separado, mesmo se tambem jogar.
-- Exige confirmacao de que nenhum premio foi pago. Mudanca nos registros
+- Na entrega inicial exigia confirmacao de que nenhum premio foi pago. Mudanca nos registros
   invalida essa confirmacao. Bloqueia noite aberta, contestacoes, duplicacao
   de jogadores/colocacoes, valores invalidos e premios divergentes das entradas.
 - Casamento dos maiores saldos evita intermediarios e limita transferencias
   a participantes com saldo menos um; nao promete minimo matematico global.
-- Sugestao nao altera pagamentos, nao envia PIX e nao registra liquidacao.
-  Ainda pendentes do modulo completo: pagamentos parciais/transferencias
-  realizadas, cash-in/cash-out, despesas, estornos e calculo incremental.
+- Na entrega inicial, apenas sugestao, sem registrar liquidacao. Pagamentos
+  parciais, transferencias realizadas e estornos de registros foram adicionados
+  na etapa documentada acima. Nao envia PIX. Cash-in/cash-out e despesas pendentes.
 - Decima terceira suite verifica conservacao dos saldos, centavos, caixa,
   pendentes, bloqueios e ausencia de mutacao. TypeScript e export web passaram.
   Playwright validou confirmacao, exemplo financeiro e ausencia de overflow

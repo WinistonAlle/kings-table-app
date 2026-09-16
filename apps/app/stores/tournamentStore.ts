@@ -7,6 +7,7 @@ import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
 import { sortearAssentos, moverAssento, desfazerAssentos } from '@/lib/assentos';
+import { recordSettlement, voidSettlement } from '@/lib/acerto';
 
 export { emJogo } from '@/lib/torneio';
 
@@ -29,6 +30,8 @@ interface TournamentStore {
   drawSeats: (id: string, size: number) => void;
   moveSeat: (id: string, playerId: string, table: number, seat: number) => void;
   undoSeats: (id: string) => void;
+  recordSettlement: (id: string, from: string, to: string, cents: number) => string | null;
+  voidSettlement: (id: string, paymentId: string) => void;
 
   /** Marca o torneio como em andamento. */
   startTournament: (id: string) => void;
@@ -48,6 +51,17 @@ export const useTournamentStore = create<TournamentStore>()(
       return ({
       tournaments: [],
       activeTournamentId: null,
+      recordSettlement: (id, from, to, cents) => {
+        let error: string | null = 'Mesa não encontrada.';
+        set(s => ({ tournaments: s.tournaments.map(t => {
+          if (t.id !== id) return t;
+          const result = recordSettlement(t, from, to, cents);
+          error = result.error;
+          return result.tournament;
+        }) }));
+        return error;
+      },
+      voidSettlement: (id, paymentId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? voidSettlement(t, paymentId) : t) })),
       drawSeats: (id, size) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? sortearAssentos(t, size) : t) })),
       moveSeat: (id, playerId, table, seat) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? moverAssento(t, playerId, table, seat) : t) })),
       undoSeats: (id) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? desfazerAssentos(t) : t) })),

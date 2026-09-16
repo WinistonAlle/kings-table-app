@@ -1,5 +1,6 @@
 import type { Tournament } from '@/types';
 import { entriesOf, prizePool } from './payouts';
+import { settlement, settlementSummary, ORGANIZER } from './acerto';
 
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const status = { upcoming: 'Agendada', running: 'Em andamento', finished: 'Encerrada', cancelled: 'Cancelada' };
@@ -32,7 +33,8 @@ export function nightSummary(t: Tournament) {
     ...t.players.map(p => `${line(p.name)} · ${entriesOf(p)} entrada(s) · ${money(entriesOf(p) * t.buyIn)} · ${payment[p.paymentStatus]}`),
     `Marcado como pago: ${money(totals.paid)}`,
     `A receber: ${money(totals.pending)} · Contestado: ${money(totals.disputed)}`,
-    'Pagamentos registrados pelo organizador. Não é confirmação bancária nem registro de pagamento de prêmios.',
+    'Pagamentos registrados pelo organizador. Não é confirmação bancária.',
+    ...((t.settlementPayments ?? []).length ? ['', settlementSummary(t, settlement(t))] : ['Prêmios sem registro de pagamento no acerto.']),
   ].join('\n');
 }
 
@@ -45,7 +47,7 @@ export function csvCell(value: unknown) {
 export function csv(rows: unknown[][]) {
   return '\uFEFF' + rows.map(row => row.map(csvCell).join(';')).join('\r\n') + '\r\n';
 }
-export type ExportKind = 'players' | 'blinds' | 'audit';
+export type ExportKind = 'players' | 'blinds' | 'audit' | 'settlement';
 export function tournamentCsv(t: Tournament, kind: ExportKind) {
   if (kind === 'players') return csv([
     ['Mesa ID', 'Mesa', 'Status', 'Jogador ID', 'Jogador', 'Mesa de jogo', 'Assento', 'Buy-in', 'Entradas iniciais', 'Reentradas', 'Add-ons', 'Total devido', 'Pagamento', 'Posição', 'Prêmio final'],
@@ -55,6 +57,13 @@ export function tournamentCsv(t: Tournament, kind: ExportKind) {
     ['Mesa ID', 'Mesa', 'Ordem', 'Tipo', 'Nível', 'Small blind', 'Big blind', 'Ante', 'Duração (minutos)'],
     ...t.blindStructure.map((b, i) => [t.id, t.name, i + 1, b.isBreak ? 'Intervalo' : 'Nível', b.level, b.smallBlind, b.bigBlind, b.ante, b.durationMinutes]),
   ]);
+  if (kind === 'settlement') {
+    const name = (id: string) => t.players.find(p => p.id === id)?.name ?? (id === ORGANIZER ? 'Caixa do organizador' : id);
+    return csv([
+      ['Mesa ID', 'Mesa', 'Transferência ID', 'Data ISO', 'De ID', 'De', 'Para ID', 'Para', 'Valor', 'Registro', 'Estorno ISO'],
+      ...(t.settlementPayments ?? []).map(p => [t.id, t.name, p.id, p.at, p.from, name(p.from), p.to, name(p.to), p.cents / 100, p.voidedAt ? 'Estornado' : 'Registrado pelo organizador', p.voidedAt]),
+    ]);
+  }
   return csv([
     ['Mesa ID', 'Mesa', 'Evento ID', 'Data ISO', 'Autor', 'Ação', 'Campo', 'Antes', 'Depois'],
     ...(t.audit ?? []).flatMap(e => (e.changes.length ? e.changes : [{ label: '', before: '', after: '' }]).map(change => [t.id, t.name, e.id, e.at, e.actor, e.summary, change.label, change.before, change.after])),

@@ -18,6 +18,7 @@ const player = seat.extend({
   eliminatedAt: z.string().optional(),
 }).passthrough();
 const tournament = z.object({
+  settlementPayments: z.array(z.object({ id, from: id, to: id, cents: positive, at: z.string(), baseline: z.string(), voidedAt: z.string().optional() })).max(10000).optional(),
   id, name: z.string().min(1), leagueId: id.optional(),
   format: z.enum(['deep', 'regular', 'turbo', 'hyper', 'rebuy', 'bounty']),
   status: z.enum(['upcoming', 'running', 'finished', 'cancelled']),
@@ -54,6 +55,7 @@ const schema = z.object({
   const ids = new Set(data.tournaments.map(t => t.id));
   if (data.activeTournamentId && !ids.has(data.activeTournamentId)) issue();
   for (const t of data.tournaments) {
+    if (t.settlementPayments && (!unique(t.settlementPayments) || t.settlementPayments.some(p => p.from === p.to || [p.from, p.to].some(id => id !== '__organizer__' && !t.players.some(player => player.id === id))))) issue();
     if (!unique(t.players) || t.currentLevel >= t.blindStructure.length) issue();
     if (t.invitees && (!unique(t.invitees) || t.invitees.some(i => i.playerId && !t.players.some(p => p.id === i.playerId)))) issue();
   }

@@ -51,7 +51,7 @@ export function NightExport({ tournament }: { tournament: Tournament }) {
     {Platform.OS === 'web' && <View style={{ gap: 12 }}>
       <KTText papel="rotulo" color={Colors.text1}>Exportar CSV</KTText>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}>
-        {([['players', 'Jogadores e pagamentos'], ['blinds', 'Estrutura de blinds'], ['audit', 'Histórico de alterações']] as const).map(([kind, label]) => <KTButton key={kind} label={label} variant="fantasma" onPress={() => download(kind)} icone={<Ionicons name="download-outline" size={18} color={Colors.text0} />} />)}
+        {([['players', 'Jogadores e pagamentos'], ['blinds', 'Estrutura de blinds'], ['audit', 'Histórico de alterações'], ['settlement', 'Transferências do acerto']] as const).map(([kind, label]) => <KTButton key={kind} label={label} variant="fantasma" onPress={() => download(kind)} icone={<Ionicons name="download-outline" size={18} color={Colors.text0} />} />)}
       </View>
     </View>}
     {!!message && <KTText accessibilityLiveRegion="polite" papel="apoio" color={error ? Colors.danger : Colors.ok}>{message}</KTText>}

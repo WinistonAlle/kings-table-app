@@ -12,6 +12,7 @@ export interface BlindLevel {
 }
 
 export interface Tournament {
+  settlementPayments?: SettlementPayment[];
   seatsPerTable?: number;
   seatUndo?: { seatsPerTable: number; players: Pick<TournamentPlayer, 'id' | 'tableNumber' | 'seatNumber'>[] };
   audit?: AuditEvent[];
@@ -34,6 +35,16 @@ export interface Tournament {
   players: TournamentPlayer[];
   createdBy: string;
   createdAt: string;
+}
+
+export interface SettlementPayment {
+  id: string;
+  from: string;
+  to: string;
+  cents: number;
+  at: string;
+  baseline: string;
+  voidedAt?: string;
 }
 
 export type Attendance = 'confirmed' | 'maybe' | 'absent' | 'waiting';

@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import type { Tournament, TournamentPlayer } from '../types';
-import { settlement, settlementSummary, ORGANIZER } from '../lib/acerto';
+import { settlement, settlementSummary, recordSettlement, voidSettlement, ORGANIZER } from '../lib/acerto';
+import { auditar } from '../lib/auditoria';
+import { nightSummary, tournamentCsv } from '../lib/exportacao';
+import { parseBackup } from '../lib/backup';
 
 const player = (id: string, prize: number, paid = false): TournamentPlayer => ({
   id, userId: id, name: id, buyIns: 1, reEntries: 0, addOns: 0,
@@ -53,3 +56,33 @@ const decimal = mesa([player('p1', 48.75), player('p2', 26.25)]);
 decimal.buyIn = 37.5;
 assert.equal(check(decimal).transfers[0].cents, 1125);
 console.log('Acerto: caixa, pendentes, centavos, bloqueios, conservacao e ausencia de mutacao passaram.');
+
+const original = mesa([player('p1', 130), player('p2', 70)]);
+const partial = recordSettlement(original, 'p2', 'p1', 1000);
+assert.equal(partial.error, null);
+assert.equal(check(partial.tournament).transfers[0].cents, 2000);
+assert.equal(original.settlementPayments, undefined);
+assert.ok(recordSettlement(partial.tournament, 'p2', 'p1', 2001).error);
+assert.ok(recordSettlement(original, 'p1', 'p2', 1000).error);
+assert.ok(recordSettlement(original, 'p2', 'p1', 0).error);
+assert.ok(recordSettlement(original, 'p2', 'p1', 0.5).error);
+const final = recordSettlement(partial.tournament, 'p2', 'p1', 2000).tournament;
+assert.equal(check(final).transfers.length, 0);
+assert.ok(recordSettlement(final, 'p2', 'p1', 1000).error, 'nao aceita pagamento duplicado apos quitar');
+const reversed = voidSettlement(final, final.settlementPayments![0].id);
+assert.equal(check(reversed).transfers[0].cents, 1000);
+assert.equal(reversed.settlementPayments!.length, 2, 'estorno preserva historico');
+assert.equal(voidSettlement(reversed, reversed.settlementPayments![0].id), reversed, 'estorno idempotente');
+const changed = { ...partial.tournament, players: partial.tournament.players.map(p => ({ ...p, paymentStatus: 'confirmed' as const })) };
+assert.ok(settlement(changed).error?.includes('mudaram'), 'mudanca de entradas nao duplica os pagamentos');
+assert.equal(settlement(voidSettlement(changed, changed.settlementPayments![0].id)).error, null);
+assert.equal(settlement(JSON.parse(JSON.stringify(partial.tournament))).transfers[0].cents, 2000, 'historico serializavel');
+assert.ok(auditar(original, partial.tournament).audit?.some(e => e.summary.startsWith('Acerto:')));
+assert.ok(auditar(final, reversed).audit?.some(e => e.changes.some(c => c.after === 'Estornado')));
+assert.ok(tournamentCsv(reversed, 'settlement').includes('Estornado'));
+assert.ok(nightSummary(partial.tournament).includes('AINDA FALTA PAGAR'));
+const backupMesa = { ...partial.tournament, blindStructure: [{ level: 1, smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 15 }] };
+const snapshot = { version: 1, tournaments: [backupMesa], activeTournamentId: null, presets: [], blinds: { tournamentId: null, clocks: {}, structure: [], currentLevel: 0, secondsRemaining: 0, levelEndsAt: null, isRunning: false } };
+assert.equal(parseBackup(snapshot).tournaments[0].settlementPayments?.[0].cents, 1000, 'backup preserva pagamentos');
+assert.throws(() => parseBackup({ ...snapshot, tournaments: [{ ...backupMesa, settlementPayments: [{ ...backupMesa.settlementPayments![0], from: 'inexistente' }] }] }));
+console.log('Transferencias: parcial, quitacao, limites, estorno, conflito e serializacao passaram.');

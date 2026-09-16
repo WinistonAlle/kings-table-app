@@ -19,6 +19,13 @@ export function auditar(antes: Tournament | undefined, depois: Tournament, agora
     add('Local', antes.location || 'Não informado', depois.location || 'Não informado');
     add('Vagas', String(antes.capacity ?? 'Sem limite'), String(depois.capacity ?? 'Sem limite'));
     add('Assentos por mesa', String(antes.seatsPerTable ?? 10), String(depois.seatsPerTable ?? 10));
+    for (const payment of depois.settlementPayments ?? []) {
+      const old = antes.settlementPayments?.find(p => p.id === payment.id);
+      const name = (id: string) => depois.players.find(p => p.id === id)?.name ?? (id === '__organizer__' ? 'Caixa do organizador' : id);
+      const label = `Acerto: ${name(payment.from)} para ${name(payment.to)}`;
+      if (!old) add(label, 'Sem registro', `${dinheiro(payment.cents / 100)} registrado`);
+      else if (!old.voidedAt && payment.voidedAt) add(label, `${dinheiro(payment.cents / 100)} registrado`, 'Estornado');
+    }
     for (const p of depois.players) {
       const old = antes.players.find(o => o.id === p.id);
       if (!old) { add(`Entrada de ${p.name}`, 'Sem entrada', resumoJogador(p)); continue; }
