@@ -5,6 +5,8 @@ import { armazenamento } from '@/lib/armazenamento';
 import { desfazerEliminacao, eliminar } from '@/lib/torneio';
 import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
+import { auditar } from '@/lib/auditoria';
+import { sortearAssentos, moverAssento, desfazerAssentos } from '@/lib/assentos';
 
 export { emJogo } from '@/lib/torneio';
 
@@ -24,6 +26,9 @@ interface TournamentStore {
   setAttendance: (id: string, guestId: string, status: Attendance) => void;
   removeInvite: (id: string, guestId: string) => void;
   checkIn: (id: string, guestId: string) => void;
+  drawSeats: (id: string, size: number) => void;
+  moveSeat: (id: string, playerId: string, table: number, seat: number) => void;
+  undoSeats: (id: string) => void;
 
   /** Marca o torneio como em andamento. */
   startTournament: (id: string) => void;
@@ -35,9 +40,17 @@ interface TournamentStore {
 
 export const useTournamentStore = create<TournamentStore>()(
   persist(
-    (set, get) => ({
+    (rawSet, get) => {
+      const set = (update: (state: TournamentStore) => Partial<TournamentStore>) => rawSet(state => {
+        const next = update(state);
+        return { ...next, ...(next.tournaments ? { tournaments: next.tournaments.map(t => auditar(state.tournaments.find(old => old.id === t.id), t)) } : {}) };
+      });
+      return ({
       tournaments: [],
       activeTournamentId: null,
+      drawSeats: (id, size) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? sortearAssentos(t, size) : t) })),
+      moveSeat: (id, playerId, table, seat) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? moverAssento(t, playerId, table, seat) : t) })),
+      undoSeats: (id) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? desfazerAssentos(t) : t) })),
 
       invite: (id, name, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? adicionarConvidado(t, { id: `i_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name, status, createdAt: new Date().toISOString() }) : t) })),
       setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).map(c => c.id === guestId && !c.playerId ? { ...c, status: statusPresenca(t, status, guestId) } : c) } : t) })),
@@ -75,7 +88,7 @@ export const useTournamentStore = create<TournamentStore>()(
           activeTournamentId: s.activeTournamentId === id ? null : s.activeTournamentId,
         })),
 
-      setActive: (id) => set({ activeTournamentId: id }),
+      setActive: (id) => rawSet({ activeTournamentId: id }),
 
       addPlayer: (tournamentId, player) => {
         const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
@@ -129,7 +142,8 @@ export const useTournamentStore = create<TournamentStore>()(
         const { tournaments, activeTournamentId } = get();
         return tournaments.find(t => t.id === activeTournamentId);
       },
-    }),
+    });
+    },
     { name: 'kt-tournaments', storage: armazenamento },
   ),
 );

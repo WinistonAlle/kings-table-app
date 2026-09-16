@@ -10,11 +10,15 @@ import { KTButton } from '@/components/ui/Button';
 import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { distribuirPremios, entriesOf, payoutLabel, prizePool } from '@/lib/payouts';
-import { emJogo } from '@/lib/torneio';
+import { emJogo, podeDesfazerEliminacao } from '@/lib/torneio';
 import type { TournamentPlayer } from '@/types';
 import { semAnelDeFoco } from '@/components/ui/campo';
 import { NightPlanning } from '@/components/NightPlanning';
 import { vagaParaJogador } from '@/lib/noite';
+import { SeatManager } from '@/components/SeatManager';
+import { NightAudit } from '@/components/NightAudit';
+import { confirmarAcao } from '@/lib/confirmar';
+import { lugarJogador } from '@/lib/assentos';
 
 /* A mesa por dentro: quem está jogando, quem caiu, quem pagou e quanto cada um
  * leva.
@@ -140,6 +144,7 @@ export default function Mesa() {
           </View>
         </> : null}
 
+        {!encerrado && <SeatManager tournament={torneio} />}
         {!encerrado && <View>
           <View style={styles.secaoTopo}>
             <KTText papel="corpoForte">Jogadores na mesa</KTText>
@@ -153,10 +158,10 @@ export default function Mesa() {
                 preparando={torneio.status === 'upcoming'}
                 emPe={naMesa.length}
                 buyIn={torneio.buyIn}
-                onPagamento={() => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) })}
-                onContador={(campo, d) => updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) })}
-                onEliminar={() => eliminatePlayer(torneio.id, j.id)}
-                onRemover={() => removePlayer(torneio.id, j.id)}
+                onPagamento={() => confirmarAcao(`${j.name}: alterar pagamento para ${PAGAMENTO[proximoPagamento(j.paymentStatus)].texto}? Total registrado: ${dinheiro(entriesOf(j) * torneio.buyIn)}.`, () => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) }))}
+                onContador={(campo, d) => confirmarAcao(`${j.name}: ${d > 0 ? 'adicionar' : 'remover'} ${campo === 'reEntries' ? 'uma reentrada' : 'um add-on'} de ${dinheiro(torneio.buyIn)}? O valor total da noite será alterado.`, () => updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) }))}
+                onEliminar={() => confirmarAcao(naMesa.length === 2 ? `Eliminar ${j.name} em 2º lugar? A noite será encerrada e a premiação será calculada.` : `Eliminar ${j.name} em ${naMesa.length}º lugar?`, () => eliminatePlayer(torneio.id, j.id))}
+                onRemover={() => confirmarAcao(`Remover a entrada de ${j.name}? O buy-in e seu registro de pagamento serão removidos desta noite.`, () => removePlayer(torneio.id, j.id))}
               />
             ))}
             {naMesa.length === 0 && !encerrado && <KTText papel="apoio" color={Colors.text1} style={styles.dica}>Nenhum jogador adicionado</KTText>}
@@ -243,16 +248,17 @@ export default function Mesa() {
                       {j.prize ? dinheiro(j.prize) : 'fora do ITM'}
                     </KTText>
                   </View>
-                  <Pressable style={styles.desfazer} onPress={() => undoElimination(torneio.id, j.id)} hitSlop={8}>
+                  {podeDesfazerEliminacao(torneio, j.id) && <Pressable accessibilityRole="button" accessibilityLabel={`Desfazer eliminação de ${j.name}`} style={styles.desfazer} onPress={() => confirmarAcao(`Desfazer eliminação de ${j.name}?${encerrado ? ' A noite será reaberta e os prêmios finais serão recalculados ao encerrar novamente.' : ''}`, () => undoElimination(torneio.id, j.id))} hitSlop={8}>
                     <Ionicons name="arrow-undo" size={13} color={Colors.text2} />
                     <KTText papel="rotulo" color={Colors.text2}>Desfazer</KTText>
-                  </Pressable>
+                  </Pressable>}
                 </KTSurface>
               ))}
             </View>
           </View>
         ) : null}
 
+        <NightAudit tournament={torneio} />
         <View style={styles.rodapeOrn}>
           <Filete largura={100} />
         </View>
@@ -295,6 +301,7 @@ function CardJogador({
       <View style={styles.jogadorTopo}>
         <View style={{ flex: 1 }}>
           <KTText papel="corpoForte" color={Colors.text0}>{jogador.name}</KTText>
+          <KTText papel="apoio" color={Colors.gold200}>{lugarJogador(jogador)}</KTText>
           <KTText papel="apoio" color={Colors.text2}>
             {entriesOf(jogador)} {entriesOf(jogador) === 1 ? 'entrada' : 'entradas'} · {dinheiro(devido)}
           </KTText>
@@ -325,6 +332,8 @@ function CardJogador({
           </Pressable>
         ) : null}
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`Eliminar ${jogador.name}`}
           onPress={onEliminar}
           disabled={ultimo || preparando}
           style={[styles.eliminarBtn, (ultimo || preparando) && { opacity: 0.3 }]}

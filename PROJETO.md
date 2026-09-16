@@ -13,6 +13,26 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 
 ## Implementado
 
+- Assentos em components/SeatManager.tsx: sorteio em mesas de 2 a 12 lugares,
+  lugares separados da colocacao final, lista ordenada, selecao manual de lugar
+  livre e troca atomica entre dois jogadores. Sorteio substitui lugares somente
+  depois de confirmacao. Disponivel para noites agendadas ou em andamento.
+- Desfazer a ultima organizacao dos assentos restaura somente lugares e tamanho
+  das mesas, preservando pagamentos e entradas. Bloqueado quando o conjunto de
+  jogadores ativos mudou; nao restaura uma distribuicao invalida.
+- Histórico local de alteracoes em components/NightAudit.tsx e lib/auditoria.ts:
+  criacao, agenda, presenca, entradas, assentos, pagamentos, contadores,
+  eliminacoes, colocacoes e premios, com data, valores anteriores e novos.
+  Autor identificado como organizador deste aparelho, sem simular identidade
+  autenticada. Historico persistido, expansivel e paginado em grupos de oito.
+- Confirmacao para pagamentos, recompras, add-ons, eliminacao, remocao de entrada
+  e reversao da eliminacao. Eliminacao do penultimo avisa sobre fechamento e
+  premiacao automatica. Apenas a ultima eliminacao pode ser desfeita, evitando
+  duplicacao de colocacoes; retorno para assento ja ocupado fica sem lugar.
+- Testes em testes/teste-assentos.ts para sorteio, limites, trocas, preservacao
+  financeira no desfazer, membros alterados, persistencia serializavel do historico
+  e conflito de assento ao desfazer eliminacao.
+
 - Agendamento integrado a Criar mesa: Jogar agora ou Agendar noite, data e
   horario local validados, local e limite de vagas opcionais. Edicao e cancelamento
   antes do inicio, com protecao de registros de entrada ao cancelar.
@@ -76,6 +96,10 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 - IA e leitura de comprovantes nao estao conectadas. Rainha usa base local.
 - Reentradas, add-ons, bounties, cash game e multimesa precisam de regras
   completas no dominio.
+- Multimesa ainda precisa de balanceamento entre mesas durante a noite, quebra
+  de mesa e avisos remotos de movimentacao. A distribuicao atual cuida apenas dos
+  assentos locais. Auditoria autenticada, backups no servidor e autorizacoes
+  continuam dependentes da base online.
 - Revisar acessibilidade e responsividade de ranking, gestao e relogio.
 - Validar iOS/Android em aparelho real; web nao substitui testes nativos.
 

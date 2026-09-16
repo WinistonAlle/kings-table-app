@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Linking, Platform, Pressable, Share, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Platform, Pressable, Share, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { KTText } from '@/components/ui/Text';
 import { KTButton } from '@/components/ui/Button';
@@ -8,6 +8,7 @@ import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsStore } from '@/stores/blindsStore';
 import { dataAgendada, textoConvite } from '@/lib/noite';
 import type { Attendance, Tournament } from '@/types';
+import { confirmarAcao } from '@/lib/confirmar';
 
 const ESTADOS: { value: Attendance; label: string; color: string }[] = [
   { value: 'confirmed', label: 'Confirmado', color: Colors.ok },
@@ -28,10 +29,7 @@ export function NightPlanning({ tournament: t }: { tournament: Tournament }) {
   const [location, setLocation] = useState(t.location ?? '');
   const [capacity, setCapacity] = useState(t.capacity ? String(t.capacity) : '');
   const guests = t.invitees ?? [];
-  const confirm = (title: string, action: () => void) => {
-    if (Platform.OS === 'web') { if (window.confirm(title)) action(); }
-    else Alert.alert(title, undefined, [{ text: 'Voltar', style: 'cancel' }, { text: 'Confirmar', onPress: action }]);
-  };
+  const confirm = confirmarAcao;
   const share = async (whatsapp: boolean) => {
     try {
       const text = textoConvite(t);

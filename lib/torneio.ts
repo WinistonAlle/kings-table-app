@@ -63,15 +63,22 @@ export function eliminar(t: Tournament, playerId: string): Tournament {
  * Se o torneio já tinha acabado, o campeão volta junto para "em jogo": sem
  * isso sobrariam dois jogadores disputando a mesma posição.
  */
+export function podeDesfazerEliminacao(t: Tournament, playerId: string): boolean {
+  const alvo = t.players.find(p => p.id === playerId);
+  const ultima = Math.min(...t.players.filter(p => (p.position ?? 0) > 1).map(p => p.position!));
+  return (t.status === 'running' || t.status === 'finished') && !!alvo?.position && alvo.position === ultima;
+}
+
 export function desfazerEliminacao(t: Tournament, playerId: string): Tournament {
   const alvo = t.players.find((p) => p.id === playerId);
-  if (!alvo?.position) return t;
+  if (!alvo || !podeDesfazerEliminacao(t, playerId)) return t;
 
   const limpar = (p: typeof alvo) => ({
     ...p,
     position: undefined,
     prize: undefined,
     eliminatedAt: undefined,
+    ...((p.tableNumber && p.seatNumber && t.players.some(q => q.id !== p.id && (!q.position || (t.status === 'finished' && q.position === 1)) && q.tableNumber === p.tableNumber && q.seatNumber === p.seatNumber)) ? { tableNumber: undefined, seatNumber: undefined } : {}),
   });
 
   return {

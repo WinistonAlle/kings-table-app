@@ -12,6 +12,9 @@ export interface BlindLevel {
 }
 
 export interface Tournament {
+  seatsPerTable?: number;
+  seatUndo?: { seatsPerTable: number; players: Pick<TournamentPlayer, 'id' | 'tableNumber' | 'seatNumber'>[] };
+  audit?: AuditEvent[];
   location?: string;
   capacity?: number;
   invitees?: NightInvitee[];
@@ -43,6 +46,8 @@ export interface NightInvitee {
 }
 
 export interface TournamentPlayer {
+  tableNumber?: number;
+  seatNumber?: number;
   id: string;
   userId: string;
   name: string;
@@ -54,6 +59,14 @@ export interface TournamentPlayer {
   prize?: number;
   paymentStatus: 'pending' | 'confirmed' | 'disputed';
   eliminatedAt?: string;
+}
+
+export interface AuditEvent {
+  id: string;
+  at: string;
+  actor: string;
+  summary: string;
+  changes: { label: string; before: string; after: string }[];
 }
 
 // ─── League ──────────────────────────────────────────────────
