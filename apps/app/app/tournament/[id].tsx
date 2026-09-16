@@ -18,6 +18,7 @@ import { vagaParaJogador } from '@/lib/noite';
 import { SeatManager } from '@/components/SeatManager';
 import { NightAudit } from '@/components/NightAudit';
 import { NightExport } from '@/components/NightExport';
+import { NightSettlement } from '@/components/NightSettlement';
 import { confirmarAcao } from '@/lib/confirmar';
 import { lugarJogador } from '@/lib/assentos';
 
@@ -260,6 +261,7 @@ export default function Mesa() {
         ) : null}
 
         <NightAudit tournament={torneio} />
+        <NightSettlement tournament={torneio} />
         <NightExport tournament={torneio} />
         <View style={styles.rodapeOrn}>
           <Filete largura={100} />

@@ -1,5 +1,25 @@
 # King's Table App
 
+## Acerto sugerido em 16/09/2026
+
+- Mesa encerrada ganhou Acerto da noite: saldos individuais, caixa do
+  organizador, transferencias sugeridas e resumo para copiar/compartilhar.
+- Calculo em centavos inteiros: premio menos entradas pendentes. Entradas
+  confirmadas sao consideradas ja recebidas no caixa, sem cobrar novamente.
+  O organizador aparece como caixa separado, mesmo se tambem jogar.
+- Exige confirmacao de que nenhum premio foi pago. Mudanca nos registros
+  invalida essa confirmacao. Bloqueia noite aberta, contestacoes, duplicacao
+  de jogadores/colocacoes, valores invalidos e premios divergentes das entradas.
+- Casamento dos maiores saldos evita intermediarios e limita transferencias
+  a participantes com saldo menos um; nao promete minimo matematico global.
+- Sugestao nao altera pagamentos, nao envia PIX e nao registra liquidacao.
+  Ainda pendentes do modulo completo: pagamentos parciais/transferencias
+  realizadas, cash-in/cash-out, despesas, estornos e calculo incremental.
+- Decima terceira suite verifica conservacao dos saldos, centavos, caixa,
+  pendentes, bloqueios e ausencia de mutacao. TypeScript e export web passaram.
+  Playwright validou confirmacao, exemplo financeiro e ausencia de overflow
+  em 320/390/1440px. Fixture temporaria removida e dados anteriores preservados.
+
 ## Copia online por conta em 16/09/2026
 
 - Perfil web: salvar manualmente mesas, presets e relogios na conta Supabase,

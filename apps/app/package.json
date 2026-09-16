@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts"
+    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts && tsx testes/teste-acerto.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
