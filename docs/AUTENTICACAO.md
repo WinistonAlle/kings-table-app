@@ -19,6 +19,16 @@
 
 ## Configuracao
 
+Durante desenvolvimento em localhost, clicar em Entrar no sistema com os
+dois campos vazios abre um modo de teste local. A URL usa `?teste=1`; o app
+mantem esse modo na sessao da aba e separa os dados em `preview-local`.
+Sair do teste volta ao login. Nao cria usuario, tokens nem acesso ao banco.
+O formulario e o app bloqueiam este caminho em builds de producao e fora
+dos hostnames localhost e 127.0.0.1. Campos preenchidos usam o login real.
+Playwright validou entrada vazia, atualizacao e saida no desenvolvimento.
+Nos builds de producao, o formulario vazio nao avancou e a URL direta
+`?teste=1` no app voltou ao login, sem liberar as telas.
+
 Os `.env.local` foram recuperados localmente e continuam ignorados pelo Git.
 Em outra maquina ou no deploy, configurar:
 

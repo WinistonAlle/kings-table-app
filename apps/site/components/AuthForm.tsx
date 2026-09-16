@@ -15,7 +15,7 @@ const copy = {
   'nova-senha': { title: 'Uma nova senha.', subtitle: 'Escolha uma senha segura para sua conta.', action: 'Salvar nova senha' },
 };
 
-export function AuthForm({ mode, initialError = '' }: { mode: AuthMode; initialError?: string }) {
+export function AuthForm({ mode, initialError = '', testAccessUrl }: { mode: AuthMode; initialError?: string; testAccessUrl?: string }) {
   const [visible, setVisible] = useState(false);
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(initialError);
@@ -79,7 +79,15 @@ export function AuthForm({ mode, initialError = '' }: { mode: AuthMode; initialE
             {password && <label htmlFor="password"><span className="auth-label-row">Senha {mode === 'login' && <Link href="/recuperar-senha">Esqueceu a senha?</Link>}</span><div className="auth-input-wrap auth-password"><input id="password" name="password" type={visible ? 'text' : 'password'} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} required minLength={mode === 'login' ? 1 : 8} maxLength={128} placeholder={mode === 'login' ? 'Sua senha' : 'Pelo menos 8 caracteres'} /><button type="button" aria-label={visible ? 'Ocultar senha' : 'Mostrar senha'} title={visible ? 'Ocultar senha' : 'Mostrar senha'} aria-pressed={visible} onClick={() => setVisible(!visible)}>{visible ? <EyeOff size={18} /> : <Eye size={18} />}</button></div></label>}
             {(signup || mode === 'nova-senha') && <label htmlFor="confirm">Confirmar senha<input id="confirm" name="confirm" type={visible ? 'text' : 'password'} autoComplete="new-password" required minLength={8} maxLength={128} placeholder="Repita sua senha" /></label>}
             {error && <p className="auth-error" role="alert">{error}</p>}
-            <button type="submit" className="auth-submit">{pending ? <><LoaderCircle size={18} className="auth-spinner" /> Aguarde...</> : <>{c.action}<ArrowRight size={18} /></>}</button>
+            <button type="submit" className="auth-submit" onClick={event => {
+              if (mode !== 'login' || !testAccessUrl || !['localhost', '127.0.0.1'].includes(window.location.hostname)) return;
+              const form = event.currentTarget.form;
+              if (!form) return;
+              const data = new FormData(form);
+              if (String(data.get('email') || '').trim() || String(data.get('password') || '')) return;
+              event.preventDefault();
+              window.location.assign(testAccessUrl);
+            }}>{pending ? <><LoaderCircle size={18} className="auth-spinner" /> Aguarde...</> : <>{c.action}<ArrowRight size={18} /></>}</button>
           </fieldset>
         </form>}
       <p className="auth-switch">{mode === 'login' ? <>Ainda não tem conta? <Link href="/cadastro">Criar conta</Link></> : <>Já tem uma conta? <Link href="/login">Entrar</Link></>}</p>
