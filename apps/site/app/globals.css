@@ -1,0 +1,838 @@
+@import 'tailwindcss';
+
+/* Sistema visual do King's Table na web.
+ *
+ * As cores são as MESMAS do app, e as duas fontes também. Não é economia de
+ * esforço: é que a landing promete um produto, e a primeira coisa que a pessoa
+ * vê depois de assinar é o app. Se a página for de um tom e o produto de
+ * outro, a promessa começa a ruir no primeiro clique.
+ *
+ * A âncora de tudo é o ouro da logo, #c49c5c. Toda a escala é essa matiz (37°)
+ * em luminosidades diferentes.
+ */
+
+/* Preto e OURO, e nada de marrom.
+ *
+ * Medido antes de mexer: `text0` tinha 51,2% de saturação, praticamente a
+ * mesma do ouro da logo (46,8%). Ou seja, o texto do site inteiro era um
+ * creme, não um branco — e como texto é o que cobre mais área de uma página,
+ * era ele que pintava tudo de marrom. Os fundos vinham no mesmo caminho: 17,6%
+ * no bg0, que é um preto amarronzado.
+ *
+ * Agora os fundos são neutros de verdade e os textos guardam só 4% de calor,
+ * o suficiente para não virarem azulados ao lado do ouro. A LUMINOSIDADE de
+ * cada um é exatamente a de antes, então nenhuma relação de contraste mudou:
+ * o que saiu foi a cor, não o peso.
+ *
+ * A escala de ouro fica intocada. Ela passa a ser a ÚNICA fonte de cor da
+ * interface, que é o ponto: num sistema preto e dourado, tudo que não é ouro
+ * deveria ser cinza. */
+@theme {
+  --color-bg0: #080808;
+  --color-bg1: #101010;
+  --color-bg2: #181818;
+  --color-bg3: #222222;
+
+  --color-text0: #ebebea;
+  --color-text1: #bab8b5;
+  /* `text2` foi clareado de #74716c para #837f7a, e não foi por gosto.
+     Ele carrega o texto corrido da página e tinha 4,12:1 sobre o preto do
+     site — abaixo dos 4,5:1 que a norma pede para texto normal. Já estava
+     reprovado antes do fundo de raios; o fundo só tornou isso visível, ao
+     levar a superfície onde se lê de (8,8,8) para (22,21,19) e o contraste
+     para 3,68:1.
+     Este é o MENOR clareamento que passa em 4,5:1 com o fundo ligado: 4,50:1
+     ali, e 5,04:1 no preto puro. */
+  --color-text2: #837f7a;
+  --color-text3: #474542;
+
+  --color-gold50:  #f3e5cd;
+  --color-gold100: #e7d0ac;
+  --color-gold200: #e3cba6;
+  --color-gold300: #d3b27e;
+  --color-gold400: #c49c5c;
+  --color-gold500: #8b6d3c;
+  --color-gold600: #5b4829;
+  --color-gold700: #342918;
+  --color-gold800: #1e1910;
+
+  --color-ok: #78a885;
+  --color-danger: #c85a5a;
+
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-lineStrong: rgba(255, 255, 255, 0.14);
+
+  --font-display: var(--fonte-display);
+  --font-sans: var(--fonte-ui);
+  --font-mono: var(--fonte-mono);
+}
+
+.titulo { font-weight: 800; }
+.titulo em, .titulo .text-gold300 {
+  font-family: var(--fonte-destaque), Georgia, serif;
+  font-style: italic;
+  font-weight: 700;
+}
+@media (min-width: 1024px) {
+  .promessa-dobra { height: 210vh; padding-block: 0; }
+  .promessa-dobra > div {
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+}
+
+html {
+  /* Nos dois, e não só no body: o valor do body propaga pra viewport quando o
+     html está `visible`, e aí o body para de cortar. Aprendido na marra. */
+  overflow-x: clip;
+  /* Nada de `scroll-behavior: smooth` aqui: a rolagem suave é do Lenis
+     (`RolagemSuave.tsx`), e as duas ativas ao mesmo tempo brigam pelo mesmo
+     scroll, cada uma animando para um destino. O sintoma é a página tremer ao
+     clicar num link de âncora. */
+}
+
+body {
+  overflow-x: clip;
+  background: var(--color-bg0);
+  color: var(--color-text0);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ---------------------------------------------------------------- a escala
+ *
+ * Oito degraus, e nenhum tamanho fora deles.
+ *
+ * Antes desta seção a página tinha dezesseis tamanhos avulsos, escritos um a
+ * um no meio das classes: 0,72 / 0,85 / 0,92 / 0,93 / 0,95 / 0,98 / 1,05 /
+ * 1,15 / 1,4 / 1,45 / 1,6 / 1,7 ... Nenhum estava errado sozinho. O problema é
+ * que 0,92 e 0,95 lado a lado não leem como dois níveis de importância, leem
+ * como descuido, e é isso que faz uma página parecer amadora antes de alguém
+ * ler uma palavra.
+ *
+ * A razão entre degraus vizinhos é ~1,22. Os dois maiores são fluidos porque
+ * título grande que não encolhe quebra em celular; os menores são fixos porque
+ * corpo de texto que muda de tamanho com a janela atrapalha a leitura. */
+
+.t-hero {
+  font-size: clamp(2.5rem, 6.2vw, 4.8rem);
+  line-height: 1.02;
+  letter-spacing: -0.035em;
+}
+.t-secao {
+  font-size: clamp(2rem, 4.2vw, 3.05rem);
+  line-height: 1.06;
+  letter-spacing: -0.03em;
+}
+.t-sub { font-size: 1.55rem; line-height: 1.2; letter-spacing: -0.015em; }
+.t-card { font-size: 1.28rem; line-height: 1.25; letter-spacing: -0.01em; }
+.t-corpo { font-size: 1.0625rem; line-height: 1.62; }
+.t-apoio { font-size: 0.9375rem; line-height: 1.6; }
+.t-micro { font-size: 0.8125rem; line-height: 1.5; }
+/* Ornamento: o algarismo gigante dos passos e o preço. Não é texto para ler,
+   é marco visual, e por isso tem degrau próprio. */
+.t-ornamento { font-size: clamp(2.6rem, 4.4vw, 3.4rem); line-height: 1; }
+
+/* A medida da linha.
+ *
+ * Linha longa demais faz o olho perder a volta: ao chegar ao fim, ele não
+ * encontra o começo da seguinte. O intervalo confortável é 45 a 75 caracteres,
+ * e a coluna da página tem 1152px, o que daria mais de 110. Por isso todo
+ * parágrafo solto (fora de card) carrega esta classe. */
+.medida { max-width: 60ch; }
+
+/* Título: sans geométrica, pesada, entreletra bem apertada.
+
+   Peso 800, e a entreletra negativa não é enfeite: letra grossa em corpo
+   grande cria vãos largos entre as palavras se o tracking ficar no padrão, e
+   o título desmancha. Apertar é o que faz a massa de letra virar um bloco
+   sólido, que é o que segura a página sobre o preto.
+
+   `text-wrap: balance` reparte as linhas de um título em larguras parecidas.
+   Sem ele o título de duas linhas sai com uma linha cheia e uma palavra
+   sozinha embaixo, que é a forma mais barata de estragar uma capa. */
+.titulo {
+  text-wrap: balance;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 800;
+  /* Cormorant tem numeral antigo por padrão em alguns cortes; na web, número
+     de título tem que ficar na linha das maiúsculas. */
+  font-variant-numeric: lining-nums;
+}
+
+/* Parágrafo. `pretty` só cuida das últimas linhas, evitando a palavra órfã, e
+   é barato o bastante para valer em corpo de texto. */
+p { text-wrap: pretty; }
+
+/* Rótulo gravado: caixa alta, entreletra larga, corpo miúdo. */
+.rotulo {
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+/* O grão. Preto liso lê como tela desligada; ruído sutil lê como superfície.
+   É SVG embutido pra não custar uma requisição. */
+.grao::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Botão de ouro: metal, não retângulo amarelo. Claro em cima, escuro embaixo,
+   com fio de luz na aresta superior. */
+.botao-ouro {
+  background: linear-gradient(180deg, var(--color-gold100), var(--color-gold400));
+  color: #1a1206;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.45),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 8px 24px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.botao-ouro:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
+    0 12px 32px rgba(0, 0, 0, 0.5);
+}
+.botao-ouro:active { transform: translateY(1px) scale(0.99); }
+
+/* Superfície elevada: fio de luz na aresta de cima, sombra embaixo. */
+.superficie {
+  background: linear-gradient(180deg, var(--color-bg2), var(--color-bg1));
+  border: 1px solid var(--color-line);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+.superficie::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 12%;
+  right: 12%;
+  height: 1px;
+  background: rgba(255, 250, 235, 0.07);
+}
+
+/* A camada da ficha 3D.
+ *
+ * A ficha atravessa a página num canvas fixo, e a pergunta é de que lado do
+ * conteúdo ela passa. Por cima ela tapa o texto: chegou a esconder a palavra
+ * "quem" no meio de um título. Por baixo de tudo ela some no herói, que é onde
+ * ela precisa aparecer inteira para emendar com o vídeo.
+ *
+ * Por isso são três andares, e não dois: o herói embaixo, a ficha no meio, o
+ * resto do conteúdo em cima. As seções não têm fundo próprio, então a ficha
+ * continua visível em volta das letras, passando por trás delas. */
+main > section { position: relative; z-index: 10; }
+main > section#heroi { z-index: 0; }
+
+/* Fundo de raios (FundoRaios.tsx).
+ *
+ * Duas animações, e as duas mexem SÓ em transform e opacidade — as duas
+ * propriedades que a placa de vídeo resolve sem repintar. Esta página já tem
+ * um vídeo raspado pela rolagem e uma cena 3D dividindo a mesma GPU; um fundo
+ * que force repintura de tela cheia a cada quadro come o orçamento dos dois.
+ *
+ * A deriva é lenta de propósito (38s para ir e voltar). Fundo que se percebe
+ * em movimento deixa de ser fundo: ele tem que ser aquela coisa que a pessoa
+ * só nota quando olha fixo. */
+@keyframes fundo-deriva {
+  from { transform: translate3d(-3%, 0, 0); }
+  to   { transform: translate3d(3%, 0, 0); }
+}
+
+/* Cada raio respira no seu período (17s, 20s, 23s...) e com atraso negativo
+   diferente. Períodos que não são múltiplos entre si nunca casam o ciclo, e é
+   isso que impede o conjunto de virar um piscar regular — padrão que repete
+   visivelmente lê como papel de parede, não como luz. */
+@keyframes fundo-respira {
+  0%, 100% { opacity: 0.14; }
+  50%      { opacity: 0.34; }
+}
+
+.fundo-raios__grupo {
+  animation: fundo-deriva 38s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* A intensidade saiu de MEDIÇÃO, não do olho, e ela é baixa por dois motivos
+   que se somam:
+
+   1. **Contraste.** Onde os raios batiam com a força original, o fundo atrás
+      do texto chegava a (103, 89, 67). O texto de apoio (`text2`, #74716c)
+      caía para 1,40:1 ali — ilegível. Sobre o preto do site ele tem 4,03:1, e
+      qualquer clareada no fundo come essa margem, porque `text2` é escuro
+      demais para recuperar contraste contra uma superfície acesa.
+
+   2. **O marrom.** Medida a saturação média da página, ela pulou de 2,0% (o
+      número que a revisão de paleta alcançou) para 11,3%. Um banho de luz
+      dourada sobre a página inteira não é "preto e dourado": é a página
+      marrom de volta, com outro nome.
+
+   O número parece pequeno demais, e não é: são CINCO camadas somando no mesmo
+   pixel onde as máscaras se cruzam. A 0,035 cada, o cruzamento chegava a 37 de
+   ouro sobre um preto de 8. O efeito foi desenhado para um herói, onde não há
+   texto por cima; espalhado pela página inteira ele vira um véu quente sobre
+   tudo que se lê.
+
+   Fundo é o que a pessoa só percebe quando olha fixo. Se ele disputa leitura
+   ou tinge a página, ele deixou de ser fundo. */
+.fundo-raios__raio {
+  opacity: 0.22;
+  animation-name: fundo-respira;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: opacity;
+}
+
+/* Quem pediu menos movimento recebe o mesmo desenho, parado. O fundo continua
+   fazendo o trabalho dele, que é não ser um retângulo preto. */
+@media (prefers-reduced-motion: reduce) {
+  .fundo-raios__grupo,
+  .fundo-raios__raio {
+    animation: none;
+  }
+}
+
+/* Anel de texto girando em volta da ficha (AnelTexto.tsx).
+ *
+ * O layout circular é o mesmo do CircularText original, e o truque é este:
+ * cada letra é um bloco absoluto do TAMANHO DO ANEL INTEIRO, com a letra no
+ * topo e centralizada. Girar esse bloco em torno do próprio centro leva a
+ * letra para a posição dela na circunferência — sem calcular seno e cosseno
+ * para cada uma, e sem `offset-path`, que ainda tem canto escuro em navegador.
+ *
+ * A rotação é `@keyframes` em vez de biblioteca de animação: um laço infinito
+ * e linear é exatamente o que o compositor resolve sozinho, sem acordar o
+ * JavaScript a cada quadro. */
+.anel-texto__giro {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  animation: anel-gira 22s linear infinite;
+  will-change: transform;
+}
+
+.anel-texto__giro span {
+  position: absolute;
+  inset: 0;
+  display: inline-block;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--color-gold200);
+  /* Um fio de brilho: o anel passa por cima de um fundo que varia (o preto da
+     página e a própria ficha), e sem ele as letras somem contra a peça. */
+  text-shadow: 0 0 18px rgba(0, 0, 0, 0.55);
+  transform-origin: 50% 50%;
+}
+
+@keyframes anel-gira {
+  to { transform: rotate(360deg); }
+}
+
+/* Quem pediu menos movimento recebe o anel parado. Ele continua dizendo o
+   nome da marca em volta da peça, que é metade do trabalho dele. */
+@media (prefers-reduced-motion: reduce) {
+  .anel-texto__giro { animation: none; }
+}
+
+/* O surgimento da promessa (Promessa.tsx).
+ *
+ * Cada cláusula sobe e acende, na ordem em que se lê, com 130ms entre elas.
+ *
+ * `transition` e não `@keyframes`: o gatilho vem do JavaScript (o observador
+ * de interseção troca uma classe), e transição é o que casa com isso. Com
+ * keyframes eu precisaria montar e desmontar a animação para ela poder
+ * disparar na hora certa.
+ *
+ * O `clip-path` corta cada linha pela base enquanto ela sobe, então a palavra
+ * emerge de dentro do próprio espaço em vez de flutuar de baixo da linha
+ * anterior. É o que separa "entrou deslizando" de "estava escrito e apareceu".
+ *
+ * `inline-block` nas cláusulas é o que permite transformá-las: `transform`
+ * não faz nada num `span` de fluxo. E a quebra entre elas continua natural,
+ * porque cada uma carrega o seu espaço no fim. */
+.promessa__linha {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(0.38em);
+  clip-path: inset(0 0 -0.2em 0);
+  transition:
+    opacity 900ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 900ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promessa--visivel .promessa__linha {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Movimento reduzido: a frase aparece inteira, sem subir. O conteúdo é o
+   mesmo; o que sai é o deslocamento. */
+@media (prefers-reduced-motion: reduce) {
+  .promessa__linha {
+    transform: none;
+    transition: opacity 200ms linear;
+  }
+}
+
+/* Índice com linhas (ListaLinhas.tsx).
+ *
+ * `--efeito` vai de 0 a 1 e é escrito por um único laço de rAF no
+ * JavaScript. Tudo aqui deriva DELE: a cor, o deslocamento e a escala da
+ * linha. É o que mantém as três coisas em passo — com uma transição CSS para
+ * cada, elas chegariam em tempos diferentes e o item pareceria se montar por
+ * partes. */
+.lista-linhas {
+  --comprimento-risco: 56px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lista-linhas__item {
+  position: relative;
+  padding-right: 30px;
+}
+
+/* O risco que antecede cada item. Cresce e acende com a proximidade. */
+.lista-linhas__risco {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  height: 1px;
+  width: var(--comprimento-risco);
+  transform: translateY(-50%) scaleX(calc(0.55 + var(--efeito, 0) * 0.45));
+  transform-origin: left center;
+  background-color: color-mix(
+    in srgb,
+    var(--color-gold300) calc(var(--efeito, 0) * 100%),
+    var(--color-gold700)
+  );
+}
+
+/* O tracinho curto entre dois itens: é ele que faz a coluna ler como uma
+   escala graduada em vez de uma lista de links. */
+.lista-linhas__item:not(:last-child)::after {
+  content: none;
+  position: absolute;
+  top: calc(100% + 0.575rem);
+  left: 0;
+  height: 1px;
+  width: calc(var(--comprimento-risco) * 0.42);
+  background-color: var(--color-gold700);
+  transform: translateY(-50%) scaleX(calc(0.6 + var(--efeito, 0) * 0.5));
+  transform-origin: left center;
+}
+
+.lista-linhas__botao {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  background: none;
+  border: 0;
+  padding: 0.6rem 0;
+  cursor: pointer;
+  text-align: left;
+  color: color-mix(
+    in srgb,
+    var(--color-gold100) calc(var(--efeito, 0) * 100%),
+    var(--color-text2)
+  );
+  transform: translateX(calc(var(--efeito, 0) * var(--deslocamento)));
+}
+
+/* O foco tem que aparecer: o item é botão e quem navega por teclado precisa
+   ver onde está. Contorno afastado, para não encostar na letra. */
+.lista-linhas__botao:focus-visible {
+  outline: 2px solid var(--color-gold400);
+  outline-offset: 6px;
+  border-radius: 4px;
+}
+
+.lista-linhas__numero {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.85em;
+  letter-spacing: 0;
+  opacity: calc(0.45 + var(--efeito, 0) * 0.55);
+}
+
+.lista-linhas__texto {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 500;
+  font-size: 1.4rem;
+  letter-spacing: 0;
+  line-height: 1.2;
+}
+
+/* Sem ponteiro fino não há proximidade, e o risco fica no estado de repouso.
+   Movimento reduzido também tira o deslocamento: a cor ainda distingue o item
+   ativo, que é a informação que importa. */
+@media (prefers-reduced-motion: reduce) {
+  .lista-linhas__botao {
+    transform: none;
+  }
+}
+
+/* O painel de recursos, ao trocar de grupo.
+ *
+ * Cada item entra subindo, escalonado em 70ms. O `key` no React remonta a
+ * lista a cada troca, e é a remontagem que redispara a animação — sem ela a
+ * troca seria um corte seco e o olho perderia que o conteúdo mudou.
+ *
+ * `animation` e não `transition` aqui, ao contrário da promessa: lá o gatilho
+ * era uma classe trocada pelo observador; aqui o elemento NASCE no momento do
+ * disparo, e animação de entrada é exatamente o caso de keyframes. */
+@keyframes painel-entra {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.painel-recursos__item {
+  animation: painel-entra 480ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.recursos-cabecalho { text-align: center; margin-inline: auto; max-width: 56rem; }
+.recursos-layout { border-top: 1px solid var(--color-line); padding-top: 2.5rem; }
+#recursos .lista-linhas { gap: 5px; }
+#recursos .lista-linhas__texto { font-size: 1.05rem; line-height: 1.5; }
+#recursos .lista-linhas__numero { font-size: 0.7rem; }
+#recursos .lista-linhas__botao { padding-block: 0.85rem; }
+.recursos-detalhe { min-height: 36rem; animation: painel-entra 500ms ease both; }
+.recursos-status { display: flex; align-items: center; gap: 0.6rem; font-size: 0.75rem; color: var(--color-gold300); }
+.recursos-status > span:first-child { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.recursos-contador { margin-left: auto; font-family: var(--font-mono), monospace; color: var(--color-text2); }
+.recursos-titulo { margin-top: 1rem; font-size: 2rem; line-height: 1.25; text-wrap: balance; max-width: 35rem; }
+.recursos-demo { margin-block: 1.75rem; padding-block: 1rem 1.5rem; border-block: 1px solid var(--color-lineStrong); }
+.recursos-demo__legenda { font-size: 0.7rem; color: var(--color-text2); margin-bottom: 1rem; }
+.recursos-demo__valores { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 1rem; }
+.recursos-demo__valores > div { animation: painel-entra 650ms ease both; border-left: 2px solid var(--color-gold500); padding-left: 0.8rem; }
+.recursos-demo strong { display: block; font-size: 1.05rem; font-weight: 600; color: var(--color-gold200); }
+.recursos-demo span { display: block; margin-top: 0.35rem; font-size: 0.75rem; color: var(--color-text2); }
+.recursos-lista { display: grid; }
+.recursos-linha { display: grid; grid-template-columns: minmax(0, 11rem) 1fr; gap: 1.5rem; padding-block: 1rem; border-bottom: 1px solid var(--color-line); }
+.recursos-linha dt { font-size: 0.9rem; font-weight: 600; }
+.recursos-linha dt span { font-family: var(--font-mono), monospace; font-size: 0.65rem; color: var(--color-gold500); margin-right: 0.6rem; }
+.recursos-linha dd { font-size: 0.9rem; line-height: 1.6; }
+.recursos-linha dt, .recursos-linha dd { overflow-wrap: anywhere; }
+.recursos-expandir { margin-top: 1rem; }
+.recursos-expandir summary { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 48px; padding-block: 0.75rem; cursor: pointer; color: var(--color-gold200); font-size: 0.9375rem; list-style: none; }
+.recursos-expandir summary::-webkit-details-marker { display: none; }
+.recursos-expandir summary > span { font-size: 1.4rem; width: 1.5rem; text-align: center; transition: transform 180ms ease; }
+.recursos-expandir[open] summary > span { transform: rotate(45deg); }
+.recursos-expandir summary:focus-visible { outline: 2px solid var(--color-gold300); outline-offset: 4px; }
+.recursos-rodape { display: flex; align-items: center; justify-content: space-between; gap: 1.5rem; border-top: 1px solid var(--color-lineStrong); padding-top: 1.75rem; margin-top: 2rem; }
+@media (max-width: 768px) {
+  .recursos-titulo { font-size: 1.65rem; }
+  .recursos-detalhe { min-height: auto; }
+  .recursos-demo__valores { gap: 0.5rem; }
+  .recursos-demo strong { font-size: 0.85rem; overflow-wrap: anywhere; }
+  .recursos-demo span { font-size: 0.65rem; }
+  .recursos-linha { grid-template-columns: 1fr; gap: 0.5rem; }
+  .recursos-rodape { flex-direction: column; text-align: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .recursos-detalhe, .recursos-demo__valores > div { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .painel-recursos__item {
+    animation: none;
+  }
+}
+
+/* A mesa vista de cima (Mesa.tsx).
+ *
+ * Tudo aqui é transição comandada por classe, e o relógio mora no JavaScript.
+ * É o oposto do fundo de raios, que é laço infinito e portanto keyframes: uma
+ * SEQUÊNCIA com começo, meio e fim precisa de alguém contando os passos, e
+ * quem conta é o componente. */
+.mesa {
+  max-width: 100%;
+  height: auto;
+}
+
+/* As cartas chegam por último e saem primeiro: elas são o estado "tem
+   jogador aqui". */
+.mesa__carta {
+  fill: var(--color-bg3);
+  stroke: var(--color-gold600);
+  stroke-width: 1;
+  opacity: 0;
+  transform: scale(0.55);
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    opacity 420ms ease,
+    transform 420ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mesa__lugar--servido .mesa__carta {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Quem caiu: as cartas somem e a posição fica no lugar delas. É a tradução
+   exata do que o app faz — a posição não é digitada, ela É o que sobrou. */
+.mesa__lugar--caiu .mesa__carta {
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+.mesa__posicao {
+  fill: var(--color-text2);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 17px;
+  opacity: 0;
+  transition: opacity 380ms ease 120ms;
+}
+
+.mesa__posicao--visivel {
+  opacity: 1;
+}
+
+/* O campeão acende, e é a única coisa dourada e cheia da mesa no fim. */
+.mesa__lugar--campeao .mesa__posicao {
+  fill: var(--color-gold100);
+  font-size: 21px;
+}
+
+.mesa__anel {
+  fill: none;
+  stroke: var(--color-gold400);
+  stroke-width: 1.5;
+  opacity: 0;
+  transform: scale(0.75);
+  transform-origin: center;
+  transform-box: fill-box;
+  transition:
+    opacity 520ms ease,
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mesa__anel--visivel {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.mesa__rotulo {
+  fill: var(--color-gold500);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+}
+
+.mesa__bolo-valor {
+  fill: var(--color-text0);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 30px;
+}
+
+.mesa__bolo {
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+
+.mesa__bolo--vivo {
+  opacity: 1;
+}
+
+/* A premiação só aparece quando a noite acaba, escalonada: é o desfecho, e
+   desfecho que aparece junto com o resto não lê como desfecho. */
+.mesa__premio {
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 520ms ease,
+    transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mesa__premio--visivel {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mesa__carta,
+  .mesa__posicao,
+  .mesa__bolo,
+  .mesa__premio {
+    transition: none;
+  }
+}
+
+/* A dobra da mesa (Mesa.tsx).
+ *
+ * A mesa fica fixa dentro da própria dobra, sem parallax nem WebGL ligando e
+ * desligando o desenho. */
+.mesa-dobra {
+  padding-block: 6rem;
+}
+
+.mesa-grude {
+  min-height: auto;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.mesa-visual {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.mesa-conteudo {
+  position: relative;
+  z-index: 2;
+}
+
+.mesa-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+@media (min-width: 769px) {
+  .mesa-conteudo {
+    max-width: min(48rem, 62vw, 110vh);
+  }
+  .mesa-conteudo h2 {
+    font-size: 2.5rem;
+  }
+  .mesa-conteudo p {
+    margin-top: 1rem;
+    color: #e5e5e5;
+  }
+  .mesa-conteudo a {
+    margin-top: 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .mesa-grude {
+    display: block;
+  }
+  .mesa-visual {
+    position: relative;
+    aspect-ratio: 16 / 9;
+  }
+  .mesa-conteudo {
+    padding-top: 2rem;
+  }
+}
+
+.mesa-oval {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(94vw, 76rem);
+  aspect-ratio: 1.9;
+  transform: translate(-50%, -50%);
+  border-radius: 9999px;
+  background:
+    radial-gradient(ellipse at 50% 48%, rgba(255, 255, 255, 0.055), transparent 31%),
+    radial-gradient(ellipse at 50% 48%, #173820 0 61%, transparent 61.5%),
+    radial-gradient(ellipse at 50% 48%, #8b6d3c 62% 63%, transparent 63.5%),
+    radial-gradient(ellipse at 50% 48%, #151412 64% 71%, transparent 72%);
+  box-shadow:
+    inset 0 2px 18px rgba(255, 255, 255, 0.04),
+    inset 0 -28px 54px rgba(0, 0, 0, 0.46),
+    0 26px 80px rgba(0, 0, 0, 0.48);
+}
+
+.mesa-pilha {
+  --pilha: clamp(4.5rem, 7vw, 6.7rem);
+  position: absolute;
+  width: var(--pilha);
+  height: var(--pilha);
+  margin-left: calc(var(--pilha) / -2);
+  margin-top: calc(var(--pilha) / -2);
+  border-radius: 9999px;
+  background-image: url('/ficha-face.jpg');
+  background-size: cover;
+  background-position: center;
+  filter: saturate(0.86) brightness(0.84);
+  opacity: 0.76;
+  box-shadow:
+    0 0.34rem 0 #171411,
+    0 0.68rem 0 #0f0d0b,
+    0 1.02rem 0 #171411,
+    0 1.36rem 0 #0f0d0b,
+    0 1.9rem 1.15rem rgba(0, 0, 0, 0.46);
+}
+
+.mesa-pilha--1 { left: 50%; top: 13%; }
+.mesa-pilha--2 { left: 73%; top: 20%; }
+.mesa-pilha--3 { left: 84%; top: 50%; }
+.mesa-pilha--4 { left: 70%; top: 79%; }
+.mesa-pilha--5 { left: 50%; top: 86%; }
+.mesa-pilha--6 { left: 30%; top: 79%; }
+.mesa-pilha--7 { left: 16%; top: 50%; }
+.mesa-pilha--8 { left: 27%; top: 20%; }
+
+/* 769px e não 768: `useTelaPequena` reprova em `max-width: 768px`, então em
+   768 exatos a cena 3D NÃO roda. */
+@media (max-width: 768px) {
+  .mesa-grude {
+    min-height: 28rem;
+  }
+
+  .mesa-oval {
+    aspect-ratio: 0.85;
+    max-height: 100%;
+  }
+}
+
+@media (min-width: 769px) {
+  .mesa-oval {
+    width: min(126vw, 174vh);
+  }
+
+  .mesa-pilha {
+    --pilha: clamp(5rem, 8.5vw, 8rem);
+  }
+
+  .mesa-dobra {
+    height: 145vh;
+    padding-block: 0;
+  }
+
+  .mesa-grude {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+  }
+}

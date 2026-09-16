@@ -1,0 +1,65 @@
+.option-wheel {
+  position: relative;
+  width: 100%;
+  height: 34rem;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-x;
+}
+.option-wheel:focus-visible { outline: 1px solid #8b6d3c; outline-offset: 4px; }
+.option-wheel--dragging { cursor: grabbing; }
+.option-wheel__item {
+  position: absolute;
+  top: 50%;
+  left: 80px;
+  white-space: nowrap;
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 400;
+  transform-origin: left center;
+  cursor: pointer;
+  color: color-mix(in srgb, #d4b57a calc(var(--ow-p, 0) * 100%), #a6a6a6);
+}
+.option-wheel__item--selected { font-weight: 600; }
+.features-visao .option-wheel__item { left: 270px; font-size: 1.7rem; }
+.feature-chip {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 240px;
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .feature-chip { background: url('/ficha-face.jpg') center / cover; border-radius: 50%; }
+}
+@media (max-width: 768px) {
+  .option-wheel { height: 27rem; }
+  .option-wheel__item { left: 24px; font-size: 1.35rem; }
+  .features-visao .option-wheel__item { left: 106px; font-size: 0.9rem; }
+  .feature-chip { width: 94px; left: -8px; border-radius: 50%; background: url('/ficha-face.jpg') center / cover; }
+}
+@media (min-width: 1024px) {
+  .features-dobra { height: 180vh; padding-block: 0; }
+  .features-dobra > div {
+    max-width: 100rem;
+    position: sticky;
+    top: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+  }
+  .features-visao { width: 100%; grid-template-columns: minmax(0, 1fr) 20rem; }
+  .features-chamada { transform: translateX(-4rem); }
+  .features-visao .option-wheel { height: 38rem; }
+  .features-visao .option-wheel__item { left: 350px; font-size: 2rem; }
+  .feature-chip { width: 320px; }
+  .features-visao p { font-size: 1.1rem; line-height: 1.65; }
+  .features-visao .botao-ouro { font-size: 1rem; padding: 1rem 2rem; }
+}
+@media (min-width: 1600px) {
+  .features-visao .option-wheel__item { left: 400px; font-size: 2.5rem; }
+  .feature-chip { width: 370px; }
+}
