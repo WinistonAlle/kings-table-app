@@ -2,6 +2,14 @@
 
 ## Botoes especulares em 16/09/2026
 
+Revisao: preenchimento gold300 solido, sem degrade, arestas falsas ou sombra
+grande. Brilho de borda reduzido a 60%, mantendo a hierarquia dos secundarios.
+
+Revisao mobile: texto de corpo 16px, apoio 14px, rotulos 11px e titulos 30px;
+KTButtons com minimo de 44px e altura expansivel para rotulos longos.
+Editor de blinds com duas colunas abaixo de 600px e campos de 48px/16px;
+controles de identidade e remocao com alvos de 44px. Glow difuso no contorno.
+
 KTButton recebeu o brilho de borda do SpecularButton enviado pelo usuario,
 adaptado para React Native Web, com OGL e shader SDF. Ouro nos primarios,
 superficie neutra nos secundarios e vermelho preservado nas acoes de perigo.

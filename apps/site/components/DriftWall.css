@@ -148,4 +148,4 @@
     transition: none;
   }
 }
-@media (max-width: 768px) { .drift-wall { --dw-tile-w: 160px !important; --dw-tile-h: 108px !important; } }
+@media (max-width: 768px) { .drift-wall { --dw-tile-w: 200px !important; --dw-tile-h: 132px !important; } }

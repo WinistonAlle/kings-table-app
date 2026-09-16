@@ -270,7 +270,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Space.xl, paddingVertical: Space.md, maxWidth: 760, width: '100%', alignSelf: 'center',
   },
   iconeBtn: {
-    width: 40, height: 40, borderRadius: Radius.full,
+    width: 44, height: 44, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border, backgroundColor: Colors.bg1,
   },
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
   },
   naipes: { flexDirection: 'row', gap: Space.md },
   naipeBtn: {
-    width: 42, height: 42, borderRadius: Radius.full,
+    width: 44, height: 44, borderRadius: Radius.full,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },
@@ -298,7 +298,7 @@ const styles = StyleSheet.create({
   },
   atalhos: { flexDirection: 'row', gap: Space.sm, marginTop: Space.lg },
   atalho: {
-    flex: 1, height: 38, borderRadius: Radius.full,
+    flex: 1, minHeight: 44, borderRadius: Radius.sm,
     alignItems: 'center', justifyContent: 'center',
     borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.border,
   },

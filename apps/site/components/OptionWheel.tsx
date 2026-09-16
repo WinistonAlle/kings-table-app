@@ -27,7 +27,7 @@ export default function OptionWheel({ items, defaultSelected = 2, onChange }: {
 
   const rowHeight = useCallback(() => {
     const el = refs.current[0];
-    return el ? parseFloat(getComputedStyle(el).fontSize) * 1.4 : 67.2;
+    return el ? parseFloat(getComputedStyle(el).fontSize) * (window.innerWidth <= 768 ? 3.6 : 1.4) : 67.2;
   }, []);
 
   const animate = useCallback(function tick(now: number) {

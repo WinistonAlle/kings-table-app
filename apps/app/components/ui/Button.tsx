@@ -1,21 +1,9 @@
-import { Pressable, View, StyleSheet, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Degrade, Elevacao, Fonts, Radius, Space, Type } from '@/constants/tokens';
+import { Pressable, View, StyleSheet, useWindowDimensions, type ViewStyle } from 'react-native';
+import { Colors, Radius, Space } from '@/constants/tokens';
 import { KTText } from './Text';
 import { SpecularRim } from './SpecularRim';
 
-/* Botão.
- *
- * O ouro antigo era `backgroundColor: gold200` — um retângulo amarelo chapado.
- * Metal não é uma cor só: é claro onde a luz bate e escuro onde ela sai. Aqui
- * o preenchimento é degradê de cima para baixo, com um fio branco na aresta
- * superior e um fio escuro na inferior. São três detalhes de 1px que decidem
- * se a peça parece uma ficha ou um retângulo pintado.
- *
- * `Pressable` no lugar de `TouchableOpacity` para o toque afundar o botão em
- * vez de apagá-lo: sumir 30% da opacidade é resposta de link, não de peça
- * física.
- */
+/* Preenchimento fosco e solido; o brilho fica apenas na borda. */
 
 type Variante = 'ouro' | 'fantasma' | 'perigo';
 type Tamanho = 'sm' | 'md' | 'lg';
@@ -47,6 +35,7 @@ export function KTButton({
   icone,
 }: ButtonProps) {
   const ouro = variant === 'ouro';
+  const compact = useWindowDimensions().width < 600;
 
   return (
     <Pressable
@@ -58,7 +47,8 @@ export function KTButton({
       style={({ pressed }) => [
         styles.base,
         {
-          height: ALTURAS[size],
+          minHeight: compact ? Math.max(44, ALTURAS[size]) : ALTURAS[size],
+          paddingVertical: 10,
           paddingHorizontal: LADOS[size],
           alignSelf: fullWidth ? 'stretch' : 'flex-start',
           opacity: disabled ? 0.4 : 1,
@@ -67,28 +57,18 @@ export function KTButton({
         },
         variant === 'fantasma' && styles.fantasma,
         variant === 'perigo' && styles.perigo,
-        ouro && Elevacao.card,
+        ouro && styles.ouro,
         style,
       ]}
     >
-      {ouro ? (
-        <>
-          <LinearGradient colors={Degrade.ouro} style={[StyleSheet.absoluteFill, { borderRadius: Radius.sm, overflow: 'hidden' }]} />
-          {/* Aresta de cima: onde a luz bate. */}
-          <View pointerEvents="none" style={[styles.aresta, styles.arestaTopo]} />
-          {/* Aresta de baixo: onde ela sai. */}
-          <View pointerEvents="none" style={[styles.aresta, styles.arestaBase]} />
-        </>
-      ) : null}
-
       {!disabled && <SpecularRim danger={variant === 'perigo'} />}
 
       <View style={styles.conteudo}>
         {icone}
         <KTText
           papel="corpoForte"
-          size={CORPOS[size]}
-          color={ouro ? '#1a1206' : variant === 'perigo' ? Colors.danger : Colors.text0}
+          size={compact ? Math.max(14, CORPOS[size] + 1) : CORPOS[size]}
+          color={ouro ? Colors.bg0 : variant === 'perigo' ? Colors.danger : Colors.text0}
           style={styles.rotulo}
         >
           {label}
@@ -105,11 +85,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     overflow: 'visible',
   },
+  ouro: { backgroundColor: Colors.gold300, borderWidth: 1, borderColor: Colors.gold300 },
   fantasma: { borderWidth: 1, borderColor: Colors.borderStrong, backgroundColor: Colors.bg1 },
   perigo:   { borderWidth: 1, borderColor: 'rgba(200,90,90,0.4)', backgroundColor: 'rgba(200,90,90,0.06)' },
   conteudo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, zIndex: 2, maxWidth: '100%' },
   rotulo:   { letterSpacing: 0, flexShrink: 1, textAlign: 'center' },
-  aresta:   { position: 'absolute', left: Radius.sm, right: Radius.sm, height: 1 },
-  arestaTopo: { top: 0, backgroundColor: 'rgba(255,255,255,0.45)' },
-  arestaBase: { bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
 });

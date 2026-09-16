@@ -2,6 +2,16 @@
 
 ## Botoes especulares de 16/09/2026
 
+Revisao: por preferencia do usuario, os botoes perderam o degrade metalico,
+arestas falsas e sombras grandes. CTAs usam gold300 solido, hover gold200,
+secundarios neutros e brilho especular reduzido a 60%. Mesma regra no app.
+
+Revisao mobile: roda com textos de 17px, quebra de linha e espaco entre itens
+ampliado; exemplos das features em uma coluna; legendas e paragrafos maiores;
+CTAs de 48px e acesso de 44px. Galeria com duas colunas e fotos maiores.
+Glow difuso discreto no contorno, sem degrade no preenchimento.
+Checagem das paginas principais em 320, 390 e 768px sem overflow horizontal.
+
 CTAs do hero, mesa, features, planos, lista de espera, expansao de perguntas,
 Entrar e Criar conta usam o efeito SpecularButton do React Bits com bordas
 douradas que acompanham o mouse e o foco por teclado. Formularios de acesso

@@ -22,9 +22,10 @@ void main(){
  vec2 n=normalize(p/(uHalfSize*uHalfSize)+1e-6);
  float phi=acos(clamp(abs(dot(n,vec2(cos(uAngle),sin(uAngle)))),0.,1.));
  float rim=1.-smoothstep(-.52,.87,phi);
- float hi=exp(-pow(d/(1.1*uDpr),2.))*rim*uBright;
+ float hi=exp(-pow(d/(1.1*uDpr),2.))*rim*uBright*.6;
  float base=(1.-smoothstep(0.,uDpr,abs(d)))*.28;
- fragColor=vec4(uColor*(hi+base*.6),clamp(base+hi,0.,1.));
+ float glow=exp(-pow(d/(3.*uDpr),2.))*rim*uBright*.12;
+ fragColor=vec4(uColor*(hi+glow+base*.6),clamp(base+hi+glow,0.,1.));
 }`;
 
 type Entry = { canvas: HTMLCanvasElement; host: HTMLElement; context: CanvasRenderingContext2D; danger: boolean; angle: number; target: number; bright: number; targetBright: number };

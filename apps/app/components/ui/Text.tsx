@@ -1,4 +1,4 @@
-import { Text as RNText, type TextProps } from 'react-native';
+import { Text as RNText, useWindowDimensions, type TextProps } from 'react-native';
 import { Colors, Fonts, Type } from '@/constants/tokens';
 
 /* Texto do app.
@@ -54,10 +54,19 @@ interface KTTextProps extends TextProps {
 
 export function KTText({ papel = 'corpo', color, size, style, ...props }: KTTextProps) {
   const base = PAPEIS[papel];
+  const compact = useWindowDimensions().width < 600;
+  const mobile = compact && size === undefined ? {
+    apoio: { fontSize: 14, lineHeight: 21 },
+    corpo: { fontSize: 16, lineHeight: 24 },
+    corpoForte: { fontSize: 16, lineHeight: 24 },
+    rotulo: { fontSize: 11, lineHeight: 16, letterSpacing: 1 },
+    titulo: { fontSize: 30, lineHeight: 37, letterSpacing: 0 },
+  }[papel as 'apoio' | 'corpo' | 'corpoForte' | 'rotulo' | 'titulo'] : undefined;
   return (
     <RNText
       style={[
         base,
+        mobile,
         papel === 'rotulo' && { textTransform: 'uppercase' as const },
         { color: color ?? Colors.text0 },
         size !== undefined && {

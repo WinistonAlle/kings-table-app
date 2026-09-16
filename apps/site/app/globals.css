@@ -195,27 +195,24 @@ p { text-wrap: pretty; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-/* Botão de ouro: metal, não retângulo amarelo. Claro em cima, escuro embaixo,
-   com fio de luz na aresta superior. */
+/* Cor solida nos CTAs; reflexo apenas no contorno. */
 .botao-ouro {
   position: relative;
   isolation: isolate;
   border-radius: 8px;
   overflow: visible;
-  background: linear-gradient(180deg, var(--color-gold100), var(--color-gold400));
-  color: #1a1206;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.45),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 8px 24px rgba(0, 0, 0, 0.45);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  background: var(--color-gold300);
+  color: var(--color-bg0);
+  border: 1px solid var(--color-gold300);
+  box-shadow: none;
+  justify-content: center;
+  text-align: center;
+  transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
 }
 .botao-ouro:hover {
   transform: translateY(-1px);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.5),
-    inset 0 -1px 0 rgba(0, 0, 0, 0.18),
-    0 12px 32px rgba(0, 0, 0, 0.5);
+  background: var(--color-gold200);
+  border-color: var(--color-gold200);
 }
 .botao-ouro:active { transform: translateY(1px) scale(0.99); }
 
@@ -224,8 +221,11 @@ p { text-wrap: pretty; }
   isolation: isolate;
   border-radius: 8px;
   overflow: visible;
-  background-color: rgba(24, 24, 24, 0.55);
+  background-color: rgba(16, 16, 16, 0.8);
+  text-align: center;
+  transition: background-color 0.18s ease, border-color 0.18s ease, color 0.18s ease;
 }
+.botao-especular:hover { background-color: var(--color-bg2); }
 .botao-ouro:focus-visible, .botao-especular:focus-visible {
   outline: 2px solid var(--color-gold300);
   outline-offset: 4px;
@@ -576,9 +576,16 @@ main > section#heroi { z-index: 0; }
 @media (max-width: 768px) {
   .recursos-titulo { font-size: 1.65rem; }
   .recursos-detalhe { min-height: auto; }
-  .recursos-demo__valores { gap: 0.5rem; }
-  .recursos-demo strong { font-size: 0.85rem; overflow-wrap: anywhere; }
-  .recursos-demo span { font-size: 0.65rem; }
+  .recursos-demo__valores { grid-template-columns: 1fr; gap: 1.1rem; }
+  .recursos-demo strong { font-size: 1.125rem; overflow-wrap: anywhere; }
+  .recursos-demo span { font-size: 0.875rem; }
+  .recursos-demo__legenda { font-size: 0.8125rem; }
+  .recursos-linha dt { font-size: 1rem; }
+  .recursos-linha dd { font-size: 1rem; }
+  .recursos-status { font-size: 0.8125rem; flex-wrap: wrap; }
+  .t-apoio { font-size: 1rem; }
+  .t-micro { font-size: 0.875rem; }
+  .botao-ouro, .botao-especular { min-height: 48px; max-width: 100%; }
   .recursos-linha { grid-template-columns: 1fr; gap: 0.5rem; }
   .recursos-rodape { flex-direction: column; text-align: center; }
 }

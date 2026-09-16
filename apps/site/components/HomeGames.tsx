@@ -47,7 +47,7 @@ export function HomeGames() {
         </div>
       </Secao>
       <div className="mt-8 h-[480px] lg:h-[660px]">
-        <DriftWall items={items} columns={pequena ? 3 : 4} tileWidth={pequena ? 160 : 340} tileHeight={pequena ? 108 : 200} gap={18} dim={0.85} fade={0.25} speed={28} tilt={16} turn={-14} parallax={0.6} lift={64} overlayColor="#080808" />
+        <DriftWall items={items} columns={pequena ? 2 : 4} tileWidth={pequena ? 200 : 340} tileHeight={pequena ? 132 : 200} gap={18} dim={0.85} fade={0.25} speed={28} tilt={pequena ? 10 : 16} turn={pequena ? -8 : -14} parallax={0.6} lift={64} overlayColor="#080808" />
       </div>
     </section>
   );
