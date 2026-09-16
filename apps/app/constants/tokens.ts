@@ -30,7 +30,9 @@ export const Colors = {
 
   text0: '#ebebea',
   text1: '#bab8b5',
-  text2: '#74716c',
+  /* Clareado de #74716c: ele carrega o texto corrido e tinha 4,12:1 sobre o
+     preto do sistema, abaixo dos 4,5:1 que texto normal pede. Agora 5,04:1. */
+  text2: '#837f7a',
   text3: '#474542',
 
   /* A escala inteira é ancorada na LOGO: `gold400` é exatamente o ouro do
