@@ -1,5 +1,20 @@
 # King's Table App
 
+## Botoes especulares em 16/09/2026
+
+KTButton recebeu o brilho de borda do SpecularButton enviado pelo usuario,
+adaptado para React Native Web, com OGL e shader SDF. Ouro nos primarios,
+superficie neutra nos secundarios e vermelho preservado nas acoes de perigo.
+Raio de 8px; tamanhos, icones, callbacks e bloqueio de desativados preservados.
+No web, todos os KTButtons compartilham um renderer WebGL e usam canvases
+2D para apresentar o resultado, sem um contexto GPU por botao. Luz acompanha
+a proximidade do mouse e o foco. Para movimento reduzido, luz estatica;
+no nativo, borda estatica equivalente sem dependencia WebGL.
+Controles de selecao, tabs, linhas clicaveis e links nao viraram CTAs.
+Playwright verificou pixels nao vazios do brilho, foco, desativados e
+ausencia de overflow em desktop e mobile. TypeScript, nove suites e export
+web passaram. Preview continua na porta 8081.
+
 ## Autenticacao web em 16/09/2026
 
 Monorepo em `kings-table`, com acesso pela landing e sessao compartilhada

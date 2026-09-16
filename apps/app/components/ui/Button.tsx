@@ -2,6 +2,7 @@ import { Pressable, View, StyleSheet, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Colors, Degrade, Elevacao, Fonts, Radius, Space, Type } from '@/constants/tokens';
 import { KTText } from './Text';
+import { SpecularRim } from './SpecularRim';
 
 /* Botão.
  *
@@ -72,13 +73,15 @@ export function KTButton({
     >
       {ouro ? (
         <>
-          <LinearGradient colors={Degrade.ouro} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={Degrade.ouro} style={[StyleSheet.absoluteFill, { borderRadius: Radius.sm, overflow: 'hidden' }]} />
           {/* Aresta de cima: onde a luz bate. */}
           <View pointerEvents="none" style={[styles.aresta, styles.arestaTopo]} />
           {/* Aresta de baixo: onde ela sai. */}
           <View pointerEvents="none" style={[styles.aresta, styles.arestaBase]} />
         </>
       ) : null}
+
+      {!disabled && <SpecularRim danger={variant === 'perigo'} />}
 
       <View style={styles.conteudo}>
         {icone}
@@ -97,16 +100,16 @@ export function KTButton({
 
 const styles = StyleSheet.create({
   base: {
-    borderRadius: Radius.full,
+    borderRadius: Radius.sm,
     alignItems: 'center',
     justifyContent: 'center',
-    overflow: 'hidden',
+    overflow: 'visible',
   },
-  fantasma: { borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderStrong },
-  perigo:   { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(200,90,90,0.4)' },
-  conteudo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm },
-  rotulo:   { letterSpacing: 0 },
-  aresta:   { position: 'absolute', left: 0, right: 0, height: 1 },
+  fantasma: { borderWidth: 1, borderColor: Colors.borderStrong, backgroundColor: Colors.bg1 },
+  perigo:   { borderWidth: 1, borderColor: 'rgba(200,90,90,0.4)', backgroundColor: 'rgba(200,90,90,0.06)' },
+  conteudo: { flexDirection: 'row', alignItems: 'center', gap: Space.sm, zIndex: 2, maxWidth: '100%' },
+  rotulo:   { letterSpacing: 0, flexShrink: 1, textAlign: 'center' },
+  aresta:   { position: 'absolute', left: Radius.sm, right: Radius.sm, height: 1 },
   arestaTopo: { top: 0, backgroundColor: 'rgba(255,255,255,0.45)' },
   arestaBase: { bottom: 0, backgroundColor: 'rgba(0,0,0,0.18)' },
 });
