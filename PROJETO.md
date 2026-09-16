@@ -84,12 +84,26 @@ preservar e nao incluir em commits sem revisar a propriedade da mudanca.
 
 ## Pendencias importantes
 
+- Supabase conectado pelo plugin em 16/09/2026. Projeto kings-table,
+  ref hjxjxhnpcukwimiksbbz, organizacao winiston dev, plano free, sa-east-1.
+  Reativado de INACTIVE para ACTIVE_HEALTHY. SQL e Auth health verificados;
+  consulta REST de profiles com a chave publica do ambiente retornou HTTP 200.
+  Nenhum dado, tabela ou politica alterado nesta etapa. Nao usar resultados
+  transitorios de listagem durante RESTORING para concluir que o banco esta vazio.
+- Banco remoto possui dez tabelas com RLS e migracao initial_schema de
+  20260420000001. Todas reportaram zero linhas apos restauracao. O app permanece
+  local: conexao administrativa pronta nao equivale a sincronizacao implementada.
+- Antes de conectar contas e convites: revisar politica de tournaments que permite
+  leitura quando league_id IS NULL, politicas recursivas de league_members e
+  funcao handle_new_user com search_path mutavel e EXECUTE publico. Os advisors
+  reportaram os avisos de search_path e acesso SECURITY DEFINER em 16/09.
+
 - O relogio ja possui estado separado por torneio; falta evoluir a mesma base
   para sincronizacao online entre anfitriao, telas e jogadores.
 - Contas, autenticacao e sincronizacao Supabase nao estao implementadas.
-- .env.local contem configuracao antiga do Supabase, mas o host falhou com
-  ENOTFOUND em 15/09. Necessario projeto acessivel e migracoes/permissoes antes
-  de conectar RSVP remoto, QR Code, assentos e acompanhamento ao vivo.
+- .env.local corresponde ao projeto reativado e esta ignorado pelo Git. Falha
+  ENOTFOUND de 15/09 superada apos reativacao. Ainda faltam migracoes de dominio,
+  permissoes e integracao antes de conectar RSVP remoto, QR Code e telas ao vivo.
 - O modo TV atual apresenta o estado local no proprio aparelho. Abrir a
   mesma mesa em outro aparelho ainda depende da sincronizacao online; nao
   comunicar este recurso como transmissao remota ou compartilhamento ao vivo.
