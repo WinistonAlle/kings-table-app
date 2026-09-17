@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const cwd = fileURLToPath(new URL('..', import.meta.url));
@@ -47,11 +47,14 @@ async function until(check, message) {
 
 // This runner has no db-url, linked-project or remote credentials option.
 const versions = await sql('select version from supabase_migrations.schema_migrations order by version;');
-const expected = ['20260420000001', '20260916192006', '20260916192808', '20260916192902'];
+const expected = (await readdir(new URL('../supabase/migrations/', import.meta.url)))
+  .filter(name => /^\d{14}_.+\.sql$/.test(name)).map(name => name.slice(0,14)).sort();
 assert.deepEqual(versions.split('\n'), expected);
 await sql(await readFile(new URL('../supabase/tests/account_backups.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/preset_operations.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
+const presetId = randomUUID();
 const tag = `kt-race-${randomUUID()}`;
 let first;
 let second;
@@ -85,7 +88,46 @@ try {
   assert.match(loser.stderr, /40001/);
   assert.equal(await sql(`select revision || ':' || (snapshot->>'writer')
     from public.account_backups where owner_id='${actor}';`), '2:a');
-  console.log('PASS: four migrations, account RLS, validation, rollback and two competing transactions.');
+  const operation = {
+    version: 1, id: randomUUID(), ownerId: actor, entity: 'preset', entityId: presetId,
+    kind: 'preset.save', expectedRevision: 0, createdAt: new Date().toISOString(),
+    payload: { name: 'Concurrent preset', levels: [
+      { level: 1, smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 20 },
+    ] },
+  };
+  const command = op => `select public.apply_preset_operation('${JSON.stringify(op).replaceAll("'", "''")}'::jsonb);`;
+  for (const mode of ['duplicate', 'stale']) {
+    const firstOp = mode === 'duplicate' ? operation : { ...operation, id: randomUUID(), expectedRevision: 1 };
+    const secondOp = mode === 'duplicate' ? firstOp : { ...firstOp, id: randomUUID() };
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${command(firstOp)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Preset transaction did not acquire lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${command(secondOp)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+      'Concurrent preset command never waited for lock');
+    first.child.stdin.end('commit;\n');
+    const a = await first.completed;
+    const b = await second.completed;
+    assert.equal(a.code, 0, a.stderr);
+    if (mode === 'duplicate') {
+      assert.equal(b.code, 0, b.stderr);
+      const receipt = output => JSON.parse(output.split('\n').find(line => line.startsWith('{')));
+      assert.deepEqual(receipt(a.stdout), receipt(b.stdout));
+    } else {
+      assert.notEqual(b.code, 0, 'Competing preset revision was accepted');
+      assert.match(b.stderr, /40001/);
+    }
+  }
+  assert.equal(await sql(`select revision from public.blind_structures where id='${presetId}';`), '2');
+  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '2');
+  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '2');
+  console.log('PASS: canonical migrations, RLS, preset validation/rollback, backup race, preset retry race and preset revision race.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity
@@ -94,6 +136,7 @@ try {
   second?.child.stdin.end();
   if (first) await first.completed;
   if (second) await second.completed;
-  await sql(`delete from auth.users where id='${actor}';`);
+  await sql(`delete from public.blind_structures where id='${presetId}' and owner_id='${actor}';
+    delete from auth.users where id='${actor}';`);
   assert.equal(await sql(`select count(*) from public.profiles where id='${actor}';`), '0');
 }

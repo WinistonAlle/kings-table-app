@@ -17,8 +17,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   tem UUID. Um UUID de inscricao nao comprova vinculo com conta autenticada.
 - Identidade dos novos registros validada em testes e criacao real na UI
   web, com reload e capturas 390/1440 inspecionadas. Nativo ainda nao foi
-  validado em aparelho. O nucleo local da fila existe; recibos transacionais
-  no servidor e integracao com os stores ainda nao existem.
+  validado em aparelho. O nucleo local da fila existe. API transacional de
+  presets agora existe apenas no banco local; remoto e stores nao integrados.
 - As quatro versoes aplicadas estao em packages/db/supabase/migrations;
   inicial reconstruida a partir dos 53 statements do historico remoto.
   Copias antigas preservadas. Replay em banco novo PostgreSQL 17 e reset
@@ -76,6 +76,43 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
    um dispositivo atrasado nao pode ressuscitar uma mesa excluida.
 10. Validacao do dominio acontece no servidor tambem. UI desabilitada e
     validacao Zod no cliente nao substituem integridade e autorizacao.
+
+## API Transacional De Presets (Somente Local)
+
+- Migracao 20260917013930_transactional_blind_presets criada pela CLI,
+  aplicada e testada exclusivamente no banco local. As quatro versoes
+  anteriores continuam sendo as unicas confirmadas no remoto.
+- public.apply_preset_operation(p_operation) recebe envelope v1 da fila,
+  suporta preset.save (criar/editar) e preset.remove. Outros comandos nao
+  sao substituidos por snapshots nem considerados implementados.
+- Validacao independente no servidor: campos exatos, ator Auth/UUID,
+  revisao inteira segura, data UTC, payload e limite de 1 MB na representacao
+  JSONB. Nome 1-120 caracteres apos normalizacao de espacos; 1-500 linhas,
+  sequencia normalizada, duracao 1-240, blinds/ante inteiros seguros,
+  big blind positivo, intervalos zerados e pelo menos um nivel de jogo.
+  Limites ainda precisam ser alinhados na interface antes de ativar o fluxo.
+- blind_structures ganha revision/deleted_at/updated_at sem substituir os
+  dados anteriores. Defaults nao podem ser editados pela API. Exclusao
+  preserva niveis e referencias; outro comando nao ressuscita ID excluido.
+- Escrita direta de clientes revogada e policies de insert/update removidas.
+  Wrapper publico security invoker chama implementacao definer em kt_private,
+  nao exposto na Data API, com search_path vazio e verificacao explicita de
+  auth.uid/owner real. Privilegio limitado e necessario para transacao sem
+  liberar escrita direta. Helpers nao tem EXECUTE para clientes/anonimos.
+- Locks transacionais separados de operacao (ator+ID) e entidade cobrem
+  criacao ausente e retries concorrentes. Recibo compara envelope JSONB
+  completo; mudanca de conteudo com mesmo ID e 22023. Conflito de revisao
+  e 40001; acesso negado 42501; entidade removida 55000.
+- Mudanca, revisao, sync_operation_receipts e sync_operation_audit gravados
+  juntos. Leitura restrita ao ator por RLS; sem writes de clientes. Retry
+  devolve o recibo original, mesmo apos operacoes posteriores/remocao.
+- SQL real: validacao, duas contas, anonimo, actor spoof, defaults, tombstone,
+  grant de escrita negado, falha forcada de auditoria com rollback. Duas
+  conexoes: mesmo ID concorrente gera um recibo/auditoria; IDs diferentes
+  disputando revisao geram um commit e 40001, sem efeitos do perdedor.
+- Isso NAO valida login HTTP/e-mail, transporte na UI, offline end-to-end,
+  co-hosts, multimesa, relogio ou migracao de IDs legados. Nenhuma migracao
+  remota aplicada e nenhum store atual ativado nesse contrato.
 
 ## Relogio compartilhado
 

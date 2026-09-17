@@ -25,6 +25,12 @@ As tres migracoes posteriores mantem suas versoes; as duas correcoes de
 CHECK diferem do texto remoto apenas por comentarios e formatacao.
 As copias antigas continuam preservadas em `migrations/` e nos apps.
 
+`20260917013930_transactional_blind_presets.sql` e a primeira migracao
+nova apos consolidacao: API de comandos para presets, revisoes, tombstones,
+recibos/auditoria e leitura isolada. Aplicada somente no banco local, nao
+no remoto. Ver contrato e limites em docs/SINCRONIZACAO.md. Nao usar db push
+como parte dos testes; ativacao remota/UI e dominio de torneios pendentes.
+
 Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
 validar novas alteracoes em banco isolado. A CLI canonica agora usa
 `supabase/config.toml`, ID `kings-table-local` e portas 55320-55329,
@@ -59,6 +65,13 @@ e disputa uma revisao em duas conexoes Postgres. Confirma que a segunda
 transacao realmente esperou pelo lock e recebeu 40001 apos o primeiro
 commit. Verifica o resultado final e remove somente esse ator no finally.
 Sessoes e statements possuem limites de tempo. Outros containers intactos.
+
+O runner tambem executa `preset_operations.sql` (rollback) e disputa os
+comandos de preset em duas conexoes: ID igual retorna recibo igual com um
+efeito; IDs diferentes na mesma revisao resultam em um commit e 40001.
+Verifica quantidade de recibos/auditoria e revisao final. Remove apenas
+o preset UUID da fixture antes de apagar seu ator. Historico esperado agora
+vem dos arquivos canonicos, incluindo a migracao nova somente local.
 
 Testes incluem RLS de duas contas/anonimo, versao ausente/nula/invalida,
 tamanho acima de 5 MB, revisao invalida e reassociacao do dono. Isso testa

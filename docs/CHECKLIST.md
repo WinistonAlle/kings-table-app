@@ -184,7 +184,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 |---|---|---|---|
 | D01 | Backup manual por conta, restauracao confirmada e recuperacao local anterior | implementado | CloudBackup.web.tsx; account-backup.ts; RPC/RLS testados; fluxo com conta real pendente. Nao substitui F084/F085. |
 | D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; validacao positiva com e-mail real e redirects pendente. |
-| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; identidade UUID; nucleo IndexedDB/sender testado, sem integracao com stores/Auth/API. Recibos remotos, dominio, migracoes, reconciliacao e sincronizacao real pendentes. |
+| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; UUID/fila e API transacional de presets no banco local testados. Stores/Auth/transporte nao integrados; dominio de torneios, remoto, reconciliacao e sincronizacao real pendentes. |
 | D04 | Transferencias completas/parciais, estorno de registro e saldo restante | implementado | acerto.ts; NightSettlement.tsx; auditoria/CSV/backup e testes locais. |
 | D05 | Despesas, taxas, conciliacao e estornos financeiros reais | pendente | Definir modelo contabil completo; estorno de registro nao devolve dinheiro. |
 | D06 | Biblioteca de premios, chop, aprovacao/recusa e fechamento formal | pendente | Modelo versionado de premiacao e autorizacoes. |
@@ -197,6 +197,10 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- API de presets no banco local: validacao, edicao/remocao com revisoes,
+  recibos idempotentes, auditoria e tombstones atomicos. Testes SQL reais,
+  incluindo duas conexoes concorrentes e falha forcada de auditoria; sem
+  issues no advisor de seguranca local. Sem alteracao remota ou de interface.
 - Banco local canonico configurado e replay das quatro migracoes passou
   em PostgreSQL 17, inclusive reset do novo banco de QA. Runner SQL cobre
   isolamento, tamanho/versao e duas transacoes realmente concorrentes.
@@ -250,3 +254,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V12 | Nucleo IndexedDB: concorrencia, leases, FIFO, isolamento e reload | validado | teste-sync-outbox.ts com quota/rollback e IndexedDB simulado; Playwright/Chrome em duas abas com IndexedDB real. Nao valida API, Auth ou sincronizacao entre aparelhos. |
 | V13 | Sender: cancelamento, run concorrente, retry finito e resposta atrasada | validado | teste-sync-sender.ts com transporte/IndexedDB simulados. Lifecycle Auth e transporte Supabase ainda nao integrados. |
 | V14 | Replay das quatro migracoes e concorrencia real do backup em banco local novo | validado | CLI canonica, db start/reset local e historico conferido; npm run test:local --workspace @kings-table/db: RLS, validacao, lock entre duas conexoes, vencedor e 40001; fixtures removidas. Nao valida Auth e-mail nem sincronizacao do dominio. |
+| V15 | API SQL local de presets: revisoes, recibos/auditoria atomicos, tombstones e concorrencia | validado | preset_operations.sql + test-local.mjs em Postgres real: retry simultaneo sem efeito duplicado, revisao disputada com 40001, payload invalido, access deny, defaults, rollback da auditoria. Advisor security local sem issues. Nao valida Auth HTTP, UI nem remoto. |
