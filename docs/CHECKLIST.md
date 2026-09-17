@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Cache de presets implementado no nucleo, nao ativado nas telas: upgrade
+  IndexedDB v2 preserva fila v1; revisoes reservadas atomicamente entre abas;
+  base confirmada e projecao pendente separadas. Confirmacao/cache atomicos,
+  quota com rollback, conflitos e tombstones preservados. Integracao aos
+  stores/AuthGate, leitura/reconciliacao remota e estados visuais pendentes.
 - Chrome real validou o nucleo de presets com Auth/JWT, HTTP e IndexedDB
   reais juntos: fila offline, reload depois de reconectar, envio em duas
   abas, isolamento da conta B e stop apos commit seguido de retomada do
@@ -204,7 +209,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
   Isso nao testa telas de login/presets nem reload do aplicativo sem rede.
 - Transporte tipado de presets implementado e testado. HTTP local real com
   duas contas GoTrue/JWT: isolamento, conflito e sender recuperando resposta
-  perdida apos commit (IndexedDB simulado). 18 suites offline, TypeScript e
+  perdida apos commit (IndexedDB simulado). 19 suites offline, TypeScript e
   export web passaram. Nao ativado em stores/AuthGate, sem escrita remota.
 - API de presets no banco local: validacao, edicao/remocao com revisoes,
   recibos idempotentes, auditoria e tombstones atomicos. Testes SQL reais,
@@ -266,3 +271,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V15 | API SQL local de presets: revisoes, recibos/auditoria atomicos, tombstones e concorrencia | validado | preset_operations.sql + test-local.mjs em Postgres real: retry simultaneo sem efeito duplicado, revisao disputada com 40001, payload invalido, access deny, defaults, rollback da auditoria. Advisor security local sem issues. Nao valida Auth HTTP, UI nem remoto. |
 | V16 | Transporte de presets e sender contra Auth/HTTP local real | validado | teste-sync-preset-transport.ts: SDK/HTTP simulado, recibos e abort. teste-sync-preset-http-local.ts: duas contas reais locais, JWT/PostgREST, acesso e retry apos commit sem duplicacao; outbox simulado. Sem prova de e-mail/SMTP, browser/UI, Auth remoto ou sincronizacao dos stores. |
 | V17 | Nucleo de presets no Chrome: Auth/HTTP/IndexedDB reais, offline e duas abas | validado | browser-preset-sync-code.js + entry.ts, fixtures locais admin com login por senha no browser: fila preservada, reload online, lease sem duplicacao, conta B negada, stop apos commit e retry do mesmo ID; revisao/auditoria 3. Nao valida UI, cadastro/e-mail ou abertura offline do aplicativo. |
+| V18 | Cache/projecao de presets e reserva atomica de revisoes | validado | teste-sync-preset-cache.ts: upgrade v1 sem perda, duas conexoes, quota/rollback, conflito, isolamento, tombstone e reopen. Runner Chrome com Auth/HTTP local: cache confirmado revisao 3 e fila sem pendencias; projecao offline recuperada em reload online. Nao valida integracao aos stores/telas nem API remota. |

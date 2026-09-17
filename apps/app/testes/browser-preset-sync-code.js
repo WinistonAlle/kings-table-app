@@ -21,11 +21,11 @@ export default async function presetSyncBrowserQa(page, fixture, bundleUrl) {
     await setup(page);await setup(second);
     const op=await page.evaluate(async fixture=>{
       const qa=window.__presetQa;
-      const operation=qa.kit.createOperation({ownerId:fixture.accounts[0].id,
-        entityId:fixture.presets[0],entity:'preset',kind:'preset.save',expectedRevision:0,
-        payload:{name:'Browser QA',levels:[{level:1,smallBlind:25,bigBlind:50,ante:0,durationMinutes:20}]}});
-      await qa.outbox.enqueue(operation);
-      return operation;
+      const entry=await qa.outbox.mutatePreset(fixture.accounts[0].id,fixture.presets[0],{kind:'preset.save',
+        payload:{name:'Browser QA',levels:[{level:99,smallBlind:25,bigBlind:50,ante:0,durationMinutes:20}]}});
+      const view=await qa.outbox.presetView(fixture.accounts[0].id,fixture.presets[0]);
+      if(view.confirmed||view.projected.revision!==1||view.pending.length!==1)throw new Error('Unsent preset presented as confirmed');
+      return entry.operation;
     },fixture);
     const send=async(tab,now)=>tab.evaluate(async({owner,now})=>{
       const qa=window.__presetQa;
@@ -38,8 +38,10 @@ export default async function presetSyncBrowserQa(page, fixture, bundleUrl) {
     if(first[0].status!=='confirmed')throw new Error('First browser commit not confirmed');
     const next=await page.evaluate(async op=>{
       const qa=window.__presetQa;
-      const next=qa.kit.createOperation({...op,expectedRevision:1,payload:{...op.payload,name:'Offline edit'}});
-      await qa.outbox.enqueue(next);return next;
+      const next=await qa.outbox.mutatePreset(op.ownerId,op.entityId,{kind:'preset.save',payload:{...op.payload,name:'Offline edit'}});
+      const view=await qa.outbox.presetView(op.ownerId,op.entityId);
+      if(view.confirmed.revision!==1||view.projected.revision!==2)throw new Error('Optimistic and confirmed cache mixed');
+      return next.operation;
     },op);
     await context.setOffline(true);
     const offline=await send(page,2000);
@@ -51,6 +53,8 @@ export default async function presetSyncBrowserQa(page, fixture, bundleUrl) {
     await page.reload();await setup(page);
     const recovered=await page.evaluate(owner=>window.__presetQa.outbox.list(owner),fixture.accounts[0].id);
     if(recovered[1].status!=='queued'||recovered[1].operation.id!==next.id)throw new Error('Reload lost offline queue');
+    const cached=await page.evaluate(op=>window.__presetQa.outbox.presetView(op.ownerId,op.entityId),op);
+    if(cached.confirmed.revision!==1||cached.projected.payload.name!=='Offline edit'||cached.pending.length!==1)throw new Error('Reload lost cached base or pending projection');
     await Promise.all([send(page,3000),send(second,3000)]);
     const confirmed=await page.evaluate(owner=>window.__presetQa.outbox.list(owner),fixture.accounts[0].id);
     if(confirmed[1].status!=='confirmed'||confirmed[1].attempts!==2)throw new Error('Two tabs sent duplicate lease or failed retry');
@@ -80,8 +84,8 @@ export default async function presetSyncBrowserQa(page, fixture, bundleUrl) {
           return response;
         }}
       });
-      const operation=qa.kit.createOperation({...op,expectedRevision:2,payload:{...op.payload,name:'Late response'}});
-      await qa.outbox.enqueue(operation);
+      const queued=await qa.outbox.mutatePreset(op.ownerId,op.entityId,{kind:'preset.save',payload:{...op.payload,name:'Late response'}});
+      const operation=queued.operation;
       qa.heldSender=new qa.kit.SyncSender(fixture.accounts[0].id,qa.outbox,
         qa.kit.createPresetTransport(held,fixture.accounts[0].id),()=>4000);
       qa.senders.push(qa.heldSender);qa.running=qa.heldSender.run();
@@ -103,7 +107,9 @@ export default async function presetSyncBrowserQa(page, fixture, bundleUrl) {
       return {revision:row.data.revision,audits:audit.data.length,name:row.data.name};
     },fixture.presets[0]);
     if(database.revision!==3||database.audits!==3||database.name!=='Late response')throw new Error('Browser flow duplicated or lost effects');
-    return 'PASS: real browser Auth/JWT/HTTP/IndexedDB, offline queue, online reload, two tabs, account B denial and cancelled response after commit recovered with same ID.';
+    const finalCache=await page.evaluate(op=>window.__presetQa.outbox.presetView(op.ownerId,op.entityId),op);
+    if(finalCache.confirmed.revision!==3||finalCache.pending.length||finalCache.reconciliationNeeded)throw new Error('Final confirmed cache disagreed with server');
+    return 'PASS: real browser Auth/JWT/HTTP/IndexedDB, atomic preset commands/cache, offline projection, online reload, two tabs, account B denial and cancelled response recovery.';
   }finally{
     await context.setOffline(false);
     for(const tab of [page,second])await tab.evaluate(async()=>{

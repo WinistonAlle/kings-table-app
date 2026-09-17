@@ -211,9 +211,32 @@ https://github.com/dumbmatter/fakeIndexedDB
 - Chave service_role local e usada apenas no runner Node para limpar fixtures,
   nunca enviada ao browser, salva em arquivo ou incluida no app. Contas e
   preset aleatorios removidos no finally, banco local conferido vazio.
-- 18 suites offline, TypeScript e export web; teste HTTP local separado.
+- 19 suites offline, TypeScript e export web; teste HTTP local separado.
   Comandos de reproducao em packages/db/README.md. Integracao com UI, cache,
   lifecycle Auth, reconciliacao e regras do dominio restante continuam pendentes.
+
+## Cache Transacional De Presets
+
+- IndexedDB v2 adiciona bases confirmadas por conta/entidade e indice da
+  fila por entidade, sem apagar a fila ou a sequencia da versao anterior.
+  Os stores atuais continuam usando seu caminho anterior; cache nao ativado na UI.
+- mutatePreset normaliza e valida nome/estrutura antes de enfileirar. A
+  leitura da base, projecao pendente, reserva da revisao e gravacao do comando
+  usam uma unica transacao. Duas abas criam revisoes consecutivas, nao iguais.
+  Nome limitado a 120 pontos de codigo, alinhado ao char_length do Postgres.
+- presetView distingue confirmed, projected, pending e reconciliationNeeded.
+  Conflito, rejeicao ou revisao divergente preservam a intencao e bloqueiam
+  novos comandos da entidade; nao rebaseiam nem descartam dados silenciosamente.
+- Confirmacao grava base e recibo local juntos. Falha de quota faz rollback
+  dos dois. Pull atrasado nao substitui base nova; mesma revisao com conteudo
+  diferente e erro. Tombstone nao permite ressuscitar o mesmo ID.
+- teste-sync-preset-cache.ts cobre upgrade v1, duas conexoes, isolamento,
+  normalizacao, quota forcada, conflito, tombstones e reabertura. Chrome real
+  com Auth/HTTP local confirmou base na revisao 3, sem pendencias, e preservou
+  projecao offline apos reload online. Nao valida telas ou reload sem rede.
+- Integracao aos stores/AuthGate, leitura inicial do servidor, Realtime,
+  revisao explicita de conflitos e protecao de restore/IDs legados pendentes.
+  API permanece somente local; nenhuma migracao remota aplicada.
 
 Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abortsignal
 
@@ -234,7 +257,7 @@ Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abort
   recuperou o recibo com o mesmo ID. SQL final: revisao 3 e 3 auditorias.
 - Contas foram precriadas via admin LOCAL com email confirmado, login por
   senha ocorreu no browser. Nao comprova cadastro/telas/SMTP/redirects ou
-  sessao de producao. Ainda nao houve integracao de UI/cache/AuthGate.
+  sessao de producao. Cache integrado ao nucleo testado; UI/AuthGate pendentes.
 - Reload foi feito DEPOIS de restabelecer a rede. Nao existe service worker
   configurado para abrir/recarregar o aplicativo inteiro sem internet; esse
   requisito permanece pendente, nao substituido pelo teste da fila.
