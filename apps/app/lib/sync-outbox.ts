@@ -8,11 +8,26 @@ const safeCount = z.number().int().nonnegative().safe();
 const leaseSchema = z.strictObject({ token: z.uuid(), until: safeCount });
 const receiptSchema = z.strictObject({ operationId: z.uuid(), revision: safeCount });
 const issueSchema = z.strictObject({ code: z.string().min(1).max(100), message: z.string().min(1).max(1000) });
+const resolutionSchema = z.strictObject({
+  id: z.uuid(), kind: z.enum(['keep_remote', 'save_copy']), createdAt: z.iso.datetime(),
+  copiedTo: z.uuid().optional(), copyOperationId: z.uuid().optional(),
+}).refine(value => value.kind === 'save_copy'
+  ? !!value.copiedTo && !!value.copyOperationId : !value.copiedTo && !value.copyOperationId,
+  'Referencia da copia inconsistente');
+const resolutionRequestSchema = z.strictObject({
+  expectedBase: presetBaseSchema.nullable(), pendingOperationIds: z.array(z.uuid()).min(1),
+  decision: z.discriminatedUnion('kind', [
+    z.strictObject({ kind: z.literal('keep_remote') }),
+    z.strictObject({ kind: z.literal('save_copy'), name: z.string() }),
+  ]),
+});
+export type PresetResolutionRequest = z.infer<typeof resolutionRequestSchema>;
 const entrySchema = z.strictObject({
   sequence: z.number().int().positive().safe(), operation: operationSchema,
-  status: z.enum(['queued', 'sending', 'conflict', 'rejected', 'confirmed']),
+  status: z.enum(['queued', 'sending', 'conflict', 'rejected', 'confirmed', 'cancelled']),
   attempts: safeCount, lease: leaseSchema.optional(),
   receipt: receiptSchema.optional(), issue: issueSchema.optional(),
+  resolution: resolutionSchema.optional(),
 }).superRefine((entry, ctx) => {
   if ((entry.status === 'sending') !== !!entry.lease || (entry.status === 'confirmed') !== !!entry.receipt) {
     ctx.addIssue({ code: 'custom', message: 'Estado da fila inconsistente' });
@@ -22,6 +37,10 @@ const entrySchema = z.strictObject({
   }
   if (entry.receipt && (entry.receipt.operationId !== entry.operation.id || entry.receipt.revision !== entry.operation.expectedRevision + 1)) {
     ctx.addIssue({ code: 'custom', message: 'Recibo da fila inconsistente' });
+  }
+  if ((entry.status === 'cancelled') !== !!entry.resolution
+    || (entry.resolution && entry.operation.entity !== 'preset')) {
+    ctx.addIssue({ code: 'custom', message: 'Decisao da fila inconsistente' });
   }
 });
 
@@ -46,7 +65,8 @@ export class SyncOutbox {
   private connection: Promise<IDBPDatabase<OutboxDatabase>>;
 
   constructor(name = 'kt-sync-outbox') {
-    this.connection = openDB<OutboxDatabase>(name, 2, {
+    // v3 prevents older clients from reopening a queue containing resolution records.
+    this.connection = openDB<OutboxDatabase>(name, 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const store = db.createObjectStore('operations', { keyPath: ['operation.ownerId', 'operation.id'] });
@@ -199,6 +219,54 @@ export class SyncOutbox {
     z.uuid().parse(ownerId);
     const db = await this.connection;
     return (await db.getAllFromIndex('operations', 'owner', ownerId)).map(parseEntry).sort((a, b) => a.sequence - b.sequence);
+  }
+
+  async resolvePreset(ownerId: string, id: string, value: PresetResolutionRequest,
+    signal = new AbortController().signal): Promise<OutboxEntry | null> {
+    z.uuid().parse(ownerId); z.uuid().parse(id);
+    signal.throwIfAborted();
+    const request = resolutionRequestSchema.parse(value);
+    return this.write(async tx => {
+      signal.throwIfAborted();
+      const stored = await tx.objectStore('presetBases').get([ownerId, id]);
+      const base = stored ? presetBaseSchema.parse(stored) : null;
+      const store = tx.objectStore('operations');
+      const entries = (await store.index('entity').getAll([ownerId, 'preset', id])).map(parseEntry);
+      const { pending } = projectPreset(base, entries);
+      if (JSON.stringify(base) !== JSON.stringify(request.expectedBase)
+        || JSON.stringify(pending.map(entry => entry.operation.id)) !== JSON.stringify(request.pendingOperationIds)) {
+        throw new Error('A estrutura mudou. Atualize e revise novamente.');
+      }
+      // A timeout or expired lease is not proof that the server rejected a command.
+      if (!pending.length || !['conflict', 'rejected'].includes(pending[0].status)
+        || pending.some(entry => !['queued', 'conflict', 'rejected'].includes(entry.status))) {
+        throw new Error('Aguarde uma resposta definitiva antes de resolver a pendencia.');
+      }
+      let copy: OutboxEntry | null = null;
+      if (request.decision.kind === 'save_copy') {
+        const attempted = [...pending].reverse().find(entry => entry.operation.kind === 'preset.save');
+        const source = attempted ? attempted.operation.payload : base?.payload;
+        if (!source) throw new Error('Nao ha dados de estrutura para copiar.');
+        const payload = preparePresetPayload({ ...source, name: request.decision.name });
+        const copyId = novaIdentidade();
+        if (await tx.objectStore('presetBases').get([ownerId, copyId])
+          || (await store.index('entity').getAllKeys([ownerId, 'preset', copyId])).length) {
+          throw new Error('Nao foi possivel gerar uma identidade nova para a copia.');
+        }
+        copy = await this.add(tx, createOperation({ ownerId, entityId: copyId, entity: 'preset',
+          kind: 'preset.save', expectedRevision: 0, payload }));
+      }
+      const resolution = resolutionSchema.parse({ id: novaIdentidade(), kind: request.decision.kind,
+        createdAt: new Date().toISOString(),
+        ...(copy ? { copiedTo: copy.operation.entityId, copyOperationId: copy.operation.id } : {}),
+      });
+      for (const entry of pending) {
+        signal.throwIfAborted();
+        await store.put(parseEntry({ ...entry, status: 'cancelled', resolution }));
+      }
+      signal.throwIfAborted();
+      return copy;
+    });
   }
 
   async claim(ownerId: string, now = Date.now(), leaseMilliseconds = 30000, scope?: SyncOperation['entity']): Promise<OutboxEntry | null> {

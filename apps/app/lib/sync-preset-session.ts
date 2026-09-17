@@ -57,6 +57,15 @@ export class PresetSyncSession {
     await this.refreshLocal();
   }
 
+  async resolve(id: string, request: Parameters<SyncOutbox['resolvePreset']>[2]): Promise<void> {
+    this.controller.signal.throwIfAborted();
+    if (this.state.phase !== 'ready') throw new Error('Atualize a biblioteca antes de revisar a pendencia.');
+    await this.outbox.resolvePreset(this.ownerId, id, request, this.controller.signal);
+    this.controller.signal.throwIfAborted();
+    if (this.inFlight) this.repeat = true;
+    await this.refreshLocal();
+  }
+
   synchronize(repeatIfBusy = false): Promise<void> {
     if (this.controller.signal.aborted) return Promise.resolve();
     if (this.inFlight && repeatIfBusy) this.repeat = true;

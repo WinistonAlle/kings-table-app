@@ -46,7 +46,9 @@ export function applyPresetOperation(base: PresetBase | null, operation: SyncOpe
 export function projectPreset(base: PresetBase | null, entries: OutboxEntry[]) {
   let projected = base;
   let reconciliationNeeded = false;
-  const pending = entries.filter(entry => entry.status !== 'confirmed').sort((a, b) => a.sequence - b.sequence);
+  const archived = entries.filter(entry => entry.status === 'cancelled').sort((a, b) => a.sequence - b.sequence);
+  const pending = entries.filter(entry => entry.status !== 'confirmed' && entry.status !== 'cancelled')
+    .sort((a, b) => a.sequence - b.sequence);
   for (const entry of pending) {
     if (reconciliationNeeded || entry.status === 'conflict' || entry.status === 'rejected'
       || entry.operation.expectedRevision !== (projected?.revision ?? 0) || projected?.deleted) {
@@ -56,5 +58,5 @@ export function projectPreset(base: PresetBase | null, entries: OutboxEntry[]) {
     projected = applyPresetOperation(projected, entry.operation);
   }
   if (!base && entries.some(entry => entry.status === 'confirmed')) reconciliationNeeded = true;
-  return { confirmed: base, projected, pending, reconciliationNeeded };
+  return { confirmed: base, projected, pending, archived, reconciliationNeeded };
 }

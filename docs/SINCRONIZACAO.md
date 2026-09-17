@@ -3,6 +3,39 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Nucleo De Revisao Em 17/09/2026
+
+- resolvePreset permite manter a base da conta ou salvar a ultima intencao
+  de estrutura como copia independente. Exige primeira pendencia com rejeicao
+  definitiva (conflict/rejected); queued, sending e resultado desconhecido
+  nunca autorizam cancelar o comando. Timeout nao comprova rollback remoto.
+- A transacao compara a base completa e a lista ordenada de IDs pendentes
+  apresentados na revisao. Outra aba alterando base/fila invalida a decisao.
+  Copia recebe UUID novo e revisao esperada zero; original nunca e sobrescrito
+  ou ressuscitado. Exclusao conflitante pode manter o tombstone original.
+- Intencoes ficam em estado terminal cancelled, com envelope, tentativas e
+  motivo preservados. resolution registra ID/data/decisao e liga a copia ao
+  seu comando. projectPreset expoe archived separado de pending; reenfileirar
+  o mesmo ID nao ressuscita a operacao. Nao ha exclusao de historico.
+- Reserva de sequencia, novo comando e arquivo da cadeia usam uma transacao
+  IndexedDB com durabilidade strict. Quota, validacao ou abort revertem tudo.
+  PresetSyncSession.resolve exige biblioteca ready e respeita stop/abort;
+  ainda nao existe chamada dessa decisao na interface ou no provider.
+- Banco local passa a v3 sem remover stores/registros. A versao protege os
+  novos estados de clientes antigos: conexoes atuais fecham em versionchange;
+  clientes v2 nao reabrem v3 (VersionError). UX de atualizacao de abas antigas
+  e validacao especifica da migracao v2 real ainda precisam ser conferidas.
+- Evidencias: 22 suites, TypeScript e export web passaram. Suite de resolucao
+  usa IndexedDB simulado: resposta incerta, snapshot, rollback/quota/abort,
+  corrida, isolamento, tombstone, criacao rejeitada e reopen. Runner
+  browser-preset-resolution-code.js passou em Chrome com IndexedDB real e
+  duas conexoes concorrentes, copia unica, arquivo, isolamento e reopen;
+  conflitos/recibos desse runner sao fixtures locais, nao Auth/HTTP reais.
+- Proxima etapa: revisao explicita na UI, confirmacoes, dados da conta versus
+  intencao, nome da copia, historico acessivel inclusive criacoes rejeitadas,
+  estados busy/erro e provas Auth/HTTP reais em desktop/mobile. O fluxo completo
+  continua em andamento; flag remota permanece desligada e nenhuma .env mudou.
+
 ## Integracao Web Em 17/09/2026
 
 - PresetSyncProvider conecta o coordenador ao AuthGate para uma conta
