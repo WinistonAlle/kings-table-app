@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts && tsx testes/teste-acerto.ts && tsx testes/teste-clock-controls.ts"
+    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts && tsx testes/teste-acerto.ts && tsx testes/teste-clock-controls.ts && tsx testes/teste-identidade.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
@@ -24,6 +24,7 @@
     "babel-preset-expo": "^55.0.17",
     "expo": "~54.0.33",
     "expo-constants": "~18.0.13",
+    "expo-crypto": "~15.0.9",
     "expo-font": "~14.0.11",
     "expo-keep-awake": "~15.0.8",
     "expo-linear-gradient": "~15.0.8",

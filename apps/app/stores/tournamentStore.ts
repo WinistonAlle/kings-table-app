@@ -8,6 +8,7 @@ import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
 import { sortearAssentos, moverAssento, desfazerAssentos } from '@/lib/assentos';
 import { recordSettlement, voidSettlement } from '@/lib/acerto';
+import { novaIdentidade } from '@/lib/identidade';
 
 export { emJogo } from '@/lib/torneio';
 
@@ -66,7 +67,7 @@ export const useTournamentStore = create<TournamentStore>()(
       moveSeat: (id, playerId, table, seat) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? moverAssento(t, playerId, table, seat) : t) })),
       undoSeats: (id) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? desfazerAssentos(t) : t) })),
 
-      invite: (id, name, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? adicionarConvidado(t, { id: `i_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, name, status, createdAt: new Date().toISOString() }) : t) })),
+      invite: (id, name, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? adicionarConvidado(t, { id: novaIdentidade(), name, status, createdAt: new Date().toISOString() }) : t) })),
       setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).map(c => c.id === guestId && !c.playerId ? { ...c, status: statusPresenca(t, status, guestId) } : c) } : t) })),
       removeInvite: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).filter(c => c.id !== guestId || c.playerId) } : t) })),
       checkIn: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => {
@@ -74,19 +75,14 @@ export const useTournamentStore = create<TournamentStore>()(
         if (t.id !== id || t.status !== 'upcoming' || !c || c.status !== 'confirmed' || c.playerId) return t;
         const existente = t.players.find(p => p.name.trim().toLocaleLowerCase('pt-BR') === c.name.trim().toLocaleLowerCase('pt-BR'));
         if (!existente && t.capacity && t.players.length >= t.capacity) return t;
-        const playerId = existente?.id ?? `p_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        return { ...t, players: existente ? t.players : [...t.players, { id: playerId, userId: playerId, name: c.name, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const }], invitees: t.invitees!.map(i => i.id === guestId ? { ...i, playerId } : i) };
+        const playerId = existente?.id ?? novaIdentidade();
+        return { ...t, players: existente ? t.players : [...t.players, { id: playerId, userId: `guest_${novaIdentidade()}`, name: c.name, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const }], invitees: t.invitees!.map(i => i.id === guestId ? { ...i, playerId } : i) };
       }) })),
 
       createTournament: (data) => {
-        const baseId = `t_${Date.now()}`;
-        const existingIds = new Set(get().tournaments.map(t => t.id));
-        let id = baseId;
-        let suffix = 0;
-        while (existingIds.has(id)) id = `${baseId}_${++suffix}`;
         const tournament: Tournament = {
           ...data,
-          id,
+          id: novaIdentidade(),
           status: 'upcoming',
           currentLevel: 0,
           players: [],
@@ -110,7 +106,7 @@ export const useTournamentStore = create<TournamentStore>()(
       setActive: (id) => rawSet({ activeTournamentId: id }),
 
       addPlayer: (tournamentId, player) => {
-        const id = `p_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+        const id = novaIdentidade();
         set(s => ({
           tournaments: s.tournaments.map(t =>
             t.id === tournamentId && (t.status === 'upcoming' || t.status === 'running') && vagaParaJogador(t, player.name)

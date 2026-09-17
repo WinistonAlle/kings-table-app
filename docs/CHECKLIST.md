@@ -197,6 +197,12 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Identidade: entidades novas usam UUID v4; dados e referencias legadas
+  preservados, convidados nao se tornam perfis Auth. 15 suites, TypeScript,
+  export web e criacao/reload na UI passaram. Nativo nao validado em aparelho.
+- Historico: quatro versoes remotas em pasta canonica, inicial reconstruida
+  dos statements registrados; MD5 conferido. Nenhuma escrita remota nesta
+  etapa. Replay completo em banco novo e integracao de comandos pendentes.
 - Isolamento local: carregamento serializado, falhas de hidratacao bloqueadas
   e respostas Auth antigas descartadas. Unitarios e Playwright passaram;
   Auth do teste de corrida e simulado. Cadastro/e-mail real ainda pendentes.
@@ -229,3 +235,5 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V07 | Criacoes locais no mesmo milissegundo, inclusive apos rehydrate | validado | teste-contas.ts: IDs distintos, jogador isolado e exclusao independente; nao cobre concorrencia entre aparelhos. |
 | V08 | Trocas locais concorrentes, erro de leitura e recuperacao da fila | validado | teste-contas.ts: leitura controlada, scopes dos tres stores e dados da conta A preservados. |
 | V09 | Resposta Auth antiga descartada e conta B isolada na UI mobile | validado | Playwright com Auth simulado; account-isolation-mobile.png inspecionada. Nao valida fluxo Auth real. |
+| V10 | UUIDs de registros novos e preservacao das referencias legadas, web | validado | teste-identidade.ts; 15 suites; UI de criacao/jogador/reload; identity-390.png e identity-1440.png inspecionadas. Nao valida sincronizacao nem nativo. |
+| V11 | Versoes de migracoes locais correspondem ao historico remoto consultado | validado | Quatro arquivos em packages/db/supabase/migrations; inicial com 53 statements e MD5 c1d4a55b62ab72fe77b1a01c3f0e4d81 conferido no servidor e arquivo. Nao valida replay. |

@@ -21,6 +21,7 @@ import { NightExport } from '@/components/NightExport';
 import { NightSettlement } from '@/components/NightSettlement';
 import { confirmarAcao } from '@/lib/confirmar';
 import { lugarJogador } from '@/lib/assentos';
+import { novaIdentidade } from '@/lib/identidade';
 
 /* A mesa por dentro: quem está jogando, quem caiu, quem pagou e quanto cada um
  * leva.
@@ -104,7 +105,7 @@ export default function Mesa() {
     if (!limpo) { setErroJogador('Informe o nome do jogador.'); return; }
     if (!vagaParaJogador(torneio, limpo)) { setErroJogador('As vagas estão ocupadas ou reservadas pelos confirmados. Use a lista de espera ou aumente o limite.'); return; }
     if (torneio.players.some(p => p.name.trim().toLocaleLowerCase('pt-BR') === limpo.toLocaleLowerCase('pt-BR'))) { setErroJogador('Já existe um jogador com esse nome. Use um sobrenome para diferenciar.'); return; }
-    addPlayer(torneio.id, { userId: `guest_${Date.now()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
+    addPlayer(torneio.id, { userId: `guest_${novaIdentidade()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
     setNome(''); setErroJogador(''); setConfirmacaoJogador(`${limpo} entrou na mesa.`);
   };
 

@@ -17,10 +17,19 @@ projetos passarem a ler daqui, o que é a próxima etapa.
 
 ## Copias online
 
-Novas migracoes estao em `supabase/migrations/`, criadas com a CLI e
-renomeadas para a versao registrada pelo MCP no servidor. A migracao inicial
-continua em `migrations/`; antes de usar `supabase db push`, consolide o
-historico local com o remoto. Nao reaplique a inicial nem a lista de espera.
+O historico aplicado esta consolidado em `supabase/migrations/`. A inicial
+foi reconstruida dos 53 statements do historico remoto, mantendo a versao
+`20260420000001`. O MD5 do arquivo reconstruido foi conferido com a mesma
+reconstrucao no servidor: `c1d4a55b62ab72fe77b1a01c3f0e4d81`.
+As tres migracoes posteriores mantem suas versoes; as duas correcoes de
+CHECK diferem do texto remoto apenas por comentarios e formatacao.
+As copias antigas continuam preservadas em `migrations/` e nos apps.
+
+Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
+configurar a CLI canonica e validar replay completo em banco novo isolado.
+Essa validacao ainda nao ocorreu. Nao reaplique a inicial nem a lista de
+espera; `0001_lista_espera.sql` nao pertence ao historico aplicado.
+Nenhum SQL desta consolidacao foi reaplicado no servidor.
 
 `supabase/tests/account_backups.sql` testa RLS e concorrencia como postgres
 em uma transacao com rollback. Nao modifica usuarios reais. A interface

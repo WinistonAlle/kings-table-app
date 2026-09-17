@@ -1,5 +1,6 @@
 import type { AuditEvent, Tournament, TournamentPlayer } from '@/types';
 import { lugarJogador } from './assentos';
+import { novaIdentidade } from './identidade';
 
 const dinheiro = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const PAGAMENTOS = { pending: 'A receber', confirmed: 'Pago', disputed: 'Contestado' };
@@ -46,6 +47,6 @@ export function auditar(antes: Tournament | undefined, depois: Tournament, agora
   }
   if (!changes.length) return depois;
   const summary = antes?.seatUndo && !depois.seatUndo && changes.some(c => c.label.startsWith('Assento')) ? 'Assentos restaurados' : changes[0].label;
-  const event: AuditEvent = { id: `a_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`, at: agora, actor: 'Organizador deste aparelho', summary, changes };
+  const event: AuditEvent = { id: novaIdentidade(), at: agora, actor: 'Organizador deste aparelho', summary, changes };
   return { ...depois, audit: [...(antes?.audit ?? []), event] };
 }

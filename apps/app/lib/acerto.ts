@@ -1,5 +1,6 @@
 import type { Tournament } from '@/types';
 import { entriesOf } from './payouts';
+import { novaIdentidade } from './identidade';
 
 export interface SettlementBalance { id: string; name: string; cents: number; entriesCents: number; paidCents: number; prizeCents: number }
 export interface SettlementTransfer { from: string; to: string; cents: number }
@@ -71,7 +72,7 @@ export function recordSettlement(t: Tournament, from: string, to: string, amount
   const debtor = plan.balances.find(b => b.id === from);
   const creditor = plan.balances.find(b => b.id === to);
   if (!Number.isSafeInteger(amount) || amount <= 0 || !debtor || !creditor || from === to || debtor.cents >= 0 || creditor.cents <= 0 || amount > Math.min(-debtor.cents, creditor.cents)) return fail('Informe um valor positivo que não ultrapasse o saldo de quem paga e de quem recebe.');
-  const payment = { id: `s_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`, from, to, cents: amount, at: new Date().toISOString(), baseline: settlementFingerprint(t) };
+  const payment = { id: novaIdentidade(), from, to, cents: amount, at: new Date().toISOString(), baseline: settlementFingerprint(t) };
   return { tournament: { ...t, settlementPayments: [...(t.settlementPayments ?? []), payment] }, error: null };
 }
 

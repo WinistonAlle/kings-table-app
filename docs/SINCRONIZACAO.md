@@ -9,7 +9,18 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 - Trocas de conta sao serializadas; falha de hidratacao impede liberar a UI.
 - AuthGate descarta verificacoes antigas e oculta a conta anterior na troca.
 - Supabase consultado em 16/09: tournaments/tournament_players usam UUIDs.
-  O app usa IDs t_*/p_*; nao enviar esses valores para colunas UUID.
+  Novas entidades locais agora usam UUID v4; IDs legados t_*/p_* permanecem
+  intactos. Nao enviar esses valores legados para colunas UUID sem mapeamento.
+- Identidade web usa crypto.randomUUID; nativo usa expo-crypto 15.0.9
+  compativel com SDK 54. Web requer contexto seguro (HTTPS ou localhost).
+  Convidados continuam guest_*: nao sao perfis Auth, mesmo quando a inscricao
+  tem UUID. Um UUID de inscricao nao comprova vinculo com conta autenticada.
+- Identidade dos novos registros validada em testes e criacao real na UI
+  web, com reload e capturas 390/1440 inspecionadas. Nativo ainda nao foi
+  validado em aparelho. Fila e recibos de operacoes ainda nao existem.
+- As quatro versoes aplicadas estao em packages/db/supabase/migrations;
+  inicial reconstruida a partir dos 53 statements do historico remoto.
+  Copias antigas preservadas. Replay em banco novo ainda nao validado.
 - tournaments remoto tem current_level/seconds_remaining, mas nao possui
   ancora temporal, revisao ou hand-for-hand. Tambem nao representa campos
   locais de assentos, convidados, acertos e auditoria.
