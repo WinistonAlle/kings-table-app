@@ -184,7 +184,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 |---|---|---|---|
 | D01 | Backup manual por conta, restauracao confirmada e recuperacao local anterior | implementado | CloudBackup.web.tsx; account-backup.ts; RPC/RLS testados; fluxo com conta real pendente. Nao substitui F084/F085. |
 | D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; validacao positiva com e-mail real e redirects pendente. |
-| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md: contrato, lacunas conferidas no banco e gates; troca local serializada. Fila, comandos, migracoes e integracao remota ainda pendentes. |
+| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; identidade UUID; nucleo IndexedDB/sender testado, sem integracao com stores/Auth/API. Recibos remotos, dominio, migracoes, reconciliacao e sincronizacao real pendentes. |
 | D04 | Transferencias completas/parciais, estorno de registro e saldo restante | implementado | acerto.ts; NightSettlement.tsx; auditoria/CSV/backup e testes locais. |
 | D05 | Despesas, taxas, conciliacao e estornos financeiros reais | pendente | Definir modelo contabil completo; estorno de registro nao devolve dinheiro. |
 | D06 | Biblioteca de premios, chop, aprovacao/recusa e fechamento formal | pendente | Modelo versionado de premiacao e autorizacoes. |
@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Nucleo local da fila implementado, nao ativado na interface: envelopes
+  imutaveis, transacoes IndexedDB, reservas temporarias, FIFO por entidade,
+  recibos locais e sender cancelavel. 17 suites; testes usam IndexedDB e
+  transporte simulados. Chrome real conferiu armazenamento em duas abas.
+  Nenhum envio remoto ou alteracao nos stores/AuthGate nesta etapa.
 - Identidade: entidades novas usam UUID v4; dados e referencias legadas
   preservados, convidados nao se tornam perfis Auth. 15 suites, TypeScript,
   export web e criacao/reload na UI passaram. Nativo nao validado em aparelho.
@@ -237,3 +242,5 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V09 | Resposta Auth antiga descartada e conta B isolada na UI mobile | validado | Playwright com Auth simulado; account-isolation-mobile.png inspecionada. Nao valida fluxo Auth real. |
 | V10 | UUIDs de registros novos e preservacao das referencias legadas, web | validado | teste-identidade.ts; 15 suites; UI de criacao/jogador/reload; identity-390.png e identity-1440.png inspecionadas. Nao valida sincronizacao nem nativo. |
 | V11 | Versoes de migracoes locais correspondem ao historico remoto consultado | validado | Quatro arquivos em packages/db/supabase/migrations; inicial com 53 statements e MD5 c1d4a55b62ab72fe77b1a01c3f0e4d81 conferido no servidor e arquivo. Nao valida replay. |
+| V12 | Nucleo IndexedDB: concorrencia, leases, FIFO, isolamento e reload | validado | teste-sync-outbox.ts com quota/rollback e IndexedDB simulado; Playwright/Chrome em duas abas com IndexedDB real. Nao valida API, Auth ou sincronizacao entre aparelhos. |
+| V13 | Sender: cancelamento, run concorrente, retry finito e resposta atrasada | validado | teste-sync-sender.ts com transporte/IndexedDB simulados. Lifecycle Auth e transporte Supabase ainda nao integrados. |

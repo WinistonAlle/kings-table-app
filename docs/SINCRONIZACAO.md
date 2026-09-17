@@ -17,7 +17,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   tem UUID. Um UUID de inscricao nao comprova vinculo com conta autenticada.
 - Identidade dos novos registros validada em testes e criacao real na UI
   web, com reload e capturas 390/1440 inspecionadas. Nativo ainda nao foi
-  validado em aparelho. Fila e recibos de operacoes ainda nao existem.
+  validado em aparelho. O nucleo local da fila existe; recibos transacionais
+  no servidor e integracao com os stores ainda nao existem.
 - As quatro versoes aplicadas estao em packages/db/supabase/migrations;
   inicial reconstruida a partir dos 53 statements do historico remoto.
   Copias antigas preservadas. Replay em banco novo ainda nao validado.
@@ -69,6 +70,51 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   como confirmado um controle que as outras telas ainda nao receberam.
 - Hand-for-hand completo inclui coordenacao das rodadas multimesa, nao
   apenas a pausa local que existe hoje.
+
+## Nucleo Local Da Fila
+
+- sync-operation.ts define envelope v1, UUIDs, revisao esperada, 26 tipos
+  de comando e payload JSON limitado a 1 MB. Isso valida o protocolo,
+  nao as regras de cada comando; validacao de dominio no servidor pendente.
+- ownerId no envelope e o escopo da conta/ator local, nao autorizacao de
+  dono da entidade. Servidor deve verificar esse ator pela sessao e resolver
+  dono/co-host do alvo pelas tabelas de acesso, sem confiar no payload.
+- sync-outbox.ts usa idb 8.0.3 e IndexedDB, com transacoes readwrite de
+  durabilidade strict. Fila e sequencia sao gravadas atomicamente; falha
+  de escrita faz rollback dos dois. Nao usar localStorage como fila multiaba.
+- ID/conteudo permanecem imutaveis. JSON com outra ordem de chaves e
+  equivalente; ID repetido com outro conteudo e recusado. Confirmados
+  ficam como recibos locais e nao ressuscitam no reenfileiramento.
+- Reserva temporaria de envio (lease) tem token e validade. Duas abas
+  nao reservam a mesma entidade simultaneamente; lease expirada permite
+  reenvio do mesmo ID. Resposta de token antigo nao altera a reserva atual.
+- FIFO por entidade: conflito/rejeicao bloqueia os comandos seguintes
+  dessa entidade, sem bloquear outra mesa. Confirmacao exige operationId
+  correto e revisao esperada + 1. Reenvio nao altera revisao/payload.
+- sync-sender.ts fornece processamento cancelavel para um ownerId fixo.
+  stop aborta o sinal e ignora resposta posterior; run concorrente compartilha
+  o processamento. Erro de transporte preserva operacao e encerra a rodada,
+  sem loop de tentativas. Abortar nao prova que o servidor deixou de gravar.
+- IndexedDB simulado nos unitarios: concorrencia, quota/rollback, isolamento,
+  deduplicacao, recibo errado, conflitos, retry, reabertura e cancelamento.
+- Chrome com IndexedDB real e duas abas: reserva atomica, FIFO, lease
+  expirada, resposta antiga, conta B isolada, reload e conflito preservado.
+  Fixture qa-outbox-* removida; nenhum usuario/dado remoto foi criado.
+- browser-outbox-code.js guarda o fluxo de QA para Playwright CLI. Compilar
+  sync-outbox.ts/sync-operation.ts com esbuild para ESM e servir os dois
+  bundles por HTTP local com CORS para localhost:8081; passar a URL base
+  para a funcao em uma sessao nova do navegador. Servidor apenas temporario.
+- O nucleo nao esta ativado na interface. Nenhuma acao atual dos stores
+  foi convertida em comando, nenhum envio Supabase e feito e AuthGate ainda
+  nao possui o lifecycle do sender. Nao anunciar sincronizacao disponivel.
+- Pendencias: API atomica/idempotente, validacao de dominio, autorizacao,
+  mapeamento legado, integracao cache/stores/Auth, recuperacao por revisoes,
+  backoff e estados visuais, resolucao explicita de conflitos, retencao de
+  recibos e restauracao de backup com operacoes pendentes. Nativo depois.
+
+Referencias de implementacao e testes:
+https://github.com/jakearchibald/idb
+https://github.com/dumbmatter/fakeIndexedDB
 
 ## Permissoes e projecoes
 

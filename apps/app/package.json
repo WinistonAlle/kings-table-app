@@ -7,7 +7,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts && tsx testes/teste-acerto.ts && tsx testes/teste-clock-controls.ts && tsx testes/teste-identidade.ts"
+    "testes": "tsx testes/teste-logica.ts && tsx testes/teste-timer.ts && tsx testes/teste-torneio.ts && tsx testes/teste-persistencia.ts && tsx testes/teste-mesas.ts && tsx testes/teste-estrutura.ts && tsx testes/teste-noite.ts && tsx testes/teste-assentos.ts && tsx testes/teste-contas.ts && tsx testes/teste-exportacao.ts && tsx testes/teste-backup.ts && tsx testes/teste-backup-conta.ts && tsx testes/teste-acerto.ts && tsx testes/teste-clock-controls.ts && tsx testes/teste-identidade.ts && tsx testes/teste-sync-outbox.ts && tsx testes/teste-sync-sender.ts"
   },
   "dependencies": {
     "@expo-google-fonts/cormorant-garamond": "^0.4.1",
@@ -32,6 +32,7 @@
     "expo-router": "~6.0.23",
     "expo-splash-screen": "~31.0.13",
     "expo-status-bar": "~3.0.9",
+    "idb": "8.0.3",
     "ogl": "1.0.11",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -46,6 +47,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.1.0",
+    "fake-indexeddb": "6.2.5",
     "tsx": "^4.23.13",
     "typescript": "~5.9.2"
   },
