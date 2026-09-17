@@ -202,6 +202,10 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
   base confirmada e projecao pendente separadas. Confirmacao/cache atomicos,
   quota com rollback, conflitos e tombstones preservados. Integracao aos
   stores/AuthGate, leitura/reconciliacao remota e estados visuais pendentes.
+- Leitura transacional da biblioteca por conta implementada: inclui estruturas
+  criadas/removidas pendentes e conflitos, sem misturar contas com o mesmo ID.
+  Unitarios e IndexedDB real no Chrome passaram; persistencia em reopen conferida.
+  Nao substitui consulta inicial do servidor ou integracao aos controles atuais.
 - Chrome real validou o nucleo de presets com Auth/JWT, HTTP e IndexedDB
   reais juntos: fila offline, reload depois de reconectar, envio em duas
   abas, isolamento da conta B e stop apos commit seguido de retomada do
@@ -272,3 +276,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V16 | Transporte de presets e sender contra Auth/HTTP local real | validado | teste-sync-preset-transport.ts: SDK/HTTP simulado, recibos e abort. teste-sync-preset-http-local.ts: duas contas reais locais, JWT/PostgREST, acesso e retry apos commit sem duplicacao; outbox simulado. Sem prova de e-mail/SMTP, browser/UI, Auth remoto ou sincronizacao dos stores. |
 | V17 | Nucleo de presets no Chrome: Auth/HTTP/IndexedDB reais, offline e duas abas | validado | browser-preset-sync-code.js + entry.ts, fixtures locais admin com login por senha no browser: fila preservada, reload online, lease sem duplicacao, conta B negada, stop apos commit e retry do mesmo ID; revisao/auditoria 3. Nao valida UI, cadastro/e-mail ou abertura offline do aplicativo. |
 | V18 | Cache/projecao de presets e reserva atomica de revisoes | validado | teste-sync-preset-cache.ts: upgrade v1 sem perda, duas conexoes, quota/rollback, conflito, isolamento, tombstone e reopen. Runner Chrome com Auth/HTTP local: cache confirmado revisao 3 e fila sem pendencias; projecao offline recuperada em reload online. Nao valida integracao aos stores/telas nem API remota. |
+| V19 | Leitura consistente da biblioteca local de presets por conta | validado | presetViews, teste-sync-preset-cache.ts e browser-preset-library-code.js: criacoes/exclusoes pendentes, conflitos, mesmo ID em contas distintas, duas conexoes e reopen com IndexedDB real no Chrome. 19 suites e TypeScript passaram. Nao valida UI/Auth/HTTP; confirmacao do runner de biblioteca e apenas local. |

@@ -227,6 +227,16 @@ https://github.com/dumbmatter/fakeIndexedDB
 - presetView distingue confirmed, projected, pending e reconciliationNeeded.
   Conflito, rejeicao ou revisao divergente preservam a intencao e bloqueiam
   novos comandos da entidade; nao rebaseiam nem descartam dados silenciosamente.
+- presetViews le a biblioteca inteira de uma conta em uma transacao readonly
+  sobre bases e fila. Inclui criacoes pendentes, tombstones e conflitos;
+  leitura nao filtra exclusoes nem descarta intencoes. A interface deve decidir
+  como apresentar esses estados, sem tratar uma remocao pendente como confirmada.
+  Consulta bases pelo intervalo da chave composta e comandos pelo indice owner.
+- browser-preset-library-code.js validou essa leitura no IndexedDB real do
+  Chrome: duas conexoes, mesmo ID em contas diferentes, criacao/remocao pendentes
+  e reopen. Fixture qa-preset-library-* removida no finally. Usa o mesmo bundle
+  ESM de browser-preset-sync-entry.ts e runner(page, bundleUrl), sem servidor
+  Supabase ou escrita remota. Recibo desse teste e local, nao prova HTTP/Auth.
 - Confirmacao grava base e recibo local juntos. Falha de quota faz rollback
   dos dois. Pull atrasado nao substitui base nova; mesma revisao com conteudo
   diferente e erro. Tombstone nao permite ressuscitar o mesmo ID.

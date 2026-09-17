@@ -40,6 +40,10 @@ async function main() {
     assert.equal(view.projected?.payload?.name,'Second');
     assert.equal(view.projected?.payload?.levels[0].level,1);
     assert.equal(view.pending.length,2);
+    assert.deepEqual((await two.presetViews(owner)).map(row => row.id), [id]);
+    assert.equal((await two.presetViews(owner))[0].projected?.payload?.name, 'Second');
+    assert.deepEqual(await two.presetViews(other), []);
+    await assert.rejects(two.presetViews('invalid-account'));
     let entry = (await one.claim(owner,1000))!;
     await one.confirm(owner,entry.operation.id,entry.lease!.token,{operationId:entry.operation.id,revision:1});
     view = await two.presetView(owner,id);
@@ -101,12 +105,21 @@ async function main() {
     assert.equal((await one.presetView(owner,opaqueId)).confirmed?.payload,null);
     assert.equal(await one.mergePresetBase({...tombstone,id:opaqueId,revision:6}),true);
     assert.ok((await one.presetView(owner,opaqueId)).confirmed?.payload);
+    const otherId = novaIdentidade();
+    await one.mergePresetBase({...base, ownerId: other, id: otherId});
+    const views = await two.presetViews(owner);
+    assert.deepEqual(views.map(row => row.id), [id, removedId, observedId, opaqueId].sort());
+    for (const row of views) assert.deepEqual(row, {id: row.id, ...await one.presetView(owner, row.id)});
+    assert.equal(views.find(row => row.id === id)?.reconciliationNeeded, true);
+    assert.equal(views.find(row => row.id === removedId)?.projected?.deleted, true);
+    assert.deepEqual((await one.presetViews(other)).map(row => row.id), [otherId]);
     await one.close();await two.close();
     const reopened = new SyncOutbox(name);
     try {
       assert.equal((await reopened.presetView(owner,id)).reconciliationNeeded,true);
       assert.equal((await reopened.presetView(owner,removedId)).confirmed?.deleted,true);
       assert.equal((await reopened.list(owner))[0].sequence,42);
+      assert.deepEqual(await reopened.presetViews(owner), views);
     } finally { await reopened.close(); }
   } finally { await one.close();await two.close();await deleteDB(name); }
   console.log('Preset cache: v1 upgrade, atomic revisions/ack, quota rollback, projections, stale pulls, conflicts and tombstones passed (IndexedDB simulated).');

@@ -112,6 +112,32 @@ export class SyncOutbox {
     } catch (error) { await tx.done.catch(() => undefined); throw error; }
   }
 
+  async presetViews(ownerId: string) {
+    z.uuid().parse(ownerId);
+    const db = await this.connection;
+    const tx = db.transaction(['operations', 'presetBases'], 'readonly');
+    try {
+      const bases = (await tx.objectStore('presetBases').getAll(
+        IDBKeyRange.bound([ownerId, ''], [ownerId, '\uffff']),
+      )).map(value => presetBaseSchema.parse(value));
+      const entries = (await tx.objectStore('operations').index('owner').getAll(ownerId))
+        .map(parseEntry).filter(entry => entry.operation.entity === 'preset');
+      await tx.done;
+      const grouped = new Map<string, OutboxEntry[]>();
+      for (const entry of entries) {
+        const id = entry.operation.entityId;
+        const group = grouped.get(id) ?? [];
+        group.push(entry);
+        grouped.set(id, group);
+      }
+      const confirmed = new Map(bases.map(base => [base.id, base]));
+      const ids = new Set([...confirmed.keys(), ...grouped.keys()]);
+      return [...ids].sort().map(id => ({
+        id, ...projectPreset(confirmed.get(id) ?? null, grouped.get(id) ?? []),
+      }));
+    } catch (error) { await tx.done.catch(() => undefined); throw error; }
+  }
+
   async mergePresetBase(value: PresetBase): Promise<boolean> {
     const incoming = presetBaseSchema.parse(value);
     return this.write(async tx => {
