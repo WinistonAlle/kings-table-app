@@ -28,6 +28,21 @@ begin
     perform public.save_account_backup('{"version":null}',2);
     raise exception 'Null version accepted';
   exception when check_violation then null; end;
+  begin
+    perform public.save_account_backup(jsonb_build_object('version',1,'large',repeat('x',5242880)),2);
+    raise exception 'Oversized backup accepted';
+  exception when check_violation then null; end;
+  if (select revision from public.account_backups) <> 2 then
+    raise exception 'Rejected writes changed revision';
+  end if;
+  begin
+    perform public.save_account_backup('{"version":1}',-1);
+    raise exception 'Negative revision accepted';
+  exception when invalid_parameter_value then null; end;
+  begin
+    perform public.save_account_backup('{"version":1}',null);
+    raise exception 'Null revision accepted';
+  exception when invalid_parameter_value then null; end;
   perform 1 from public.league_members;
   perform 1 from public.tournaments;
 end $$;
@@ -46,6 +61,10 @@ begin
   exception when insufficient_privilege then null; end;
   perform public.save_account_backup('{"version":1}',0);
   if (select count(*) from public.account_backups) <> 1 then raise exception 'Own backup unavailable'; end if;
+  begin
+    update public.account_backups set owner_id='adfbb303-fd78-4673-9036-dfdc002e92a1';
+    raise exception 'Ownership reassignment allowed';
+  exception when insufficient_privilege then null; end;
 end $$;
 set local role anon;
 do $$ begin
@@ -59,4 +78,4 @@ do $$ begin
   exception when insufficient_privilege then null; end;
 end $$;
 rollback;
-select 'Account isolation, anonymous denial, version and concurrency checks passed' as result;
+select 'Account isolation, anonymous denial, version, size and stale revision checks passed' as result;

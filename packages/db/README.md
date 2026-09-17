@@ -26,8 +26,13 @@ CHECK diferem do texto remoto apenas por comentarios e formatacao.
 As copias antigas continuam preservadas em `migrations/` e nos apps.
 
 Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
-configurar a CLI canonica e validar replay completo em banco novo isolado.
-Essa validacao ainda nao ocorreu. Nao reaplique a inicial nem a lista de
+validar novas alteracoes em banco isolado. A CLI canonica agora usa
+`supabase/config.toml`, ID `kings-table-local` e portas 55320-55329,
+separadas dos previews e de outros projetos locais. Em 16/09/2026, start
+em banco novo e reset exclusivamente local aplicaram as quatro migracoes;
+o historico local foi conferido e os testes SQL passaram. Isso nao comprova
+igualdade completa com o schema remoto nem valida login por e-mail.
+Nao reaplique a inicial nem a lista de
 espera; `0001_lista_espera.sql` nao pertence ao historico aplicado.
 Nenhum SQL desta consolidacao foi reaplicado no servidor.
 
@@ -35,3 +40,35 @@ Nenhum SQL desta consolidacao foi reaplicado no servidor.
 em uma transacao com rollback. Nao modifica usuarios reais. A interface
 oferece uma unica copia atual por conta, limite de 5 MB e salvamento manual;
 nao representa sincronizacao ao vivo ou backups diarios automaticos.
+
+## Verificacao Local
+
+Requer Node, npx e Docker em execucao. Da raiz do monorepo:
+
+```sh
+npx supabase db start --workdir packages/db
+npm run test:local --workspace @kings-table/db
+npx supabase migration list --local --workdir packages/db
+npx supabase stop --project-id kings-table-local --workdir packages/db
+```
+
+O runner acessa apenas o container `supabase_db_kings-table-local`, sem
+aceitar URL de banco, projeto vinculado ou credenciais remotas. Valida o
+historico esperado; executa a suite SQL com rollback; cria um ator aleatorio
+e disputa uma revisao em duas conexoes Postgres. Confirma que a segunda
+transacao realmente esperou pelo lock e recebeu 40001 apos o primeiro
+commit. Verifica o resultado final e remove somente esse ator no finally.
+Sessoes e statements possuem limites de tempo. Outros containers intactos.
+
+Testes incluem RLS de duas contas/anonimo, versao ausente/nula/invalida,
+tamanho acima de 5 MB, revisao invalida e reassociacao do dono. Isso testa
+Postgres real com papeis/JWT definidos na sessao, nao o login Auth nem
+permissoes end-to-end do navegador. O teste anterior de revisao desatualizada
+era sequencial; concorrencia real esta no runner separado.
+
+`db reset --local --no-seed --workdir packages/db` apaga dados desse banco
+local. Foi usado apenas no ambiente novo criado para QA. Nao executar em
+ambiente com dados do usuario sem autorizacao. Nunca usar `--linked`,
+`--all` ou `--no-backup` nesse fluxo. Nao existe deploy/push automatico.
+
+Referencia: https://supabase.com/docs/guides/local-development/cli-workflows

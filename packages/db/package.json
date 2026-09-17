@@ -1,5 +1,8 @@
 {
   "name": "@kings-table/db",
   "version": "0.0.0",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test:local": "node scripts/test-local.mjs"
+  }
 }

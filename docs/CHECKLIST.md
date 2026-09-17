@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Banco local canonico configurado e replay das quatro migracoes passou
+  em PostgreSQL 17, inclusive reset do novo banco de QA. Runner SQL cobre
+  isolamento, tamanho/versao e duas transacoes realmente concorrentes.
+  Fixtures removidas; nenhum schema/dado remoto alterado. Nao valida Auth
+  real nem a API de operacoes, ainda pendente.
 - Nucleo local da fila implementado, nao ativado na interface: envelopes
   imutaveis, transacoes IndexedDB, reservas temporarias, FIFO por entidade,
   recibos locais e sender cancelavel. 17 suites; testes usam IndexedDB e
@@ -207,7 +212,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
   export web e criacao/reload na UI passaram. Nativo nao validado em aparelho.
 - Historico: quatro versoes remotas em pasta canonica, inicial reconstruida
   dos statements registrados; MD5 conferido. Nenhuma escrita remota nesta
-  etapa. Replay completo em banco novo e integracao de comandos pendentes.
+  etapa. Replay completo em banco novo validado; integracao de comandos pendente.
 - Isolamento local: carregamento serializado, falhas de hidratacao bloqueadas
   e respostas Auth antigas descartadas. Unitarios e Playwright passaram;
   Auth do teste de corrida e simulado. Cadastro/e-mail real ainda pendentes.
@@ -244,3 +249,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V11 | Versoes de migracoes locais correspondem ao historico remoto consultado | validado | Quatro arquivos em packages/db/supabase/migrations; inicial com 53 statements e MD5 c1d4a55b62ab72fe77b1a01c3f0e4d81 conferido no servidor e arquivo. Nao valida replay. |
 | V12 | Nucleo IndexedDB: concorrencia, leases, FIFO, isolamento e reload | validado | teste-sync-outbox.ts com quota/rollback e IndexedDB simulado; Playwright/Chrome em duas abas com IndexedDB real. Nao valida API, Auth ou sincronizacao entre aparelhos. |
 | V13 | Sender: cancelamento, run concorrente, retry finito e resposta atrasada | validado | teste-sync-sender.ts com transporte/IndexedDB simulados. Lifecycle Auth e transporte Supabase ainda nao integrados. |
+| V14 | Replay das quatro migracoes e concorrencia real do backup em banco local novo | validado | CLI canonica, db start/reset local e historico conferido; npm run test:local --workspace @kings-table/db: RLS, validacao, lock entre duas conexoes, vencedor e 40001; fixtures removidas. Nao valida Auth e-mail nem sincronizacao do dominio. |

@@ -21,7 +21,9 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   no servidor e integracao com os stores ainda nao existem.
 - As quatro versoes aplicadas estao em packages/db/supabase/migrations;
   inicial reconstruida a partir dos 53 statements do historico remoto.
-  Copias antigas preservadas. Replay em banco novo ainda nao validado.
+  Copias antigas preservadas. Replay em banco novo PostgreSQL 17 e reset
+  exclusivamente local passaram; configuracao canonica em packages/db.
+  Nao equivale a diff completo do schema remoto ou migracao de dados legados.
 - tournaments remoto tem current_level/seconds_remaining, mas nao possui
   ancora temporal, revisao ou hand-for-hand. Tambem nao representa campos
   locais de assentos, convidados, acertos e auditoria.
@@ -29,6 +31,24 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   concede permissao de escrita a co-hosts nem cria leitura por QR Code.
 - account_backups guarda uma copia manual. Nao e o dominio sincronizado.
 - Nenhuma migracao remota ou escrita de dados ocorreu nesta verificacao.
+  Para o ambiente local, a versao remota foi consultada: PostgreSQL 17.6.
+
+## Banco Local Reproduzivel
+
+- ID kings-table-local; portas 55320-55329, previews 3001/8081 preservados.
+  db start e reset local aplicaram as quatro versoes em banco novo; lista
+  de migracoes local conferida. Seeds desligados, nenhum dado remoto copiado.
+- packages/db/scripts/test-local.mjs executa SQL em Postgres real pelo
+  container fixo local. Nao possui argumento de alvo remoto ou URL de banco.
+- Suite com rollback: duas contas, anonimo, tamanho/versao/revisao invalidos
+  e reassociacao do dono. Runner cria somente um ator UUID aleatorio para
+  duas transacoes concorrentes: espera por lock observada, um commit, outro
+  conflito 40001, revisao 2 e conteudo do vencedor preservados.
+- Fixtures removidas e teste repetido depois do replay; nenhum login real
+  foi usado. Isso nao valida Auth e-mail, HTTP/RLS no navegador, dominio
+  sincronizado, idempotencia ou concorrencia das futuras APIs de comandos.
+- Comandos e limites descritos em packages/db/README.md. Reset destrutivo
+  restrito ao novo ambiente de QA; nao aplicar a banco com dados do usuario.
 
 ## Invariantes obrigatorias
 
