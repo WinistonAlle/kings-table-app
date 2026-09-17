@@ -5,6 +5,16 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 interface DatabaseSchema {
   public: {
     Tables: {
+      blind_structures: {
+        Row: { id: string; name: string; format: 'deep' | 'regular' | 'turbo' | 'hyper' | 'rebuy' | 'bounty';
+          owner_id: string | null; is_default: boolean; levels: Json; created_at: string;
+          revision: number; deleted_at: string | null; updated_at: string };
+        Insert: { id?: string; name: string; format: 'deep' | 'regular' | 'turbo' | 'hyper' | 'rebuy' | 'bounty';
+          owner_id?: string | null; is_default?: boolean; levels?: Json; created_at?: string;
+          revision?: number; deleted_at?: string | null; updated_at?: string };
+        Update: Partial<Database['public']['Tables']['blind_structures']['Insert']>;
+        Relationships: [];
+      };
       account_backups: {
         Row: { owner_id: string; revision: number; snapshot: Json; updated_at: string };
         Insert: { owner_id: string; revision?: number; snapshot: Json; updated_at?: string };

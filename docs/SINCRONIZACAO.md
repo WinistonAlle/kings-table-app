@@ -280,7 +280,35 @@ Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abort
   removidos pelo helper externo e contagem SQL final zerada. Servidores
   temporarios encerrados; localhost do app/site e remoto preservados.
 
-## Sequencia de implementacao
+## Leitura De Presets Pelo Servidor
+
+- sync-preset-reader.ts consulta somente estruturas proprias nao default,
+  incluindo deleted_at. Factory recebe client/conta fixos e AbortSignal;
+  nao importa o singleton nem inicia leitura/envio nas telas atuais.
+- Paginacao keyset por UUID crescente, sem offsets. Continua ate pagina
+  vazia, mesmo se max_rows devolver menos itens que o tamanho solicitado.
+  Escopo, ordem/progresso, revisao segura e payload normalizado sao validados;
+  pagina invalida posterior rejeita o resultado inteiro, nao retorna parcial.
+- Erros do servidor/rede nao expõem detalhes internos. Abort antes ou depois
+  do request rejeita a leitura; uma resposta tardia nao e liberada ao caller.
+- Ausencia de um ID nao significa exclusao. As paginas nao sao um snapshot
+  transacional do servidor; insercoes concorrentes podem exigir outra busca.
+  Consumidor deve mesclar registros por revisao, preservar pendencias e nao
+  limpar o cache por uma resposta vazia. RLS continua sendo a autorizacao real.
+- teste-sync-preset-reader.ts usa HTTP simulado para limites/paginas/erros,
+  conta divergente, dados invalidos e abort tardio. teste-sync-preset-http-local.ts
+  validou GoTrue/JWT/PostgREST reais: duas estruturas em paginas de um item,
+  conta B sem leitura de A, revisao 4 mesclada no cache e tombstone revisao 5.
+  IndexedDB simulado nessa combinacao. Contas/presets/recibos/auditoria de QA
+  removidos; nao valida UI, Realtime, SMTP ou biblioteca compartilhavel.
+- Tipagem manual inclui blind_structures com o contrato da quinta migracao
+  LOCAL. Remoto ainda possui quatro migracoes; leitor nao esta ativado nele.
+  20 suites, TypeScript e export web passaram. Integracao Auth/stores pendente.
+
+Referencias: https://supabase.com/docs/reference/javascript/using-modifiers-order
+e https://supabase.com/docs/reference/javascript/using-modifiers-limit
+
+## Sequencia De Integracao
 
 1. Consolidar historico local/remoto das migracoes e criar identidade global
    para novas entidades/operacoes, sem modificar dados existentes.

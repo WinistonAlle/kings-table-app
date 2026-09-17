@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Leitor de presets do servidor implementado, nao ativado nas telas: keyset
+  paginado, validacao do escopo/payload, cancelamento e tombstones. 20 suites,
+  TypeScript e export web passaram; HTTP/Auth local real validou duas paginas,
+  isolamento e mescla de revisao/remocao no cache simulado. Integracao aos
+  stores/Auth, reconciliacao e Realtime continuam pendentes; remoto intacto.
 - Cache de presets implementado no nucleo, nao ativado nas telas: upgrade
   IndexedDB v2 preserva fila v1; revisoes reservadas atomicamente entre abas;
   base confirmada e projecao pendente separadas. Confirmacao/cache atomicos,
@@ -277,3 +282,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V17 | Nucleo de presets no Chrome: Auth/HTTP/IndexedDB reais, offline e duas abas | validado | browser-preset-sync-code.js + entry.ts, fixtures locais admin com login por senha no browser: fila preservada, reload online, lease sem duplicacao, conta B negada, stop apos commit e retry do mesmo ID; revisao/auditoria 3. Nao valida UI, cadastro/e-mail ou abertura offline do aplicativo. |
 | V18 | Cache/projecao de presets e reserva atomica de revisoes | validado | teste-sync-preset-cache.ts: upgrade v1 sem perda, duas conexoes, quota/rollback, conflito, isolamento, tombstone e reopen. Runner Chrome com Auth/HTTP local: cache confirmado revisao 3 e fila sem pendencias; projecao offline recuperada em reload online. Nao valida integracao aos stores/telas nem API remota. |
 | V19 | Leitura consistente da biblioteca local de presets por conta | validado | presetViews, teste-sync-preset-cache.ts e browser-preset-library-code.js: criacoes/exclusoes pendentes, conflitos, mesmo ID em contas distintas, duas conexoes e reopen com IndexedDB real no Chrome. 19 suites e TypeScript passaram. Nao valida UI/Auth/HTTP; confirmacao do runner de biblioteca e apenas local. |
+| V20 | Leitura paginada de presets do servidor e tombstones | validado | teste-sync-preset-reader.ts (HTTP simulado): paginas curtas, cursor, validacao e abort. teste-sync-preset-http-local.ts: GoTrue/JWT/PostgREST reais, duas paginas de um item, conta B isolada, cache revisao 4 e remocao revisao 5 (IndexedDB simulado). Nao valida telas, SMTP, Realtime ou snapshot de biblioteca durante alteracoes concorrentes. |

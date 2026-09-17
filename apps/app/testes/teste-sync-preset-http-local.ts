@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 import { createOperation } from '../lib/sync-operation';
 import { createPresetTransport } from '../lib/sync-preset-transport';
+import { createPresetReader } from '../lib/sync-preset-reader';
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 import { deleteDB } from 'idb';
@@ -20,7 +21,7 @@ async function main() {
   const admin = createClient(url, local.SERVICE_ROLE_KEY, options);
   const a = createClient<Database>(url, local.ANON_KEY, options);
   const b = createClient<Database>(url, local.ANON_KEY, options);
-  const users: string[] = [], presetId = randomUUID();
+  const users: string[] = [], presetId = randomUUID(), secondPresetId = randomUUID();
   const dbName = `qa-http-sender-${randomUUID()}`;
   const outbox = new SyncOutbox(dbName);
   const password = `Qa-${randomUUID()}!`;
@@ -43,6 +44,13 @@ async function main() {
     const created = await send(op, signal);
     assert.equal(created.status, 'confirmed');
     assert.deepEqual(await send(op, signal), created);
+    assert.equal((await send(createOperation({...op, entityId: secondPresetId}), signal)).status, 'confirmed');
+    const readPresets = createPresetReader(a, users[0], 1);
+    const initialBases = await readPresets(signal);
+    assert.equal(initialBases.length, 2);
+    assert.deepEqual(initialBases.map(base => base.id), [presetId, secondPresetId].sort());
+    assert.ok(initialBases.every(base => base.revision === 1));
+    assert.deepEqual(await createPresetReader(b, users[1], 1)(signal), []);
     const outsider = createPresetTransport(b, users[1]);
     assert.equal((await outsider(createOperation({ ...op, ownerId: users[1] }), signal)).status, 'rejected');
     const spoof = await b.rpc('apply_preset_operation', { p_operation: op });
@@ -94,12 +102,25 @@ async function main() {
     assert.equal(persisted.error,null); assert.equal(persisted.data?.revision,4);
     const audit = await reader.from('sync_operation_audit').select('operation_id').eq('entity_id',presetId);
     assert.equal(audit.error,null); assert.equal(audit.data?.length,4);
-    console.log('PASS: local signup/password JWT, HTTP transport, isolation, conflict and sender recovery after real commit (IndexedDB simulated).');
+    const remoteBases = await readPresets(signal);
+    await outbox.mergePresetBase(remoteBases.find(base => base.id === presetId)!);
+    assert.equal((await outbox.presetViews(users[0]))[0].confirmed?.revision, 4);
+    assert.equal((await outbox.presetViews(users[0]))[0].reconciliationNeeded, false);
+    const removal = createOperation({...op, kind: 'preset.remove', expectedRevision: 4, payload: {}});
+    assert.equal((await send(removal, signal)).status, 'confirmed');
+    const deletedBases = await readPresets(signal);
+    assert.equal(deletedBases.length, 2);
+    const tombstone = deletedBases.find(base => base.id === presetId)!;
+    assert.equal(tombstone.deleted, true);
+    assert.equal(tombstone.revision, 5);
+    await outbox.mergePresetBase(tombstone);
+    assert.equal((await outbox.presetViews(users[0]))[0].confirmed?.deleted, true);
+    console.log('PASS: local signup/password JWT, HTTP transport/reader, keyset pages, isolation, conflict, tombstone cache and sender recovery after real commit (IndexedDB simulated).');
   } finally {
     await outbox.close(); await deleteDB(dbName);
     const cleanupErrors: string[] = [];
     if (users.length) {
-      const removed = await admin.from('blind_structures').delete().eq('id',presetId).in('owner_id',users);
+      const removed = await admin.from('blind_structures').delete().in('id',[presetId,secondPresetId]).in('owner_id',users);
       if (removed.error) cleanupErrors.push('Fixture preset cleanup failed');
     }
     for (const id of users) {
