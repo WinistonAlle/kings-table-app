@@ -17,6 +17,9 @@ import { usePresetsStore } from '@/stores/presetsStore';
 import { normalizarEstrutura, validarEstrutura, valorBuyIn } from '@/lib/estrutura';
 import type { BlindLevel } from '@/types';
 import { dataAgendada } from '@/lib/noite';
+import { usePresetSync } from '@/components/PresetSync';
+import { PresetAccountLibrary } from '@/components/PresetAccountLibrary';
+import { confirmarAcao } from '@/lib/confirmar';
 
 /* Abrir a mesa.
  *
@@ -60,6 +63,24 @@ export default function AbrirMesa() {
   const [nomePreset, setNomePreset] = useState('');
   const [aviso, setAviso] = useState('');
   const { presets, save, remove } = usePresetsStore();
+  const sync = usePresetSync();
+  const [salvandoPreset,setSalvandoPreset] = useState(false);
+  const [erroPreset,setErroPreset] = useState('');
+  const salvarPreset = async () => {
+    if(salvandoPreset)return;
+    setSalvandoPreset(true);setErroPreset('');setAviso('');
+    try {
+      if(sync) {
+        await sync.save(nomePreset,levels);
+        setAviso('Estrutura adicionada à biblioteca da conta.');
+      } else {
+        if(!save(nomePreset,levels))throw new Error('invalid');
+        setAviso('Estrutura salva neste aparelho.');
+      }
+      setNomePreset('');
+    } catch {setErroPreset('Não foi possível salvar. Confira o nome e os níveis e tente novamente.');}
+    finally {setSalvandoPreset(false);}
+  };
 
   const valor = valorBuyIn(buyIn);
   const erroEstrutura = validarEstrutura(levels);
@@ -218,11 +239,13 @@ export default function AbrirMesa() {
                 );
               })}
             </View>
-            {presets.length ? <View style={{ marginTop: 24, gap: 12 }}><KTText papel="rotulo" color={Colors.text1}>Minhas estruturas</KTText>{presets.map(p => <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><KTButton label={p.name} variant="fantasma" onPress={() => { setLevels(p.levels.map(n => ({ ...n }))); setEditar(true); setAviso(''); }} style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel={`Excluir estrutura ${p.name}`} onPress={() => remove(p.id)} style={styles.iconeBtn}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable></View>)}</View> : null}
+            {presets.length ? <View style={{ marginTop: 24, gap: 12 }}><KTText papel="rotulo" color={Colors.text1}>Estruturas neste aparelho</KTText>{presets.map(p => <View key={p.id} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}><KTButton label={p.name} variant="fantasma" onPress={() => { setLevels(p.levels.map(n => ({ ...n }))); setEditar(true); setAviso(''); }} style={{ flex: 1 }} /><Pressable accessibilityRole="button" accessibilityLabel={`Excluir estrutura ${p.name}`} onPress={() => confirmarAcao(`Excluir ${p.name} deste aparelho? Mesas existentes não serão alteradas.`,()=>remove(p.id))} style={styles.iconeBtn}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable></View>)}</View> : null}
+            <PresetAccountLibrary onSelect={estrutura=>{setLevels(estrutura);setEditar(true);setAviso('');setErroPreset('');}} onError={setErroPreset}/>
             <KTButton label={editar ? 'Fechar editor de blinds' : 'Personalizar blinds e intervalos'} variant="fantasma" onPress={() => setEditar(!editar)} style={{ marginTop: 20 }} icone={<Ionicons name="options-outline" size={18} color={Colors.gold200} />} />
             <KTButton label="Criar estrutura do zero" variant="fantasma" onPress={() => { setLevels([]); setEditar(true); setAviso(''); }} style={{ marginTop: 12 }} />
             <KTText papel="apoio" color={Colors.text1} style={{ marginTop: 12 }}>{levels.filter(n => !n.isBreak).length} níveis · {levels.filter(n => n.isBreak).length} intervalos · {levels.reduce((total, n) => total + (n.durationMinutes || 0), 0)} min</KTText>
-            {editar ? <View style={{ marginTop: 16, gap: 16 }}><StructureEditor levels={levels} onChange={setLevels} /><TextInput accessibilityLabel="Nome da estrutura para salvar" placeholder="Nome da sua estrutura" placeholderTextColor={Colors.text2} value={nomePreset} onChangeText={setNomePreset} style={[styles.campoNome, { textAlign: 'left', fontSize: 16 }]} /><KTButton label="Salvar estrutura para outras mesas" variant="fantasma" disabled={!nomePreset.trim() || !!erroEstrutura} onPress={() => { if (save(nomePreset, levels)) { setAviso('Estrutura salva neste aparelho.'); setNomePreset(''); } }} /><KTText papel="apoio" color={Colors.text1}>Você também pode usar esta estrutura só nesta mesa, sem salvar.</KTText></View> : null}
+            {editar ? <View style={{ marginTop: 16, gap: 16 }}><StructureEditor levels={levels} onChange={setLevels} /><TextInput accessibilityLabel="Nome da estrutura para salvar" placeholder="Nome da sua estrutura" placeholderTextColor={Colors.text2} value={nomePreset} onChangeText={setNomePreset} maxLength={240} style={[styles.campoNome, { textAlign: 'left', fontSize: 16 }]} /><KTButton label={salvandoPreset?'Salvando estrutura…':sync?'Salvar estrutura na conta':'Salvar estrutura para outras mesas'} variant="fantasma" disabled={salvandoPreset||!nomePreset.trim()||Array.from(nomePreset.trim()).length>120||!!erroEstrutura||!!sync&&!sync.available} onPress={() => {void salvarPreset();}} /><KTText papel="apoio" color={Colors.text1}>Você também pode usar esta estrutura só nesta mesa, sem salvar.</KTText></View> : null}
+            {erroPreset?<KTText accessibilityLiveRegion="polite" color={Colors.danger} style={{marginTop:12}}>{erroPreset}</KTText>:null}
             {erroEstrutura ? <KTText color={Colors.danger} style={{ marginTop: 12 }}>{erroEstrutura}</KTText> : null}
             {aviso ? <KTText accessibilityLiveRegion="polite" color={Colors.ok} style={{ marginTop: 12 }}>{aviso}</KTText> : null}
           </View>

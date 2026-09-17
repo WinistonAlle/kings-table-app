@@ -15,6 +15,7 @@ export class PresetSyncSession {
   private controller = new AbortController();
   private sender: SyncSender;
   private inFlight: Promise<void> | null = null;
+  private repeat = false;
   private state: PresetSessionState = { phase: 'idle', library: [], error: null };
 
   constructor(private ownerId: string, private outbox: SyncOutbox,
@@ -26,6 +27,7 @@ export class PresetSyncSession {
   }
 
   snapshot(): PresetSessionState { return structuredClone(this.state); }
+  waitForIdle(): Promise<void> { return this.inFlight ?? Promise.resolve(); }
 
   stop(): void {
     if (this.controller.signal.aborted) return;
@@ -51,13 +53,22 @@ export class PresetSyncSession {
     await this.outbox.mutatePreset(this.ownerId, id, mutation);
     // A command committed before stop remains durable for that account, not sent here.
     this.controller.signal.throwIfAborted();
+    if (this.inFlight) this.repeat = true;
     await this.refreshLocal();
   }
 
-  synchronize(): Promise<void> {
+  synchronize(repeatIfBusy = false): Promise<void> {
     if (this.controller.signal.aborted) return Promise.resolve();
-    if (!this.inFlight) this.inFlight = this.synchronizeOnce().finally(() => { this.inFlight = null; });
+    if (this.inFlight && repeatIfBusy) this.repeat = true;
+    if (!this.inFlight) this.inFlight = this.drain().finally(() => { this.inFlight = null; });
     return this.inFlight;
+  }
+
+  private async drain(): Promise<void> {
+    do {
+      this.repeat = false;
+      await this.synchronizeOnce();
+    } while (this.repeat && !this.controller.signal.aborted);
   }
 
   private async synchronizeOnce(): Promise<void> {

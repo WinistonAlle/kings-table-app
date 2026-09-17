@@ -1,4 +1,5 @@
 export { createClient } from '@supabase/supabase-js';
+export { createBrowserClient } from '@supabase/ssr';
 export { SyncOutbox } from '../lib/sync-outbox';
 export { SyncSender } from '../lib/sync-sender';
 export { createOperation } from '../lib/sync-operation';

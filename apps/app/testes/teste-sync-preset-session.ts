@@ -74,6 +74,34 @@ async function main() {
     assert.equal(session.snapshot().library.find(row=>row.id===id)?.pending.length,0);
     assert.equal(session.snapshot().library.find(row=>row.id===id)?.confirmed?.revision,2);
 
+    let releasePull!: (bases: PresetBase[]) => void, pullStarted!: () => void;
+    const pullReady = new Promise<void>(resolve=>{pullStarted=resolve;});
+    let pulls = 0;
+    const duringPull = new PresetSyncSession(owner,outbox,async()=>{
+      if(++pulls===1){pullStarted();return new Promise(resolve=>{releasePull=resolve;});}
+      return [...remote.values()];
+    },transport);sessions.push(duringPull);
+    const recovering = duringPull.synchronize();await pullReady;
+    await duringPull.mutate(id,{kind:'preset.save',payload:{...payload,name:'Changed during pull'}});
+    releasePull([...remote.values()]);await recovering;
+    assert.equal(pulls,2,'Mutation during pull requests another finite round');
+    assert.equal(duringPull.snapshot().library.find(row=>row.id===id)?.pending.length,0);
+    assert.equal((await outbox.presetView(owner,id)).confirmed?.revision,3);
+
+    let failPull!: (error: Error) => void, oldPullStarted!: () => void;
+    const oldPullReady = new Promise<void>(resolve=>{oldPullStarted=resolve;});
+    let reconnectReads=0;
+    const reconnect = new PresetSyncSession(owner,outbox,async()=>{
+      if(++reconnectReads===1){oldPullStarted();return new Promise((_resolve,reject)=>{failPull=reject;});}
+      return [...remote.values()];
+    },transport);sessions.push(reconnect);
+    const reconnecting=reconnect.synchronize();await oldPullReady;
+    assert.equal(reconnect.synchronize(true),reconnecting);
+    failPull(new Error('Old offline request finishes after online event'));
+    await reconnecting;
+    assert.equal(reconnectReads,2,'Reconnect queued during a failing round gets one additional round');
+    assert.equal(reconnect.snapshot().phase,'ready');
+
     let release!: (bases: PresetBase[])=>void, started!:()=>void;
     const waiting = new Promise<void>(resolve=>{started=resolve;});
     let readSignal!: AbortSignal;
@@ -83,12 +111,13 @@ async function main() {
     },transport,state=>lateUpdates.push(state));sessions.push(late);
     const running = late.synchronize();await waiting;
     late.stop();assert.equal(readSignal.aborted,true);
+    assert.equal(late.waitForIdle(),running,'Cleanup awaits the stopped in-flight request');
     const count = lateUpdates.length;
-    release([{...remote.get(id)!,revision:3,payload:{...payload,name:'Late response'}}]);
+    release([{...remote.get(id)!,revision:4,payload:{...payload,name:'Late response'}}]);
     await running;
     assert.equal(lateUpdates.length,count,'Stopped account emits no late state');
     assert.deepEqual(late.snapshot(),{phase:'stopped',library:[],error:null});
-    assert.equal((await outbox.presetView(owner,id)).confirmed?.revision,2);
+    assert.equal((await outbox.presetView(owner,id)).confirmed?.revision,3);
     await assert.rejects(late.mutate(id,{kind:'preset.remove'}),{name:'AbortError'});
     await late.synchronize();assert.equal(lateUpdates.length,count);
 

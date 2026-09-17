@@ -3,6 +3,52 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Integracao Web Em 17/09/2026
+
+- PresetSyncProvider conecta o coordenador ao AuthGate para uma conta
+  verificada. key por UUID; logout, troca de conta, falha de verificacao e
+  cleanup interrompem o coordenador imediatamente. Cleanup espera waitForIdle
+  antes de fechar IndexedDB; nenhuma resposta antiga publica a conta atual.
+- Ativacao controlada: EXPO_PUBLIC_PRESET_SYNC_ENABLED=1, desativada por
+  padrao. API da quinta migracao continua somente LOCAL; nao habilitar no
+  remoto antes de instalar/verificar o contrato. Nativo e modo teste continuam
+  exclusivamente locais. Nenhuma .env existente alterada nesta etapa.
+- Criar mesa exibe biblioteca da conta com carregamento, vazio, erro,
+  pendencia, confirmacao, exclusao pendente e conflito. Salvar pelo editor
+  enfileira antes do envio; usar copia os niveis para o formulario. Exclusao
+  pede confirmacao e preserva estruturas copiadas em mesas existentes.
+  Presets locais anteriores ficam separados e intactos, sem migracao automatica.
+- Eventos online/focus solicitam recuperacao. synchronize(true) registra
+  uma rodada adicional quando um evento chega durante uma tentativa antiga,
+  inclusive se ela falhar. Novas mutacoes durante pull tambem pedem nova rodada;
+  nao existe loop de retries sem novos eventos/acoes. Backoff/lease timer e
+  Realtime ainda pendentes; a UI nao chama fase ready de sincronizacao completa.
+- QA usou export real do app em origem temporaria localhost:65081, com
+  flag ligada e API 127.0.0.1:55321; previews 3001/8081 preservados. Compile
+  com --clear ao trocar variaveis: export inicial reutilizou transform antigo;
+  URL no bundle conferida antes dos testes. Export padrao refeito ao finalizar.
+- Chrome com GoTrue/JWT/PostgREST/IndexedDB reais e AuthGate: login por senha
+  via SDK de QA, salvar pela UI, pendencia offline visivel, retomada por online,
+  reload online e uso no editor. Outra sessao alterou revisao; exclusao antiga
+  gerou conflito visivel e uso bloqueado, sem sobrescrita. Cancelar exclusao
+  preservou item; aceitar confirmou tombstone revisao 2 no servidor.
+- Login da conta B seguido de reload exibiu biblioteca vazia, sem dados de A.
+  Sair da conta pela UI redirecionou para login. Nao prova tela de login local,
+  cadastro/e-mail/SMTP, refresh de sessao, troca sem reload ou Auth remoto.
+  Erros HTTP esperados foram observados ao ficar offline/gerar conflito;
+  helpers SDK duplicados de QA produziram aviso, nao afirmar console zerado.
+- Capturas preset-library-mobile.png (390) e preset-library-desktop.png
+  (1440) inspecionadas em output/playwright, sem overflow horizontal. Cache
+  removido apenas na origem isolada de QA; contas/presets/recibos/auditoria
+  de fixtures removidos pelo helper Node. Nenhum dado/configuracao remoto alterado.
+- Falha sincrona de abertura do IndexedDB tem estado de erro e retry via
+  Atualizar estruturas; caminho de bloqueio/retry ainda nao testado no browser.
+  Resolucao explicita de conflitos, migracao legado, edicao/duplicacao na conta,
+  protecao/backup da fila e recuperacao do app inteiro offline ainda pendentes.
+
+As secoes de nucleo abaixo registram verificacoes incrementais anteriores;
+esta secao descreve a integracao atual e seus limites de ativacao.
+
 ## Evidencia atual
 
 - Stores locais persistem torneios completos, presets e relogios por conta.
@@ -161,9 +207,9 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   sync-outbox.ts/sync-operation.ts com esbuild para ESM e servir os dois
   bundles por HTTP local com CORS para localhost:8081; passar a URL base
   para a funcao em uma sessao nova do navegador. Servidor apenas temporario.
-- O nucleo nao esta ativado na interface. Nenhuma acao atual dos stores
-  foi convertida em comando, nenhum envio Supabase e feito e AuthGate ainda
-  nao possui o lifecycle do sender. Nao anunciar sincronizacao disponivel.
+- Interface de presets tem integracao sob flag, descrita acima. Stores de
+  torneios continuam locais e nao produzem comandos. Nao anunciar o dominio
+  inteiro sincronizado ou disponibilidade remota.
 - Pendencias: API atomica/idempotente, validacao de dominio, autorizacao,
   mapeamento legado, integracao cache/stores/Auth, recuperacao por revisoes,
   backoff e estados visuais, resolucao explicita de conflitos, retencao de
@@ -189,7 +235,7 @@ https://github.com/dumbmatter/fakeIndexedDB
 - sync-preset-transport.ts usa RPC tipada/abortSignal do SDK, sem importar
   o singleton de producao nem ativar envios automaticamente. Factory recebe
   client e conta fixos; rejeita envelope invalido, outra conta e comandos
-  nao preset antes de enviar. AuthGate/stores ainda nao o instanciam.
+  nao preset antes de enviar. Provider web o instancia somente sob flag.
 - Recibo estrito exige ID correspondente e revisao esperada + 1. Resposta
   ausente, malformada ou divergente e retry, nunca confirmacao nem descarte.
   40001 vira conflito; validacao, acesso negado e tombstone viram rejeicao;
@@ -334,10 +380,10 @@ e https://supabase.com/docs/reference/javascript/using-modifiers-limit
   HTTP/IndexedDB simulados. teste-sync-preset-http-local.ts: coordenador com
   GoTrue/JWT/PostgREST reais recuperou duas estruturas, editou uma e confirmou
   revisao 2/conteudo remoto; IndexedDB simulado. Fixtures removidas.
-- 21 suites, TypeScript e export web passaram. AuthGate/stores NAO instanciam
-  o coordenador. Eventos online/focus, Realtime, revisao de conflitos,
-  migracao dos presets locais e protecao de restore continuam pendentes.
-  Nenhuma ativacao remota, configuracao de producao ou tela alterada.
+- 21 suites, TypeScript e export web passaram. Provider/AuthGate web agora
+  instanciam o coordenador sob flag. Eventos online/focus implementados;
+  Realtime, revisao de conflitos, migracao dos presets locais e protecao de
+  restore continuam pendentes. Nenhuma ativacao remota/alteracao de producao.
 
 ## Proximas Integracoes
 

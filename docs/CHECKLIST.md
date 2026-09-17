@@ -1,6 +1,6 @@
 # Checklist do produto
 
-Atualizado em 16/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
+Atualizado em 17/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
 docs/AUTENTICACAO.md, docs/PROXIMA-ETAPA.md e catalogo FEATURES da landing.
 Web primeiro; mobile depois. Historico antigo nao substitui evidencia atual.
 
@@ -184,7 +184,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 |---|---|---|---|
 | D01 | Backup manual por conta, restauracao confirmada e recuperacao local anterior | implementado | CloudBackup.web.tsx; account-backup.ts; RPC/RLS testados; fluxo com conta real pendente. Nao substitui F084/F085. |
 | D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; validacao positiva com e-mail real e redirects pendente. |
-| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; UUID/fila e API transacional de presets no banco local testados. Stores/Auth/transporte nao integrados; dominio de torneios, remoto, reconciliacao e sincronizacao real pendentes. |
+| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; presets web ligados ao AuthGate sob flag, UI/HTTP/Auth/IndexedDB reais testados apenas localmente. Padrao desativado; remoto, dominio de torneios, migracao legado, resolucao de conflitos, Realtime e offline integral pendentes. |
 | D04 | Transferencias completas/parciais, estorno de registro e saldo restante | implementado | acerto.ts; NightSettlement.tsx; auditoria/CSV/backup e testes locais. |
 | D05 | Despesas, taxas, conciliacao e estornos financeiros reais | pendente | Definir modelo contabil completo; estorno de registro nao devolve dinheiro. |
 | D06 | Biblioteca de premios, chop, aprovacao/recusa e fechamento formal | pendente | Modelo versionado de premiacao e autorizacoes. |
@@ -197,6 +197,12 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Presets web integrados ao AuthGate e criar mesa sob ativacao controlada,
+  desativada por padrao. Chrome/GoTrue/JWT/PostgREST/IndexedDB reais no QA:
+  salvar, offline/retomada, reload online, usar no editor, conflito bloqueado,
+  exclusao cancelada/confirmada, conta B isolada apos reload e logout pela UI.
+  Capturas 390/1440 inspecionadas. Locais anteriores intactos, remoto intacto.
+  Resolucao de conflitos/migracao/Realtime ainda pendentes; detalhes em SINCRONIZACAO.
 - Coordenador de presets por conta implementado no nucleo: cache, sender e
   reader; stop cancela e impede resposta tardia, pulls mesclados atomicamente.
   Sender de presets nao reserva comandos de mesas. 21 suites, tipos/build
@@ -289,3 +295,5 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V19 | Leitura consistente da biblioteca local de presets por conta | validado | presetViews, teste-sync-preset-cache.ts e browser-preset-library-code.js: criacoes/exclusoes pendentes, conflitos, mesmo ID em contas distintas, duas conexoes e reopen com IndexedDB real no Chrome. 19 suites e TypeScript passaram. Nao valida UI/Auth/HTTP; confirmacao do runner de biblioteca e apenas local. |
 | V20 | Leitura paginada de presets do servidor e tombstones | validado | teste-sync-preset-reader.ts (HTTP simulado): paginas curtas, cursor, validacao e abort. teste-sync-preset-http-local.ts: GoTrue/JWT/PostgREST reais, duas paginas de um item, conta B isolada, cache revisao 4 e remocao revisao 5 (IndexedDB simulado). Nao valida telas, SMTP, Realtime ou snapshot de biblioteca durante alteracoes concorrentes. |
 | V21 | Coordenacao de presets por conta e recuperacao atomica de cache | validado | teste-sync-preset-session.ts: sender com escopo, sync concorrente, falha/reconexao, rollback de pull, abort no meio da escrita e stop com resposta tardia (HTTP/IndexedDB simulados). teste-sync-preset-http-local.ts: coordenador com GoTrue/JWT/PostgREST reais, recuperacao de biblioteca e edicao confirmada (IndexedDB simulado). Nao valida AuthGate, UI ou reconexao automatica. |
+| V22 | Presets na UI web com ativacao controlada e backend local real | validado | AuthGate/PresetSync/create: salvar, pendencia offline, online/reload, usar no editor, conflito de revisao com uso bloqueado, cancelar/confirmar exclusao, conta B isolada apos login+reload e logout UI. Chrome com Auth/HTTP/IndexedDB reais; origem de QA separada. Capturas 390/1440 inspecionadas. Flag desligada no padrao; nao valida remoto, resolucao de conflitos, troca sem reload ou e-mail/SMTP. |
+| V23 | IndexedDB bloqueado e retry do provider na UI | implementado | Try/catch de abertura, estado local_storage e reabertura por Atualizar estruturas. TypeScript/build; caminho especifico ainda precisa de teste no navegador. |
