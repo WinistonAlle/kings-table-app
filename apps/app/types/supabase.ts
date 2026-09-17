@@ -140,6 +140,10 @@ interface DatabaseSchema {
     };
     Views: {};
     Functions: {
+      apply_preset_operation: {
+        Args: { p_operation: Json };
+        Returns: Json;
+      };
       save_account_backup: {
         Args: { p_snapshot: Json; p_expected_revision: number };
         Returns: Json;

@@ -197,6 +197,10 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Transporte tipado de presets implementado e testado. HTTP local real com
+  duas contas GoTrue/JWT: isolamento, conflito e sender recuperando resposta
+  perdida apos commit (IndexedDB simulado). 18 suites offline, TypeScript e
+  export web passaram. Nao ativado em stores/AuthGate, sem escrita remota.
 - API de presets no banco local: validacao, edicao/remocao com revisoes,
   recibos idempotentes, auditoria e tombstones atomicos. Testes SQL reais,
   incluindo duas conexoes concorrentes e falha forcada de auditoria; sem
@@ -255,3 +259,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V13 | Sender: cancelamento, run concorrente, retry finito e resposta atrasada | validado | teste-sync-sender.ts com transporte/IndexedDB simulados. Lifecycle Auth e transporte Supabase ainda nao integrados. |
 | V14 | Replay das quatro migracoes e concorrencia real do backup em banco local novo | validado | CLI canonica, db start/reset local e historico conferido; npm run test:local --workspace @kings-table/db: RLS, validacao, lock entre duas conexoes, vencedor e 40001; fixtures removidas. Nao valida Auth e-mail nem sincronizacao do dominio. |
 | V15 | API SQL local de presets: revisoes, recibos/auditoria atomicos, tombstones e concorrencia | validado | preset_operations.sql + test-local.mjs em Postgres real: retry simultaneo sem efeito duplicado, revisao disputada com 40001, payload invalido, access deny, defaults, rollback da auditoria. Advisor security local sem issues. Nao valida Auth HTTP, UI nem remoto. |
+| V16 | Transporte de presets e sender contra Auth/HTTP local real | validado | teste-sync-preset-transport.ts: SDK/HTTP simulado, recibos e abort. teste-sync-preset-http-local.ts: duas contas reais locais, JWT/PostgREST, acesso e retry apos commit sem duplicacao; outbox simulado. Sem prova de e-mail/SMTP, browser/UI, Auth remoto ou sincronizacao dos stores. |

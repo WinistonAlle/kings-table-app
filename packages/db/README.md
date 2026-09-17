@@ -85,3 +85,24 @@ ambiente com dados do usuario sem autorizacao. Nunca usar `--linked`,
 `--all` ou `--no-backup` nesse fluxo. Nao existe deploy/push automatico.
 
 Referencia: https://supabase.com/docs/guides/local-development/cli-workflows
+
+## Auth E Transporte HTTP Local
+
+Da raiz, iniciar apenas DB/Auth/API para teste separado do app:
+
+```sh
+npx supabase start --workdir packages/db --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+npm run test:sync-http-local --workspace kings-table-app
+npx supabase stop --project-id kings-table-local --workdir packages/db
+```
+
+O runner nao aceita URL/key do ambiente. Confere endereco fixo 127.0.0.1:55321
+da CLI local; cria duas contas aleatorias por signup e entra com senha.
+Usa GoTrue/JWT/PostgREST reais, transporte do app e sender/outbox (IndexedDB
+simulado). Perde uma resposta deliberadamente apos commit real e recupera
+o mesmo recibo sem duplicar efeitos. Confere isolamento e contagem de auditoria.
+
+Admin local usado somente para cleanup em Node. Fixtures removidas no finally.
+Nao altera env do app nem contas remotas. Confirmacao de e-mail esta desabilitada
+somente na config local; nenhuma verificacao de SMTP ou redirects foi feita.
+Esse teste nao prova Auth/UI ou sincronizacao end-to-end no navegador.

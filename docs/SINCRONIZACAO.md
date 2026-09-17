@@ -184,6 +184,39 @@ https://github.com/dumbmatter/fakeIndexedDB
 - Escrita que exige revisao/auditoria passa pelo contrato transacional;
   grants de escrita direta nao podem permitir contornar esse contrato.
 
+## Transporte De Presets E HTTP Local
+
+- sync-preset-transport.ts usa RPC tipada/abortSignal do SDK, sem importar
+  o singleton de producao nem ativar envios automaticamente. Factory recebe
+  client e conta fixos; rejeita envelope invalido, outra conta e comandos
+  nao preset antes de enviar. AuthGate/stores ainda nao o instanciam.
+- Recibo estrito exige ID correspondente e revisao esperada + 1. Resposta
+  ausente, malformada ou divergente e retry, nunca confirmacao nem descarte.
+  40001 vira conflito; validacao, acesso negado e tombstone viram rejeicao;
+  sessao expirada, servidor indisponivel ou RPC nao instalada preservam retry.
+  Mensagens internas do servidor nao sao repassadas para a interface.
+- Abort antes/depois do envio nao confirma nem presume rollback remoto.
+  SDK com HTTP simulado cobre erros, escopo e resposta tardia apos abort.
+- teste-sync-preset-http-local.ts usa somente http://127.0.0.1:55321 e
+  credenciais efemeras obtidas da CLI local. Cadastro e login por senha de
+  duas contas reais no GoTrue local, com JWT real e requests ao PostgREST.
+  Confirma isolamento de leitura, escrita direta negada, actor spoof negado,
+  duplicacao concorrente, conflito e perda da resposta apos commit real.
+- Nesse teste, sender/outbox juntos recuperam o recibo do mesmo ID e ficam
+  confirmados sem duplicar revisao/auditoria. IndexedDB e simulado nessa
+  combinacao; navegador com IndexedDB real foi testado separadamente.
+- Auth local esta com confirmacao de e-mail desabilitada. O teste NAO prova
+  SMTP, confirmacao de e-mail, redirects, renovacao de sessao, logout da UI,
+  login no remoto ou sincronizacao de stores. Nao altera configuracoes do app.
+- Chave service_role local e usada apenas no runner Node para limpar fixtures,
+  nunca enviada ao browser, salva em arquivo ou incluida no app. Contas e
+  preset aleatorios removidos no finally, banco local conferido vazio.
+- 18 suites offline, TypeScript e export web; teste HTTP local separado.
+  Comandos de reproducao em packages/db/README.md. Integracao com UI, cache,
+  lifecycle Auth, reconciliacao e regras do dominio restante continuam pendentes.
+
+Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abortsignal
+
 ## Sequencia de implementacao
 
 1. Consolidar historico local/remoto das migracoes e criar identidade global
