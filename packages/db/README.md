@@ -106,3 +106,36 @@ Admin local usado somente para cleanup em Node. Fixtures removidas no finally.
 Nao altera env do app nem contas remotas. Confirmacao de e-mail esta desabilitada
 somente na config local; nenhuma verificacao de SMTP ou redirects foi feita.
 Esse teste nao prova Auth/UI ou sincronizacao end-to-end no navegador.
+
+## QA Do Nucleo No Navegador
+
+`apps/app/testes/browser-preset-sync-code.js` e uma funcao para Playwright
+CLI: recebe page, fixture e bundleUrl. Executada em localhost:8081/?teste=1,
+duas abas reais, sem automacao de telas/locators. Bundle de teste separado:
+
+```sh
+node_modules/.bin/esbuild apps/app/testes/browser-preset-sync-entry.ts --bundle --format=esm --platform=browser --outfile=/tmp/kings-table-browser-sync/entry.js
+node packages/db/scripts/browser-fixtures.mjs create
+```
+
+Iniciar a API local como acima. Helper create retorna um objeto de fixtures
+para manter em memoria no orquestrador; chave privilegiada nunca sai do
+processo Node. Servir apenas o bundle em HTTP local com CORS para a origem
+localhost:8081, porta temporaria diferente dos previews. Passar essa URL e
+o objeto ao runner via run-code do Playwright CLI. Ao terminar, enviar nonce,
+presets e accounts (id/email) em JSON ao stdin de:
+
+```sh
+node packages/db/scripts/browser-fixtures.mjs cleanup
+```
+
+Cleanup deve ocorrer tambem se o runner falhar. Nao usar esse helper contra
+outro ambiente, nao salvar credenciais em repo e nao publicar o bundle de QA.
+O runner remove apenas seu IndexedDB no finally; Node remove fixtures remotas
+LOCAIS. Conferir contagens, encerrar HTTP temporario e parar somente o projeto
+kings-table-local. As contas tem email confirmado via admin para o teste;
+somente login por senha, nao signup no navegador, foi verificado nesse fluxo.
+
+Evidencia de 16/09: Auth/HTTP/IndexedDB reais juntos, fila offline, reload
+online, duas abas, isolamento e cancelamento apos commit com retry idempotente.
+Isso nao valida telas do sistema nem abrir/recarregar o app sem rede.

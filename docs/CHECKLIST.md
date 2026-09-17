@@ -147,8 +147,8 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | F079 | **Histórico completo**: Consulte posições, prêmios, pagamentos e resultados de cada noite. | implementado | history.tsx; NightAudit.tsx |
 | F080 | **Busca e filtros**: Encontre mesas abertas e encerradas por nome, período, local ou formato. | pendente | Nome/estado locais; faltam periodo, local e formato. |
 | F081 | **Conta e recuperação**: Acesse seu perfil, recupere o acesso e gerencie as sessões da conta. | pendente | Telas/Auth implementados; e-mail real, renovacao e sessoes pendentes. |
-| F082 | **Sincronização entre aparelhos**: Reúna os dados da mesa nos dispositivos do anfitrião, da equipe e dos jogadores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
-| F083 | **Operação offline**: Continue organizando a noite sem sinal e sincronize os registros quando a conexão voltar. | pendente | Persistencia local existe; fila e reconexao online pendentes. |
+| F082 | **Sincronização entre aparelhos**: Reúna os dados da mesa nos dispositivos do anfitrião, da equipe e dos jogadores. | pendente | Nucleo de presets validado no browser/local; faltam stores, cache/reconciliacao, Auth lifecycle e dominio de torneios remoto. |
+| F083 | **Operação offline**: Continue organizando a noite sem sinal e sincronize os registros quando a conexão voltar. | pendente | Fila de presets com IndexedDB/HTTP reais testada, incluindo reconexao/reload online. Nao ativada nos stores; abertura/reload do aplicativo sem rede e demais comandos ainda pendentes. |
 | F084 | **Backup automático**: Preserve os dados com backups no servidor e recuperação de versões anteriores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F085 | **Restauração pontual**: Recupere um estado específico do histórico e configure a retenção dos backups. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F086 | **Auditoria e desfazer**: Veja autor, horário, valor anterior e valor novo de cada alteração importante. | pendente | Auditoria e algumas reversoes locais; autoria e cobertura completa pendentes. |
@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Chrome real validou o nucleo de presets com Auth/JWT, HTTP e IndexedDB
+  reais juntos: fila offline, reload depois de reconectar, envio em duas
+  abas, isolamento da conta B e stop apos commit seguido de retomada do
+  mesmo ID. Tres revisoes/auditorias, sem duplicacao. Fixtures removidas.
+  Isso nao testa telas de login/presets nem reload do aplicativo sem rede.
 - Transporte tipado de presets implementado e testado. HTTP local real com
   duas contas GoTrue/JWT: isolamento, conflito e sender recuperando resposta
   perdida apos commit (IndexedDB simulado). 18 suites offline, TypeScript e
@@ -260,3 +265,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V14 | Replay das quatro migracoes e concorrencia real do backup em banco local novo | validado | CLI canonica, db start/reset local e historico conferido; npm run test:local --workspace @kings-table/db: RLS, validacao, lock entre duas conexoes, vencedor e 40001; fixtures removidas. Nao valida Auth e-mail nem sincronizacao do dominio. |
 | V15 | API SQL local de presets: revisoes, recibos/auditoria atomicos, tombstones e concorrencia | validado | preset_operations.sql + test-local.mjs em Postgres real: retry simultaneo sem efeito duplicado, revisao disputada com 40001, payload invalido, access deny, defaults, rollback da auditoria. Advisor security local sem issues. Nao valida Auth HTTP, UI nem remoto. |
 | V16 | Transporte de presets e sender contra Auth/HTTP local real | validado | teste-sync-preset-transport.ts: SDK/HTTP simulado, recibos e abort. teste-sync-preset-http-local.ts: duas contas reais locais, JWT/PostgREST, acesso e retry apos commit sem duplicacao; outbox simulado. Sem prova de e-mail/SMTP, browser/UI, Auth remoto ou sincronizacao dos stores. |
+| V17 | Nucleo de presets no Chrome: Auth/HTTP/IndexedDB reais, offline e duas abas | validado | browser-preset-sync-code.js + entry.ts, fixtures locais admin com login por senha no browser: fila preservada, reload online, lease sem duplicacao, conta B negada, stop apos commit e retry do mesmo ID; revisao/auditoria 3. Nao valida UI, cadastro/e-mail ou abertura offline do aplicativo. |

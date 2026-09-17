@@ -217,6 +217,36 @@ https://github.com/dumbmatter/fakeIndexedDB
 
 Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abortsignal
 
+## Verificacao Conjunta No Chrome
+
+- browser-preset-sync-entry.ts expoe somente o kit do cliente. Bundle ESM
+  temporario importado pelo Playwright CLI na origem localhost:8081, sem
+  trocar env nem instanciar sender nos stores do app. QA usa nome de DB
+  qa-preset-browser-*; nenhum dado de usuario/default outbox alterado.
+- browser-preset-sync-code.js guarda o runner parametrizado por fixtures e
+  URL do bundle. Duas abas com GoTrue/JWT/PostgREST e IndexedDB reais.
+- Operacao offline manteve o mesmo ID na fila, sobreviveu a reload online
+  e foi confirmada ao reconectar. Duas abas disputaram a mesma fila: uma
+  reserva/envio, nao duas. Conta B nao leu nem alterou o preset da conta A.
+- Resposta HTTP real foi retida depois do commit. stop encerrou o sender;
+  liberada a resposta, a operacao ficou sending sem aplicar confirmacao.
+  Outra aba, apos lease expirada (hora injetada somente no sender de QA),
+  recuperou o recibo com o mesmo ID. SQL final: revisao 3 e 3 auditorias.
+- Contas foram precriadas via admin LOCAL com email confirmado, login por
+  senha ocorreu no browser. Nao comprova cadastro/telas/SMTP/redirects ou
+  sessao de producao. Ainda nao houve integracao de UI/cache/AuthGate.
+- Reload foi feito DEPOIS de restabelecer a rede. Nao existe service worker
+  configurado para abrir/recarregar o aplicativo inteiro sem internet; esse
+  requisito permanece pendente, nao substituido pelo teste da fila.
+- browser-fixtures.mjs aceita apenas API local fixa da CLI. Privileged key
+  permanece no Node; objeto passado ao browser contem chave anon local e
+  credenciais temporarias de QA. Cleanup verifica nonce/email/metadata de
+  fixtures e remove somente UUIDs correspondentes. Metadata e protecao do
+  runner de testes, nao mecanismo de autorizacao do sistema.
+- Fixture IndexedDB removida no finally; contas/preset/recibos/auditoria
+  removidos pelo helper externo e contagem SQL final zerada. Servidores
+  temporarios encerrados; localhost do app/site e remoto preservados.
+
 ## Sequencia de implementacao
 
 1. Consolidar historico local/remoto das migracoes e criar identidade global
