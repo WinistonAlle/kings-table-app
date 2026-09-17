@@ -7,6 +7,7 @@ import type { Database } from '../types/supabase';
 import { createOperation } from '../lib/sync-operation';
 import { createPresetTransport } from '../lib/sync-preset-transport';
 import { createPresetReader } from '../lib/sync-preset-reader';
+import { PresetSyncSession } from '../lib/sync-preset-session';
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 import { deleteDB } from 'idb';
@@ -115,6 +116,20 @@ async function main() {
     assert.equal(tombstone.revision, 5);
     await outbox.mergePresetBase(tombstone);
     assert.equal((await outbox.presetViews(users[0]))[0].confirmed?.deleted, true);
+    const coordinated = new PresetSyncSession(users[0],outbox,readPresets,send);
+    try {
+      await coordinated.synchronize();
+      assert.equal(coordinated.snapshot().phase,'ready');
+      assert.equal(coordinated.snapshot().library.length,2);
+      await coordinated.mutate(secondPresetId,{kind:'preset.save',payload:{...op.payload,name:'Coordinated HTTP'}});
+      assert.equal(coordinated.snapshot().library.find(row=>row.id===secondPresetId)?.pending.length,1);
+      await coordinated.synchronize();
+      const row = coordinated.snapshot().library.find(row=>row.id===secondPresetId)!;
+      assert.equal(row.confirmed?.revision,2);
+      assert.equal(row.confirmed?.payload?.name,'Coordinated HTTP');
+      assert.equal(row.pending.length,0);
+      assert.equal((await readPresets(signal)).find(base=>base.id===secondPresetId)?.payload?.name,'Coordinated HTTP');
+    } finally { coordinated.stop(); }
     console.log('PASS: local signup/password JWT, HTTP transport/reader, keyset pages, isolation, conflict, tombstone cache and sender recovery after real commit (IndexedDB simulated).');
   } finally {
     await outbox.close(); await deleteDB(dbName);

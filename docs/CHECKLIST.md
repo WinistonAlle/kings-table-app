@@ -197,6 +197,11 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Coordenador de presets por conta implementado no nucleo: cache, sender e
+  reader; stop cancela e impede resposta tardia, pulls mesclados atomicamente.
+  Sender de presets nao reserva comandos de mesas. 21 suites, tipos/build
+  passaram; Auth/HTTP local real validou recuperacao e edicao confirmada.
+  AuthGate/stores/telas, eventos de reconexao e migracao local ainda pendentes.
 - Leitor de presets do servidor implementado, nao ativado nas telas: keyset
   paginado, validacao do escopo/payload, cancelamento e tombstones. 20 suites,
   TypeScript e export web passaram; HTTP/Auth local real validou duas paginas,
@@ -283,3 +288,4 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V18 | Cache/projecao de presets e reserva atomica de revisoes | validado | teste-sync-preset-cache.ts: upgrade v1 sem perda, duas conexoes, quota/rollback, conflito, isolamento, tombstone e reopen. Runner Chrome com Auth/HTTP local: cache confirmado revisao 3 e fila sem pendencias; projecao offline recuperada em reload online. Nao valida integracao aos stores/telas nem API remota. |
 | V19 | Leitura consistente da biblioteca local de presets por conta | validado | presetViews, teste-sync-preset-cache.ts e browser-preset-library-code.js: criacoes/exclusoes pendentes, conflitos, mesmo ID em contas distintas, duas conexoes e reopen com IndexedDB real no Chrome. 19 suites e TypeScript passaram. Nao valida UI/Auth/HTTP; confirmacao do runner de biblioteca e apenas local. |
 | V20 | Leitura paginada de presets do servidor e tombstones | validado | teste-sync-preset-reader.ts (HTTP simulado): paginas curtas, cursor, validacao e abort. teste-sync-preset-http-local.ts: GoTrue/JWT/PostgREST reais, duas paginas de um item, conta B isolada, cache revisao 4 e remocao revisao 5 (IndexedDB simulado). Nao valida telas, SMTP, Realtime ou snapshot de biblioteca durante alteracoes concorrentes. |
+| V21 | Coordenacao de presets por conta e recuperacao atomica de cache | validado | teste-sync-preset-session.ts: sender com escopo, sync concorrente, falha/reconexao, rollback de pull, abort no meio da escrita e stop com resposta tardia (HTTP/IndexedDB simulados). teste-sync-preset-http-local.ts: coordenador com GoTrue/JWT/PostgREST reais, recuperacao de biblioteca e edicao confirmada (IndexedDB simulado). Nao valida AuthGate, UI ou reconexao automatica. |

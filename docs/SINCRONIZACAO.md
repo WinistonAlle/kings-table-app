@@ -308,7 +308,38 @@ Referencia: https://supabase.com/docs/reference/javascript/using-modifiers-abort
 Referencias: https://supabase.com/docs/reference/javascript/using-modifiers-order
 e https://supabase.com/docs/reference/javascript/using-modifiers-limit
 
-## Sequencia De Integracao
+## Coordenador Por Conta
+
+- PresetSyncSession conecta leitura local, sender e reader para uma conta
+  fixa. synchronize concorrente compartilha a mesma rodada; recupera cache,
+  envia pendencias de presets e consulta/mescla o servidor antes de publicar.
+  mutate grava comando duravel e atualiza projecao local; envio e solicitado
+  explicitamente por synchronize, nao por tarefa automatica oculta.
+- phase ready significa rodada de recuperacao terminada, NAO que todas as
+  operacoes foram confirmadas. UI deve inspecionar pending/issues e
+  reconciliationNeeded; conflito/rejeicao continuam preservados para revisao.
+  Erro de leitura mostra error sem limpar biblioteca/intencoes anteriores.
+- stop aborta reader/sender e limpa a projecao em memoria; instancia encerrada
+  nao reinicia. Resposta tardia nao publica estado. Comando que ja tenha sido
+  persistido permanece na conta original; abort nao desfaz commit remoto.
+  Outbox pertence ao caller e so deve ser fechado depois das tarefas terminarem.
+- mergePresetBases valida conta e duplicacao de alvos e mescla em uma unica
+  transacao cancelavel. Divergencia no ultimo registro ou abort durante a
+  escrita desfaz todas as bases da rodada, sem alterar comandos pendentes.
+- claim/sender aceitam escopo opcional. Coordenador de presets usa preset;
+  comandos de tournament na mesma fila ficam intactos, nao reservados/rejeitados
+  pelo transporte errado. Caminho generico anterior permanece sem filtro.
+- teste-sync-preset-session.ts: coalescencia, isolamento, falha/reconexao,
+  atomicidade de pull, abort durante escrita e resposta tardia apos stop,
+  HTTP/IndexedDB simulados. teste-sync-preset-http-local.ts: coordenador com
+  GoTrue/JWT/PostgREST reais recuperou duas estruturas, editou uma e confirmou
+  revisao 2/conteudo remoto; IndexedDB simulado. Fixtures removidas.
+- 21 suites, TypeScript e export web passaram. AuthGate/stores NAO instanciam
+  o coordenador. Eventos online/focus, Realtime, revisao de conflitos,
+  migracao dos presets locais e protecao de restore continuam pendentes.
+  Nenhuma ativacao remota, configuracao de producao ou tela alterada.
+
+## Proximas Integracoes
 
 1. Consolidar historico local/remoto das migracoes e criar identidade global
    para novas entidades/operacoes, sem modificar dados existentes.

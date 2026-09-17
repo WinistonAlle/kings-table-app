@@ -15,6 +15,7 @@ export class SyncSender {
     private outbox: SyncOutbox,
     private transport: OperationTransport,
     private now: () => number = Date.now,
+    private scope?: SyncOperation['entity'],
   ) {}
 
   run(): Promise<void> {
@@ -30,7 +31,7 @@ export class SyncSender {
 
   private async drain(): Promise<void> {
     while (!this.stopped) {
-      const entry = await this.outbox.claim(this.ownerId, this.now());
+      const entry = await this.outbox.claim(this.ownerId, this.now(), 30000, this.scope);
       if (!entry || this.stopped) return;
       const { id } = entry.operation;
       const token = entry.lease!.token;

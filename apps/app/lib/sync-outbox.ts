@@ -140,7 +140,27 @@ export class SyncOutbox {
 
   async mergePresetBase(value: PresetBase): Promise<boolean> {
     const incoming = presetBaseSchema.parse(value);
-    return this.write(async tx => {
+    return this.write(tx => this.mergeBase(tx, incoming));
+  }
+
+  async mergePresetBases(ownerId: string, values: PresetBase[], signal: AbortSignal): Promise<void> {
+    z.uuid().parse(ownerId);
+    signal.throwIfAborted();
+    const incoming = values.map(value => presetBaseSchema.parse(value));
+    if (incoming.some(base => base.ownerId !== ownerId)
+      || new Set(incoming.map(base => base.id)).size !== incoming.length) {
+      throw new Error('Biblioteca possui conta ou alvo inconsistente.');
+    }
+    await this.write(async tx => {
+      for (const base of incoming) {
+        signal.throwIfAborted();
+        await this.mergeBase(tx, base);
+      }
+      signal.throwIfAborted();
+    });
+  }
+
+  private async mergeBase(tx: WriteTransaction, incoming: PresetBase): Promise<boolean> {
       const store = tx.objectStore('presetBases');
       const stored = await store.get([incoming.ownerId, incoming.id]);
       if (stored) {
@@ -158,7 +178,6 @@ export class SyncOutbox {
       }
       await store.put(incoming);
       return true;
-    });
   }
 
   async mutatePreset(ownerId: string, id: string, mutation: { kind: 'preset.save'; payload: unknown } | { kind: 'preset.remove' }): Promise<OutboxEntry> {
@@ -182,8 +201,9 @@ export class SyncOutbox {
     return (await db.getAllFromIndex('operations', 'owner', ownerId)).map(parseEntry).sort((a, b) => a.sequence - b.sequence);
   }
 
-  async claim(ownerId: string, now = Date.now(), leaseMilliseconds = 30000): Promise<OutboxEntry | null> {
+  async claim(ownerId: string, now = Date.now(), leaseMilliseconds = 30000, scope?: SyncOperation['entity']): Promise<OutboxEntry | null> {
     z.uuid().parse(ownerId);
+    if (scope !== undefined) z.enum(['tournament', 'preset']).parse(scope);
     safeCount.parse(now);
     z.number().int().min(1000).max(300000).parse(leaseMilliseconds);
     safeCount.parse(now + leaseMilliseconds);
@@ -196,6 +216,7 @@ export class SyncOutbox {
       entries.sort((a, b) => a.sequence - b.sequence);
       const blocked = new Set<string>();
       for (const entry of entries) {
+        if (scope !== undefined && entry.operation.entity !== scope) continue;
         const entity = `${entry.operation.entity}:${entry.operation.entityId}`;
         if (blocked.has(entity)) continue;
         blocked.add(entity);
