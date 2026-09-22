@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode, type MutableRefObject } from 'react';
 import type { BlindLevel } from '@/types';
 import { supabase } from '@/lib/supabase';
-import { SyncOutbox } from '@/lib/sync-outbox';
+import { SyncOutbox, type PresetResolutionRequest } from '@/lib/sync-outbox';
 import { PresetSyncSession, type PresetSessionState } from '@/lib/sync-preset-session';
 import { createPresetReader } from '@/lib/sync-preset-reader';
 import { createPresetTransport } from '@/lib/sync-preset-transport';
@@ -11,6 +11,7 @@ export type PresetSyncValue = {
   state: PresetSessionState; available: boolean;
   save: (name: string, levels: BlindLevel[]) => Promise<void>;
   remove: (id: string) => Promise<void>; refresh: () => Promise<void>;
+  resolve: (id: string, request: PresetResolutionRequest) => Promise<void>;
 };
 const Context = createContext<PresetSyncValue | null>(null);
 export const usePresetSync = () => useContext(Context);
@@ -58,6 +59,7 @@ export function PresetSyncProvider({children,ownerId,stopRef}:{children:ReactNod
   return <Context.Provider value={{state,available,
     save:async(name,levels)=>{const current=active();await current.mutate(novaIdentidade(),{kind:'preset.save',payload:{name,levels}});void current.synchronize(true);},
     remove:async(id)=>{const current=active();await current.mutate(id,{kind:'preset.remove'});void current.synchronize(true);},
+    resolve:async(id,request)=>{const current=active();await current.resolve(id,request);void current.synchronize(true);},
     refresh:async()=>{if(session.current)await session.current.synchronize(true);else setAttempt(value=>value+1);},
   }}>{children}</Context.Provider>;
 }
