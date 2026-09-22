@@ -1,6 +1,6 @@
 # Checklist do produto
 
-Atualizado em 17/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
+Atualizado em 22/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
 docs/AUTENTICACAO.md, docs/PROXIMA-ETAPA.md e catalogo FEATURES da landing.
 Web primeiro; mobile depois. Historico antigo nao substitui evidencia atual.
 
@@ -183,8 +183,8 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | ID | Requisito | Estado | Dependencia/evidencia |
 |---|---|---|---|
 | D01 | Backup manual por conta, restauracao confirmada e recuperacao local anterior | implementado | CloudBackup.web.tsx; account-backup.ts; RPC/RLS testados; fluxo com conta real pendente. Nao substitui F084/F085. |
-| D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; validacao positiva com e-mail real e redirects pendente. |
-| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; presets web ligados ao AuthGate sob flag, UI/HTTP/Auth/IndexedDB reais testados apenas localmente. Padrao desativado; remoto, dominio de torneios, migracao legado, resolucao de conflitos, Realtime e offline integral pendentes. |
+| D02 | Login, cadastro, confirmacao, renovacao, recuperacao, logout e sessao landing/app | em andamento | AUTENTICACAO.md; login/logout positivos e cookie compartilhado em /app validados com Auth local real. Confirmacao por e-mail, renovacao, recuperacao e Auth remoto ainda pendentes. |
+| D03 | Sincronizacao sem drift, concorrencia, isolamento, idempotencia e recuperacao offline | em andamento | SINCRONIZACAO.md; presets web ligados ao AuthGate sob flag; revisao de conflitos testada com UI/HTTP/Auth/IndexedDB locais reais. Padrao desativado; remoto, dominio de torneios, migracao legado, Realtime e offline integral pendentes. |
 | D04 | Transferencias completas/parciais, estorno de registro e saldo restante | implementado | acerto.ts; NightSettlement.tsx; auditoria/CSV/backup e testes locais. |
 | D05 | Despesas, taxas, conciliacao e estornos financeiros reais | pendente | Definir modelo contabil completo; estorno de registro nao devolve dinheiro. |
 | D06 | Biblioteca de premios, chop, aprovacao/recusa e fechamento formal | pendente | Modelo versionado de premiacao e autorizacoes. |
@@ -298,4 +298,5 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V22 | Presets na UI web com ativacao controlada e backend local real | validado | AuthGate/PresetSync/create: salvar, pendencia offline, online/reload, usar no editor, conflito de revisao com uso bloqueado, cancelar/confirmar exclusao, conta B isolada apos login+reload e logout UI. Chrome com Auth/HTTP/IndexedDB reais; origem de QA separada. Capturas 390/1440 inspecionadas. Flag desligada no padrao; nao valida remoto, resolucao de conflitos, troca sem reload ou e-mail/SMTP. |
 | V23 | IndexedDB bloqueado e retry do provider na UI | implementado | Try/catch de abertura, estado local_storage e reabertura por Atualizar estruturas. TypeScript/build; caminho especifico ainda precisa de teste no navegador. |
 | V24 | Nucleo atomico de revisao de conflitos de presets | validado | resolvePreset/projectPreset/Session.resolve; 22 suites, TypeScript e export web passaram. Teste simulado cobre rejeicao definitiva, snapshot, rollback/quota/abort, corrida, isolamento, tombstone e reopen. Chrome/IndexedDB reais: duas conexoes, uma copia, arquivo, isolamento e reopen. Sem Auth/HTTP/UI nesta verificacao; migracao v2 real e UX de abas antigas ainda pendentes. |
-| V25 | Decisao de conflitos na UI e backend real | em andamento | Nucleo implementado; faltam provider/UI com confirmacao, comparacao conta/intencao, nome da copia e historico acessivel, inclusive criacao rejeitada. Validar manter conta/copia contra Auth/HTTP reais, erro/concorrencia e layouts desktop/mobile. Nao entregue ao usuario ainda. |
+| V25 | Decisao de conflitos na UI e backend real | implementado | Provider/UI com confirmacao, comparacao conta/intencao, nome da copia e historico acessivel. Chrome com Auth/HTTP/IndexedDB locais reais: duas estruturas em conflito 40001, manter conta, criar copia rev1, reload, conta B vazia, QA remoto preservado rev2 e capturas 390/1440 inspecionadas. Faltam cancelar confirmacao, erro e corrida entre abas na UI, criacao rejeitada e validacao remota. Flag padrao desligada. |
+| V26 | Site e app web na mesma origem local, com sessao compartilhada | validado | Next em localhost:3302 com GoTrue local e export Expo em /app: login por senha, /acessar autenticado, app reconhecendo a conta, logout e acesso direto sem sessao. Modo de teste local e navegacao para criar mesa passaram em localhost:3301; telas 390/1440 inspecionadas. A porta 3001 estava ocupada por outro projeto e foi preservada. Nao valida dominio publico, e-mail/SMTP ou refresh de sessao. |

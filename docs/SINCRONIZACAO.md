@@ -3,6 +3,29 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Revisao Na Interface Em 22/09/2026
+
+- PresetSyncProvider e a biblioteca da conta oferecem duas decisoes explicitas:
+  manter a versao da conta ou salvar uma copia com nome proprio. A revisao
+  compara nome, niveis e intervalos; pede confirmacao e exibe o historico
+  arquivado. A decisao so fica disponivel depois de resposta definitiva e
+  leitura remota concluida. Erros de armazenamento ou mudancas em outra aba
+  preservam a fila e pedem nova revisao.
+- Em origem isolada localhost:3302, Chrome usou login por senha e cookie
+  compartilhado entre landing e app. Duas estruturas foram criadas via HTTP;
+  exclusoes locais disputaram atualizacoes remotas rev1 -> rev2 e receberam
+  conflito 40001. A UI manteve a primeira versao da conta e criou copia da
+  segunda em novo UUID/rev1. Depois de reload, ambas tinham historico e
+  nenhuma pendencia; a conta B mostrou biblioteca vazia. Capturas da revisao
+  em 390x844 e 1440x900 foram inspecionadas, sem overflow horizontal.
+- Este teste cobre o backend Supabase LOCAL com Auth/HTTP/IndexedDB reais. A
+  quinta migracao segue apenas local e a flag permanece desligada por padrao.
+  Ainda faltam: confirmacao cancelada e erro de decisao na UI, concorrencia
+  de duas abas na interface, criacao rejeitada, refresh de sessao, migracao
+  v2 real em browser, remoto de producao e restante do dominio sincronizado.
+  Fixtures desta rodada removidas da origem QA e do banco local (0 usuarios
+  e 0 presets para o nonce da rodada); outros dados nao foram apagados.
+
 ## Nucleo De Revisao Em 17/09/2026
 
 - resolvePreset permite manter a base da conta ou salvar a ultima intencao
@@ -19,8 +42,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   o mesmo ID nao ressuscita a operacao. Nao ha exclusao de historico.
 - Reserva de sequencia, novo comando e arquivo da cadeia usam uma transacao
   IndexedDB com durabilidade strict. Quota, validacao ou abort revertem tudo.
-  PresetSyncSession.resolve exige biblioteca ready e respeita stop/abort;
-  ainda nao existe chamada dessa decisao na interface ou no provider.
+  PresetSyncSession.resolve exige biblioteca ready e respeita stop/abort.
+  A integracao de interface chegou na etapa de 22/09 acima.
 - Banco local passa a v3 sem remover stores/registros. A versao protege os
   novos estados de clientes antigos: conexoes atuais fecham em versionchange;
   clientes v2 nao reabrem v3 (VersionError). UX de atualizacao de abas antigas
@@ -31,10 +54,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   browser-preset-resolution-code.js passou em Chrome com IndexedDB real e
   duas conexoes concorrentes, copia unica, arquivo, isolamento e reopen;
   conflitos/recibos desse runner sao fixtures locais, nao Auth/HTTP reais.
-- Proxima etapa: revisao explicita na UI, confirmacoes, dados da conta versus
-  intencao, nome da copia, historico acessivel inclusive criacoes rejeitadas,
-  estados busy/erro e provas Auth/HTTP reais em desktop/mobile. O fluxo completo
-  continua em andamento; flag remota permanece desligada e nenhuma .env mudou.
+- O nucleo desta etapa precedeu a UI e a prova Auth/HTTP real descritas acima.
+  O fluxo completo de sincronizacao permanece em andamento.
 
 ## Integracao Web Em 17/09/2026
 

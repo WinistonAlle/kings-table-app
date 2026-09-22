@@ -1,5 +1,23 @@
 # Autenticacao web
 
+## Mesmo Dominio Em 22/09/2026
+
+- O export web do Expo e servido em `/app` pelo Next. `/acessar` valida a
+  identidade e envia para `/app` na mesma origem; ao sair, o app retorna para
+  `/login` dessa origem. Nao depende mais de `NEXT_PUBLIC_APP_URL` nem da
+  porta separada 8081 para a sessao do site.
+- O modo de teste continua disponivel no desenvolvimento local, inclusive
+  quando o app em `/app` e um export estatico. Ele so abre em localhost ou
+  127.0.0.1 e usa armazenamento local separado, sem conta no backend.
+- Chrome em servidor isolado localhost:3302 validou login real por senha com
+  GoTrue local, cookie aceito pelo app, `/acessar`, logout e retorno ao login.
+  Em localhost:3301, verificou modo de teste, criar mesa, saida e bloqueio de
+  `/app` sem sessao; capturas em 390x844 e 1440x900 inspecionadas. `3001`
+  pertencia a outro projeto durante esta rodada e nao foi alterada.
+- Cadastro com e-mail de confirmacao, renovacao e recuperacao, URL publica
+  e SMTP seguem sem validacao positiva completa. O teste local usa contas
+  temporarias confirmadas pelo admin apenas para QA, removidas ao final.
+
 ## Implementacao de 16/09/2026
 
 - Landing com botoes Entrar e Criar conta, sem alterar os efeitos do hero.
@@ -23,11 +41,10 @@ Durante desenvolvimento em localhost, clicar em Entrar no sistema com os
 dois campos vazios abre um modo de teste local. A URL usa `?teste=1`; o app
 mantem esse modo na sessao da aba e separa os dados em `preview-local`.
 Sair do teste volta ao login. Nao cria usuario, tokens nem acesso ao banco.
-O formulario e o app bloqueiam este caminho em builds de producao e fora
-dos hostnames localhost e 127.0.0.1. Campos preenchidos usam o login real.
-Playwright validou entrada vazia, atualizacao e saida no desenvolvimento.
-Nos builds de producao, o formulario vazio nao avancou e a URL direta
-`?teste=1` no app voltou ao login, sem liberar as telas.
+O formulario oferece o atalho apenas no servidor de desenvolvimento. O app
+exportado aceita `?teste=1` somente nos hostnames localhost e 127.0.0.1;
+no dominio publico esse caminho nao libera as telas. Campos preenchidos
+usam o login real. O modo de teste nao cria usuario nem envia comandos online.
 
 Os `.env.local` foram recuperados localmente e continuam ignorados pelo Git.
 Em outra maquina ou no deploy, configurar:
@@ -37,7 +54,6 @@ Site, `apps/site/.env.local`:
 ```dotenv
 NEXT_PUBLIC_SUPABASE_URL=https://SEU_PROJETO.supabase.co
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=SUA_CHAVE_PUBLICA
-NEXT_PUBLIC_APP_URL=http://localhost:8081/
 ```
 
 App, `apps/app/.env.local`:
@@ -48,8 +64,11 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=SUA_CHAVE_PUBLICA
 EXPO_PUBLIC_SITE_URL=http://localhost:3001
 ```
 
-Usar o mesmo hostname nos previews (localhost nos dois, nao misturar com
-127.0.0.1). Cookies nao sao separados por porta; localStorage e separado.
+O site serve o export web em `/app` no mesmo dominio. `/acessar` redireciona
+para `/app` somente depois de validar a conta, e o app retorna para `/login`
+na mesma origem. Em outra porta, configurar `EXPO_PUBLIC_SITE_URL` para a
+landing correspondente ao usar o app Expo separadamente. Cookies nao sao
+separados por porta; localStorage e separado.
 
 Para dominios de producao diferentes, configurar HTTPS e os enderecos reais.
 Se forem subdominios do mesmo dominio, definir nas duas aplicacoes o mesmo

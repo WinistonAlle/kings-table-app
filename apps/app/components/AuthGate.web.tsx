@@ -7,7 +7,11 @@ import { PresetSyncProvider } from './PresetSync';
 
 const Account = createContext<User | null>(null);
 export const useAccount = () => useContext(Account);
-const site = process.env.EXPO_PUBLIC_SITE_URL;
+const configuredSite = process.env.EXPO_PUBLIC_SITE_URL;
+function siteUrl() {
+  return window.location.pathname === '/app' || window.location.pathname.startsWith('/app/')
+    ? window.location.origin : configuredSite;
+}
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -19,7 +23,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     let verification = 0;
-    if (process.env.NODE_ENV !== 'production' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+    if (['localhost', '127.0.0.1'].includes(window.location.hostname)
       && (new URLSearchParams(window.location.search).get('teste') === '1' || sessionStorage.getItem('kt-test-access') === '1')) {
       sessionStorage.setItem('kt-test-access', '1');
       void loadAccountData('preview-local').then(() => { if (alive) setPreview(true); }).catch(() => { if (alive) setError(true); });
@@ -34,7 +38,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
           stopSync.current?.();
           setUser(null);
           if (authError && authError.status !== 401 && authError.status !== 403 && authError.name !== 'AuthSessionMissingError') { setError(true); return; }
-          if (site) window.location.replace(`${site}/login`);
+          if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
           else setError(true);
           return;
         }
@@ -55,7 +59,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         ++verification;
         loadedAccount.current = null;
         setUser(null);
-        if (site) window.location.replace(`${site}/login`);
+        if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
         return;
       }
       if (event === 'SIGNED_IN' && loadedAccount.current !== session?.user.id) {
@@ -78,7 +82,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     {preview ? <View style={{ flex: 1 }}>
       <View style={{ backgroundColor: '#181818', padding: 10, flexDirection: 'row', justifyContent: 'space-between', gap: 16 }}>
         <Text style={{ color: '#d3b27e', fontSize: 12 }}>Modo de teste · Dados locais</Text>
-        <Pressable accessibilityRole="button" onPress={() => { sessionStorage.removeItem('kt-test-access'); window.location.replace(`${site}/login`); }}><Text style={{ color: '#bab8b5', fontSize: 12 }}>Sair do teste</Text></Pressable>
+        <Pressable accessibilityRole="button" onPress={() => { sessionStorage.removeItem('kt-test-access'); if (siteUrl()) window.location.replace(`${siteUrl()}/login`); }}><Text style={{ color: '#bab8b5', fontSize: 12 }}>Sair do teste</Text></Pressable>
       </View>
       {children}
     </View> : user ? <PresetSyncProvider key={user.id} ownerId={user.id} stopRef={stopSync}>{children}</PresetSyncProvider> : children}
