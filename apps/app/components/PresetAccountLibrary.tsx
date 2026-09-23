@@ -24,7 +24,7 @@ export function PresetAccountLibrary({onSelect,onError}:{onSelect:(levels:BlindL
         onPress={()=>{void sync.refresh();}} icone={<Ionicons name="refresh-outline" size={18} color={Colors.gold200}/>} />
     </View>
     {state.phase==='idle'||state.phase==='syncing'?<View style={{flexDirection:'row',alignItems:'center',gap:8}}><ActivityIndicator color={Colors.gold200}/><KTText papel="apoio" color={Colors.text1}>Atualizando biblioteca…</KTText></View>:null}
-    {state.error?<KTText accessibilityLiveRegion="polite" color={Colors.danger}>{state.error==='local_storage'?'Não foi possível acessar a biblioteca local.':'Não foi possível atualizar a conta. As alterações pendentes continuam salvas.'}</KTText>:null}
+    {state.error?<KTText accessibilityLiveRegion="polite" color={Colors.danger}>{state.error==='local_storage'?'Não foi possível acessar a biblioteca local. Confira o armazenamento do navegador e feche outras abas do King’s Table antes de atualizar.':'Não foi possível atualizar a conta. As alterações pendentes continuam salvas.'}</KTText>:null}
     {!rows.length&&state.phase==='ready'?<KTText papel="apoio" color={Colors.text1}>Nenhuma estrutura salva na conta.</KTText>:null}
     {rows.map(row=><PresetAccountRow key={row.id} row={row} sync={sync} onSelect={onSelect} onError={onError}/>)}
   </View>;

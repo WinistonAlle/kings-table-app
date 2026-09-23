@@ -66,7 +66,11 @@ export class SyncOutbox {
 
   constructor(name = 'kt-sync-outbox') {
     // v3 prevents older clients from reopening a queue containing resolution records.
-    this.connection = openDB<OutboxDatabase>(name, 3, {
+    let rejectBlocked!: (reason: Error) => void;
+    let blockedTimer: ReturnType<typeof setTimeout> | undefined;
+    let timedOut = false;
+    const blocked = new Promise<never>((_, reject) => { rejectBlocked = reject; });
+    const opening = openDB<OutboxDatabase>(name, 3, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const store = db.createObjectStore('operations', { keyPath: ['operation.ownerId', 'operation.id'] });
@@ -79,7 +83,17 @@ export class SyncOutbox {
           tx.objectStore('operations').createIndex('entity', ['operation.ownerId', 'operation.entity', 'operation.entityId']);
         }
       },
-      blocking: () => { void this.close(); },
+      blocked: () => {
+        blockedTimer ??= setTimeout(() => {
+          timedOut = true;
+          rejectBlocked(new Error('Outra aba impediu a atualização da biblioteca local.'));
+        }, 5000);
+      },
+      blocking: () => { void this.close().catch(() => undefined); },
+    });
+    void opening.then(db => { if (timedOut) db.close(); }, () => undefined);
+    this.connection = Promise.race([opening, blocked]).finally(() => {
+      if (blockedTimer) clearTimeout(blockedTimer);
     });
   }
 

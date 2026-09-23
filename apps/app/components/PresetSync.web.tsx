@@ -60,6 +60,9 @@ export function PresetSyncProvider({children,ownerId,stopRef}:{children:ReactNod
     save:async(name,levels)=>{const current=active();await current.mutate(novaIdentidade(),{kind:'preset.save',payload:{name,levels}});void current.synchronize(true);},
     remove:async(id)=>{const current=active();await current.mutate(id,{kind:'preset.remove'});void current.synchronize(true);},
     resolve:async(id,request)=>{const current=active();await current.resolve(id,request);void current.synchronize(true);},
-    refresh:async()=>{if(session.current)await session.current.synchronize(true);else setAttempt(value=>value+1);},
+    refresh:async()=>{
+      if(!session.current || state.error==='local_storage')setAttempt(value=>value+1);
+      else await session.current.synchronize(true);
+    },
   }}>{children}</Context.Provider>;
 }

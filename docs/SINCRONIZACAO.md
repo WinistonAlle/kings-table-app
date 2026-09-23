@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Bloqueio Do Armazenamento Em 23/09/2026
+
+- A abertura do IndexedDB v3 agora espera ate 5 s apenas quando outra aba
+  bloqueia o upgrade. Depois mostra erro recuperavel; se a abertura antiga
+  concluir tarde, a conexao e fechada. Ao tocar em Atualizar estruturas apos
+  erro local, o provider cria outra sessao, em vez de reutilizar a conexao
+  rejeitada. Nenhum comando da fila e apagado nesse caminho.
+- Chrome em localhost:3302 com Auth local real: uma aba manteve conexao v2
+  aberta e recusou versionchange; a aba do app exibiu erro em vez de esperar
+  indefinidamente. Ao fechar a conexao v2, um unico retry abriu v3 e carregou
+  a biblioteca vazia da conta sem reload. Outro ensaio injetou SecurityError
+  em indexedDB.open; o mesmo retry recuperou apos restaurar a API. Erro e
+  recuperacao conferidos em 390x844, sem overflow horizontal; captura
+  `output/playwright/preset-storage-blocked-mobile.png` inspecionada.
+- A injecao de SecurityError nao e uma configuracao real de permissao do
+  navegador. A base v2 e as contas eram fixtures da origem/banco local de QA,
+  removidas ao final. teste-sync-outbox.ts tambem cobre timeout e reabertura
+  com IndexedDB simulado. Nao valida quota, Safari, producao ou offline integral.
+
 ## Revisao Na Interface Em 22/09/2026
 
 - PresetSyncProvider e a biblioteca da conta oferecem duas decisoes explicitas:
@@ -95,10 +114,12 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   (1440) inspecionadas em output/playwright, sem overflow horizontal. Cache
   removido apenas na origem isolada de QA; contas/presets/recibos/auditoria
   de fixtures removidos pelo helper Node. Nenhum dado/configuracao remoto alterado.
-- Falha sincrona de abertura do IndexedDB tem estado de erro e retry via
-  Atualizar estruturas; caminho de bloqueio/retry ainda nao testado no browser.
-  Resolucao explicita de conflitos, migracao legado, edicao/duplicacao na conta,
-  protecao/backup da fila e recuperacao do app inteiro offline ainda pendentes.
+- Falha de abertura do IndexedDB tem estado de erro e retry via
+  Atualizar estruturas; o ensaio de 23/09 acima cobre negacao injetada e
+  bloqueio real de upgrade entre abas.
+  Migracao legado, edicao/duplicacao na conta, protecao/backup da fila e
+  recuperacao do app inteiro offline ainda pendentes. Revisao de conflitos
+  esta descrita nas etapas posteriores deste documento.
 
 As secoes de nucleo abaixo registram verificacoes incrementais anteriores;
 esta secao descreve a integracao atual e seus limites de ativacao.

@@ -81,6 +81,29 @@ async function main() {
     assert.throws(() => parseOperation({ ...first, payload: { large: 'x'.repeat(1024 * 1024) } }), /1 MB/);
     await assert.rejects(one.list('preview-local'));
   } finally { await one.close(); await two.close(); await deleteDB(name); }
-  console.log('Outbox: persistencia, isolamento, concorrencia, FIFO por entidade, lease, retry, recibos, conflitos e rollback passaram (IndexedDB simulado).');
+  const blockedName = `qa-outbox-blocked-${novaIdentidade()}`;
+  const oldRequest = indexedDB.open(blockedName, 2);
+  oldRequest.onupgradeneeded = () => {
+    const db = oldRequest.result;
+    const operations = db.createObjectStore('operations', { keyPath: ['operation.ownerId', 'operation.id'] });
+    operations.createIndex('owner', 'operation.ownerId');
+    operations.createIndex('ownerStatus', ['operation.ownerId', 'status']);
+    operations.createIndex('entity', ['operation.ownerId', 'operation.entity', 'operation.entityId']);
+    db.createObjectStore('counter');
+    db.createObjectStore('presetBases', { keyPath: ['ownerId', 'id'] });
+  };
+  const old = await new Promise<IDBDatabase>((resolve, reject) => {
+    oldRequest.onsuccess = () => resolve(oldRequest.result);
+    oldRequest.onerror = () => reject(oldRequest.error);
+  });
+  old.onversionchange = () => undefined;
+  const blocked = new SyncOutbox(blockedName);
+  try {
+    await assert.rejects(blocked.list(a), /Outra aba impediu a atualiza/);
+  } finally { old.close(); }
+  const reopened = new SyncOutbox(blockedName);
+  try { assert.deepEqual(await reopened.list(a), [], 'nova sessao abre v3 depois que a aba antiga fecha'); }
+  finally { await reopened.close(); await deleteDB(blockedName); }
+  console.log('Outbox: persistencia, isolamento, concorrencia, FIFO, retry, recibos, conflitos, rollback e upgrade bloqueado passaram (IndexedDB simulado).');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
