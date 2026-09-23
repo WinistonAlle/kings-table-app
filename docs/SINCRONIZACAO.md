@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Falha De Gravacao Da Decisao Em 23/09/2026
+
+- Chrome em localhost:3302, com Auth/HTTP do Supabase local e IndexedDB
+  reais. A conta A tentou copiar uma alteracao recusada com 42501 sobre uma
+  estrutura privada da conta B. O teste injetou QuotaExceededError no put que
+  arquivaria a operacao original, depois do inicio da criacao da copia, dentro
+  da mesma transacao.
+- A interface exibiu uma mensagem de espaco insuficiente e manteve a revisao
+  aberta. O IndexedDB conservou a operacao original como rejeitada: uma
+  pendencia, zero arquivadas, nenhuma copia parcial. Sem a falha injetada,
+  repetir a decisao arquivou a intencao uma vez e confirmou uma unica copia
+  nova na revisao 1. A estrutura B permaneceu na revisao 1 e a copia pertence
+  apenas a A. Reload manteve copia e historico.
+- Captura `output/playwright/preset-write-failure-mobile.png` inspecionada em
+  390x844, sem overflow. IndexedDB, contas e estruturas desta rodada foram
+  removidos. Isto demonstra rollback e retry no navegador, nao esgotamento
+  fisico da cota. Outras falhas de gravacao, navegadores e Supabase remoto
+  continuam sem validacao. Flag padrao permanece desligada.
+
 ## Criacao Recusada Em 23/09/2026
 
 - Chrome em localhost:3302, com duas contas reais no Supabase local. A conta B
@@ -20,8 +39,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   manteve a copia e o historico. Captura
   `output/playwright/preset-rejected-mobile.png` inspecionada em 390x844,
   sem overflow. IndexedDB e fixtures desta rodada foram removidos.
-- Ainda faltam falha de gravacao/concorrencia durante a decisao, outros
-  navegadores e validacao no Supabase remoto. A flag continua desligada no
+- Ainda faltam outras falhas de gravacao/concorrencia durante a decisao,
+  outros navegadores e validacao no Supabase remoto. A flag continua desligada no
   build padrao; este ensaio nao habilitou sincronizacao em producao.
 
 ## Revisao Entre Abas Em 23/09/2026

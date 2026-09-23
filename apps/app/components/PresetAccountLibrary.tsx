@@ -68,7 +68,9 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
           setBusy(true);setError(null);setNotice(null);
           void sync.resolve(row.id,request).then(()=>{
             setReview(false);setNotice(decision.kind==='save_copy'?'Cópia registrada. Acompanhe o envio na biblioteca.':archiveOnly?'Tentativa arquivada. Os dados continuam no histórico.':'Versão da conta mantida. Decisão registrada no histórico.');
-          }).catch(cause=>{setError(cause instanceof Error?cause.message:'Não foi possível registrar a decisão. Atualize a biblioteca e tente novamente.');})
+          }).catch(cause=>{setError(cause instanceof Error&&cause.name==='QuotaExceededError'
+            ?'Sem espaço para salvar a decisão neste navegador. A alteração continua guardada; libere espaço e tente novamente.'
+            :cause instanceof Error?cause.message:'Não foi possível registrar a decisão. Atualize a biblioteca e tente novamente.');})
             .finally(()=>setBusy(false));
         });
       };
