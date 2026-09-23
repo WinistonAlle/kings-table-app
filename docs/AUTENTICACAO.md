@@ -1,5 +1,22 @@
 # Autenticacao web
 
+## Renovacao Local Em 23/09/2026
+
+- Chrome em localhost:3302 com GoTrue local e conta temporaria confirmada.
+  Depois do login real, o cookie compartilhado do site/app recebeu um
+  `expires_at` passado, sem alterar a assinatura do JWT nem o refresh token.
+  Uma requisicao direta a `/acessar`, sem JavaScript do app, retornou 307
+  para `/app` e `Set-Cookie`; access token e refresh token foram renovados,
+  com nova expiracao futura. O app abriu autenticado na mesma origem.
+- Com `expires_at` passado e refresh token invalido, `/acessar` retornou 307
+  para `/login`, limpou o cookie e a navegacao direta para `/app` tambem
+  terminou no login. Captura mobile
+  `output/playwright/auth-invalid-refresh-mobile.png` inspecionada em 390x844,
+  sem overflow. Conta temporaria removida, sem publicacao ou alteracao remota.
+- Isto valida a renovacao acionada por metadados de sessao expirados e o erro
+  de refresh no ambiente local. Nao simula um JWT realmente vencido, nem
+  confirma e-mail, recuperacao de senha, SMTP ou dominio de producao.
+
 ## Mesmo Dominio Em 22/09/2026
 
 - O export web do Expo e servido em `/app` pelo Next. `/acessar` valida a
