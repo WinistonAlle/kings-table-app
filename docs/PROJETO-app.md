@@ -4,6 +4,28 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Copia Online Em 23/09/2026
+
+- Chrome em localhost:3302 com duas contas temporarias no Supabase local.
+  A conta A criou uma mesa com buy-in de R$ 73 e salvou uma copia online.
+  Uma segunda sessao da mesma conta, sem mesas locais, leu a copia,
+  restaurou a mesa e manteve nome, buy-in e 15 niveis apos reload. Desfazer
+  recuperou o estado local vazio; a copia online continuou disponivel.
+- A conta B nao viu a copia de A na interface nem em consulta autenticada
+  direta. A primeira sessao de A atualizou a copia para a revisao 2; a
+  segunda, ainda na revisao 1, recebeu conflito e nao a sobrescreveu.
+- A tela agora compara quantidades de mesas e estruturas deste aparelho e
+  da conta antes de salvar. Ao substituir uma copia maior por dados locais
+  menores, a confirmacao avisa explicitamente sobre a perda na copia online.
+  Cancelar nao envia gravacao. A secao tem largura contida no desktop e
+  preserva a largura disponivel no mobile. Capturas 390x844 e 1440x900
+  inspecionadas, sem overflow horizontal.
+- O teste de interrupcao da requisicao de salvamento nao foi concluido
+  antes da sessao de navegador encerrar; nao conta como validacao de falha
+  de rede. Cota local, rollback de restauracao parcial, outros navegadores
+  e Supabase remoto ainda precisam de verificacao. Contas e copia de QA
+  foram removidas; nenhuma configuracao de producao foi alterada.
+
 ## Relogio E Qualidade Em 16/09/2026
 
 - Hand-for-hand manual no controle do relogio: pausa preservando o tempo,

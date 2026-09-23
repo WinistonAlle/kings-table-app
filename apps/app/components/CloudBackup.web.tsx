@@ -6,9 +6,16 @@ import { KTText } from './ui/Text';
 import { KTButton } from './ui/Button';
 import { Colors, Space } from '@/constants/tokens';
 import { readBackup, saveBackup, restoreBackup, hasPreviousBackup, undoRestore, type OnlineBackup } from '@/lib/account-backup';
+import { useTournamentStore } from '@/stores/tournamentStore';
+import { usePresetsStore } from '@/stores/presetsStore';
+
+const resumo = (mesas: number, estruturas: number) =>
+  `${mesas} ${mesas === 1 ? 'mesa' : 'mesas'} · ${estruturas} ${estruturas === 1 ? 'estrutura' : 'estruturas'}`;
 
 export function CloudBackup() {
   const user = useAccount();
+  const localMesas = useTournamentStore(state => state.tournaments.length);
+  const localEstruturas = usePresetsStore(state => state.presets.length);
   const [backup, setBackup] = useState<OnlineBackup | null>(null);
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -30,9 +37,13 @@ export function CloudBackup() {
 
   async function run(action: 'read' | 'save' | 'restore' | 'undo') {
     if (!user || busy) return;
-    if (action === 'save' && backup && !window.confirm('Substituir a copia online pelos dados deste aparelho?')) return;
-    if (action === 'restore' && (!backup || !window.confirm(`Restaurar ${backup.snapshot.tournaments.length} mesas da copia online? As mesas, estruturas e relogios locais serao substituidos. Uma copia local anterior sera preservada.`))) return;
-    if (action === 'undo' && !window.confirm('Voltar para os dados locais anteriores a ultima restauracao?')) return;
+    if (action === 'save' && backup) {
+      const shrinking = localMesas < backup.snapshot.tournaments.length || localEstruturas < backup.snapshot.presets.length;
+      const question = `Substituir a cópia online (${resumo(backup.snapshot.tournaments.length, backup.snapshot.presets.length)}) pelos dados deste aparelho (${resumo(localMesas, localEstruturas)})?${shrinking ? ' A cópia online perderá dados que não estão neste aparelho.' : ''}`;
+      if (!window.confirm(question)) return;
+    }
+    if (action === 'restore' && (!backup || !window.confirm(`Restaurar ${backup.snapshot.tournaments.length} mesas da cópia online? As mesas, estruturas e relógios locais serão substituídos. Uma cópia local anterior será preservada.`))) return;
+    if (action === 'undo' && !window.confirm('Voltar para os dados locais anteriores à última restauração?')) return;
     setBusy(true);
     setMessage('');
     try {
@@ -50,23 +61,29 @@ export function CloudBackup() {
   }
 
   return (
-    <View style={{ gap: Space.md, borderTopWidth: 1, borderColor: Colors.border, paddingTop: Space.xl }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm }}>
-        <Ionicons name="cloud-outline" size={24} color={Colors.gold300} />
-        <KTText papel="corpoForte">Cópia online</KTText>
+    <View style={{ borderTopWidth: 1, borderColor: Colors.border, paddingTop: Space.xl }}>
+      <View style={{ width: '100%', maxWidth: 640, alignSelf: 'center', gap: Space.md }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm }}>
+          <Ionicons name="cloud-outline" size={24} color={Colors.gold300} />
+          <KTText papel="corpoForte">Cópia online</KTText>
+        </View>
+        <KTText papel="apoio" color={Colors.text2}>
+          {user ? 'Salve suas mesas, estruturas e relógios na sua conta e restaure em outro aparelho. O salvamento é manual; não há sincronização em tempo real nesta etapa.' : 'Modo de teste: suas mesas ficam apenas neste aparelho. Entre com uma conta para salvar uma cópia online.'}
+        </KTText>
+        {user && loaded && <View style={{ gap: Space.xs }}>
+          <KTText papel="apoio" color={Colors.text1}>Neste aparelho: {resumo(localMesas, localEstruturas)}</KTText>
+          {backup
+            ? <KTText papel="apoio" color={Colors.gold200}>Na conta: {resumo(backup.snapshot.tournaments.length, backup.snapshot.presets.length)} · {new Date(backup.updatedAt).toLocaleString('pt-BR')}</KTText>
+            : <KTText papel="apoio" color={Colors.text2}>Nenhuma cópia online salva ainda.</KTText>}
+        </View>}
+        {message !== '' && <View accessibilityLiveRegion="polite"><KTText papel="apoio">{message}</KTText></View>}
+        <KTButton label={busy ? 'Aguarde...' : 'Salvar cópia online'} disabled={!user || !loaded || busy} onPress={() => void run('save')} fullWidth icone={<Ionicons name="cloud-upload-outline" size={20} color={Colors.bg0} />} />
+        {user && <>
+          <KTButton label="Restaurar cópia online" variant="fantasma" disabled={!backup || busy} onPress={() => void run('restore')} fullWidth />
+          <KTButton label="Atualizar consulta" variant="fantasma" disabled={busy} onPress={() => void run('read')} fullWidth />
+          {previous && <KTButton label="Recuperar dados locais anteriores" variant="fantasma" disabled={busy} onPress={() => void run('undo')} fullWidth />}
+        </>}
       </View>
-      <KTText papel="apoio" color={Colors.text2}>
-        {user ? 'Salve suas mesas, estruturas e relógios na sua conta e restaure em outro aparelho. O salvamento é manual; não há sincronização em tempo real nesta etapa.' : 'Modo de teste: suas mesas ficam apenas neste aparelho. Entre com uma conta para salvar uma cópia online.'}
-      </KTText>
-      {backup && <KTText papel="apoio" color={Colors.gold200}>{backup.snapshot.tournaments.length} mesas · {backup.snapshot.presets.length} estruturas · {new Date(backup.updatedAt).toLocaleString('pt-BR')}</KTText>}
-      {user && loaded && !backup && <KTText papel="apoio" color={Colors.text2}>Nenhuma cópia online salva ainda.</KTText>}
-      {message !== '' && <View accessibilityLiveRegion="polite"><KTText papel="apoio">{message}</KTText></View>}
-      <KTButton label={busy ? 'Aguarde...' : 'Salvar cópia online'} disabled={!user || !loaded || busy} onPress={() => void run('save')} fullWidth icone={<Ionicons name="cloud-upload-outline" size={20} color={Colors.bg0} />} />
-      {user && <>
-        <KTButton label="Restaurar cópia online" variant="fantasma" disabled={!backup || busy} onPress={() => void run('restore')} fullWidth />
-        <KTButton label="Atualizar consulta" variant="fantasma" disabled={busy} onPress={() => void run('read')} fullWidth />
-        {previous && <KTButton label="Recuperar dados locais anteriores" variant="fantasma" disabled={busy} onPress={() => void run('undo')} fullWidth />}
-      </>}
     </View>
   );
 }
