@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { View, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius } from '@/constants/tokens';
@@ -38,6 +38,11 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
       const [busy,setBusy]=useState(false);
       const [error,setError]=useState<string|null>(null);
       const [notice,setNotice]=useState<string|null>(null);
+      const revisionKey=`${row.confirmed?.revision??'none'}:${row.pending.map(entry=>`${entry.operation.id}/${entry.status}`).join(',')}`;
+      useEffect(()=>{
+        setError(null);
+        if(!row.reconciliationNeeded)setReview(false);
+      },[revisionKey,row.reconciliationNeeded]);
       const lastSave=[...row.pending].reverse().find(entry=>entry.operation.kind==='preset.save');
       const intention=presetPayloadSchema.safeParse(lastSave?.operation.payload);
       const archivedSave=[...row.archived].reverse().find(entry=>entry.operation.kind==='preset.save');
@@ -98,7 +103,7 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
           </View>:null}
         </View>:null}
         {busy?<ActivityIndicator accessibilityLabel="Registrando decisão" color={Colors.gold200}/>:null}
-        {error?<KTText accessibilityLiveRegion="polite" color={Colors.danger}>{error}</KTText>:null}
+        {error&&row.reconciliationNeeded?<KTText accessibilityLiveRegion="polite" color={Colors.danger}>{error}</KTText>:null}
         {notice?<KTText accessibilityLiveRegion="polite" color={Colors.ok}>{notice}</KTText>:null}
         {row.archived.length?<KTButton label={history?'Fechar histórico':'Ver histórico de decisões'} variant="fantasma" onPress={()=>setHistory(!history)}/>:null}
         {history?row.archived.map(entry=>{

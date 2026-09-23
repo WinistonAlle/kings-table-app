@@ -3,6 +3,29 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Revisao Entre Abas Em 23/09/2026
+
+- Chrome em origem isolada localhost:3302, com login real no Supabase local:
+  uma exclusao pendente disputou uma edicao remota e recebeu 40001. Cancelar
+  a confirmacao de "Manter versao da conta" deixou a pendencia em conflito,
+  sem historico novo nem alteracao da revisao remota 2.
+- Em novo conflito da mesma estrutura, a segunda aba confirmou a decisao na
+  interface. A primeira permaneceu com uma revisao antiga; o teste acionou
+  seu handler de decisao por DOM em segundo plano com confirmacao aceita.
+  O nucleo recusou a decisao desatualizada, sem duplicar o historico. Ao
+  atualizar, a tela passou a mostrar a versao confirmada e removeu o erro
+  antigo. O componente agora limpa erros de decisao quando a revisao/fila
+  muda e fecha a revisao quando nao existe mais conflito.
+- O banco manteve a estrutura ativa na revisao 3; as duas intencoes desta
+  rodada ficaram arquivadas uma vez cada e sem pendencias. Captura mobile
+  `output/playwright/preset-conflict-history-mobile.png` inspecionada em
+  390x844, sem overflow. IndexedDB da origem QA e fixtures da rodada foram
+  removidos; consulta posterior encontrou 0 contas e 0 estruturas do nonce.
+- Ainda faltam criacao rejeitada na UI, falha de gravacao/concorrencia durante
+  a transacao da decisao e validacao em Supabase remoto. O segundo acionamento
+  de decisao usou clique DOM de QA para manter a aba antiga sem receber foco;
+  nao representa um gesto manual comum do usuario.
+
 ## Bloqueio Do Armazenamento Em 23/09/2026
 
 - A abertura do IndexedDB v3 agora espera ate 5 s apenas quando outra aba
