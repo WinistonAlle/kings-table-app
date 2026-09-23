@@ -52,19 +52,22 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
       const removed=!!row.projected?.deleted;
       const issue=row.pending.find(entry=>entry.issue)?.issue;
       const status=row.reconciliationNeeded?'Precisa de revisão':removed?(row.pending.length?'Exclusão pendente':'Removida da biblioteca'):row.pending.length?'Alteração pendente':row.confirmed?'Confirmada na conta':'Alteração arquivada';
+      const showRemove=!removed&&!row.reconciliationNeeded&&((!!row.confirmed&&!row.confirmed.deleted)||row.pending.length>0);
       const definitive=!!row.pending.length&&['conflict','rejected'].includes(row.pending[0].status)
         &&row.pending.every(entry=>['queued','conflict','rejected'].includes(entry.status));
       const canResolve=definitive&&sync.available&&sync.state.phase==='ready'&&!busy;
       const copySource=intention.success?intention.data:row.confirmed?.payload;
       const copyValid=!!copySource&&presetPayloadSchema.safeParse({...copySource,name:copyName}).success;
+      const archiveOnly=!row.confirmed;
       const resolve=(decision:PresetResolutionRequest['decision'])=>{
         const request={expectedBase:row.confirmed,pendingOperationIds:row.pending.map(entry=>entry.operation.id),decision};
         confirmarAcao(decision.kind==='save_copy'
           ?'Salvar a alteração como uma nova estrutura? A versão da conta não será alterada e o histórico será preservado.'
+          :archiveOnly?'Arquivar esta tentativa? Ela não será enviada novamente, mas continuará no histórico.'
           :'Manter a versão da conta? Estas alterações deixarão de ser enviadas, mas continuarão no histórico.',()=>{
           setBusy(true);setError(null);setNotice(null);
           void sync.resolve(row.id,request).then(()=>{
-            setReview(false);setNotice(decision.kind==='save_copy'?'Cópia registrada. Acompanhe o envio na biblioteca.':'Versão da conta mantida. Decisão registrada no histórico.');
+            setReview(false);setNotice(decision.kind==='save_copy'?'Cópia registrada. Acompanhe o envio na biblioteca.':archiveOnly?'Tentativa arquivada. Os dados continuam no histórico.':'Versão da conta mantida. Decisão registrada no histórico.');
           }).catch(cause=>{setError(cause instanceof Error?cause.message:'Não foi possível registrar a decisão. Atualize a biblioteca e tente novamente.');})
             .finally(()=>setBusy(false));
         });
@@ -72,13 +75,13 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
       return <View style={{borderBottomWidth:1,borderBottomColor:Colors.border,paddingVertical:12,gap:8}}>
         <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
           <View style={{flex:1,minWidth:0,gap:4}}><KTText papel="corpoForte">{name}</KTText><KTText papel="apoio" color={row.reconciliationNeeded?Colors.danger:Colors.text1}>{status}</KTText></View>
-          <Pressable accessibilityRole="button" accessibilityLabel={`Excluir da conta: ${name}`}
-            disabled={!sync.available||removed||row.reconciliationNeeded||!row.confirmed&&!row.pending.length||busy}
+          {showRemove?<Pressable accessibilityRole="button" accessibilityLabel={`Excluir da conta: ${name}`}
+            disabled={!sync.available||busy}
             onPress={()=>confirmarAcao(`Excluir ${name} da conta? Mesas que já usam esta estrutura não serão alteradas.`,()=>{
               void sync.remove(row.id).catch(()=>onError('Não foi possível registrar a exclusão. A estrutura foi preservada.'));
-            })} style={{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',opacity:removed||row.reconciliationNeeded?0.4:1}}>
+            })} style={{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',opacity:sync.available&&!busy?1:0.4}}>
             <Ionicons name="trash-outline" size={18} color={Colors.danger}/>
-          </Pressable>
+          </Pressable>:null}
         </View>
         {issue?<KTText papel="apoio" color={Colors.danger}>{issue.message}</KTText>:null}
         {!removed&&payload&&(row.confirmed||row.pending.length)?<KTButton label={`Usar ${name}`} variant="fantasma" disabled={row.reconciliationNeeded||busy}
@@ -87,12 +90,12 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
           onPress={()=>{setReview(!review);if(!review){setCopyName(`${copySource?.name??'Estrutura'} (cópia)`);setError(null);}}} />:null}
         {review&&row.reconciliationNeeded?<View style={{gap:12,paddingVertical:8}}>
           <PayloadDetails title="Versão da conta" payload={row.confirmed?.payload??null}
-            status={row.confirmed?.deleted?'Removida da conta':row.confirmed?`Revisão ${row.confirmed.revision}`:'Sem versão confirmada neste aparelho'}/>
+            status={row.confirmed?.deleted?'Removida da conta':row.confirmed?`Revisão ${row.confirmed.revision}`:'Nenhuma versão confirmada para esta conta'}/>
           <PayloadDetails title="Alteração pendente" payload={intention.success?intention.data:null}
             status={row.pending.at(-1)?.operation.kind==='preset.remove'?'Pedido de exclusão':`${row.pending.length} alteração(ões) nesta cadeia`}/>
           {!definitive?<KTText papel="apoio" color={Colors.warn}>A resposta do servidor ainda é incerta. Atualize a biblioteca antes de decidir.</KTText>:null}
           {definitive&&sync.state.phase!=='ready'?<KTText papel="apoio" color={Colors.warn}>Atualize a biblioteca para revisar a versão da conta.</KTText>:null}
-          <KTButton label="Manter versão da conta" variant="fantasma" disabled={!canResolve} onPress={()=>resolve({kind:'keep_remote'})}/>
+          <KTButton label={archiveOnly?'Arquivar tentativa':'Manter versão da conta'} variant="fantasma" disabled={!canResolve} onPress={()=>resolve({kind:'keep_remote'})}/>
           {copySource?<View style={{gap:8}}>
             <KTText papel="apoio" color={Colors.text1}>Nome da nova estrutura</KTText>
             <TextInput accessibilityLabel="Nome da cópia" value={copyName} onChangeText={setCopyName} editable={!busy}
@@ -111,7 +114,7 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
           const copy=sync.state.library.find(item=>item.id===entry.resolution?.copiedTo);
           const copyLabel=copy?.projected?.payload?.name??copy?.confirmed?.payload?.name;
           return <View key={entry.operation.id} style={{gap:6,paddingVertical:8}}>
-            <KTText papel="corpoForte">{entry.resolution?.kind==='save_copy'?'Preservada como cópia':'Versão da conta mantida'}</KTText>
+            <KTText papel="corpoForte">{entry.resolution?.kind==='save_copy'?'Preservada como cópia':row.confirmed?'Versão da conta mantida':'Tentativa arquivada'}</KTText>
             <KTText papel="apoio" color={Colors.text1}>{entry.resolution?new Date(entry.resolution.createdAt).toLocaleString('pt-BR'):''}</KTText>
             {copyLabel?<KTText papel="apoio" color={Colors.text1}>Cópia: {copyLabel}</KTText>:null}
             <PayloadDetails title={entry.operation.kind==='preset.remove'?'Pedido de exclusão arquivado':'Estrutura arquivada'} payload={attempted.success?attempted.data:null}/>

@@ -3,6 +3,27 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Criacao Recusada Em 23/09/2026
+
+- Chrome em localhost:3302, com duas contas reais no Supabase local. A conta B
+  criou uma estrutura privada na revisao 1; a conta A tentou salvar uma
+  estrutura local com o mesmo ID e recebeu 42501. A consulta autenticada da
+  conta A nao retornou a estrutura B.
+- A interface mostrou a tentativa recusada sem inventar uma versao confirmada
+  da conta. A conta A salvou sua intencao como nova estrutura, com outro ID e
+  revisao 1. Uma segunda tentativa recusada contra o ID privado foi arquivada.
+  Ao final, havia zero operacoes pendentes, duas decisoes arquivadas no ID
+  original e a copia confirmada na conta A; a consulta da conta A retornou
+  apenas a copia propria.
+- Para linhas sem versao confirmada, a acao de arquivar e o historico usam
+  termos especificos, e nao aparece um botao de exclusao sem efeito. Reload
+  manteve a copia e o historico. Captura
+  `output/playwright/preset-rejected-mobile.png` inspecionada em 390x844,
+  sem overflow. IndexedDB e fixtures desta rodada foram removidos.
+- Ainda faltam falha de gravacao/concorrencia durante a decisao, outros
+  navegadores e validacao no Supabase remoto. A flag continua desligada no
+  build padrao; este ensaio nao habilitou sincronizacao em producao.
+
 ## Revisao Entre Abas Em 23/09/2026
 
 - Chrome em origem isolada localhost:3302, com login real no Supabase local:
@@ -21,8 +42,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   `output/playwright/preset-conflict-history-mobile.png` inspecionada em
   390x844, sem overflow. IndexedDB da origem QA e fixtures da rodada foram
   removidos; consulta posterior encontrou 0 contas e 0 estruturas do nonce.
-- Ainda faltam criacao rejeitada na UI, falha de gravacao/concorrencia durante
-  a transacao da decisao e validacao em Supabase remoto. O segundo acionamento
+- Ainda faltam falha de gravacao/concorrencia durante a transacao da decisao
+  e validacao em Supabase remoto. O segundo acionamento
   de decisao usou clique DOM de QA para manter a aba antiga sem receber foco;
   nao representa um gesto manual comum do usuario.
 
