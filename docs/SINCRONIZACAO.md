@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Primeira entrada de jogador em 24/09/2026
+
+- `player.add` recebe ID estavel e nome para um convidado sem conta vinculada.
+  A mesa precisa estar em preparacao ou andamento e na revisao esperada. O
+  servidor rejeita nome vazio, repetido na mesma mesa, ID invalido e vaga
+  esgotada. A entrada grava um buy-in com pagamento pendente, incrementa a
+  revisao da mesa e registra recibo/auditoria na mesma transacao.
+- Escrita direta em `tournament_players` foi retirada do navegador; leitura
+  autenticada continua sujeita ao RLS existente. Postgres local passou
+  validacao, isolamento, rollback por falha de auditoria e corrida real pela
+  ultima vaga. Auth/HTTP local com duas contas passou bloqueio de escrita
+  direta, capacidade, nomes duplicados e reenvio apos resposta perdida depois
+  do commit sem jogador duplicado. Fixtures dos testes foram removidas.
+- A UI ainda usa o fluxo local. `player.remove`, `player.update`, reentrada,
+  add-on, eliminacao, pagamentos e vinculacao a perfil ainda nao existem nesse
+  contrato online. Convites confirmados ainda nao estao no banco, portanto a
+  capacidade online so conta entradas registradas. Migracao so no banco local;
+  a sincronizacao de mesas segue desativada para o usuario.
+
 ## Edicao de agendamento em 24/09/2026
 
 - `tournament.update` aceita somente data futura, local e capacidade da mesa
@@ -27,15 +46,15 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   grava mesa, revisao 1, recibo idempotente e auditoria juntos. A conta
   autenticada deve coincidir com a dona do comando. Leitura e isolada por RLS;
   escrita direta de tabelas pelo navegador e negada.
-- O transporte do app aceita apenas esse comando para uma conta fixa. Testes
+- Na etapa inicial, o transporte aceitava apenas esse comando para uma conta fixa. Testes
   cobrem recibo incorreto, conflito, erro de rede e abort. Postgres local
   passou validacao/rollback e corridas de duas conexoes; Auth/HTTP local com
   duas contas passou isolamento, escrita negada e reenvio apos resposta perdida
   depois de commit real. O runner HTTP usa IndexedDB simulado e remove suas
   fixtures no fim.
 - Esta e uma fundacao, nao uma mesa sincronizada entregue: o transporte nao
-  esta ligado ao fluxo de criacao da interface. Faltam outros comandos de
-  torneio, jogadores, relogio, ligas, migracao de dados locais, reconciliacao
+  esta ligado ao fluxo de criacao da interface. Faltam a maior parte dos
+  comandos de torneio e jogadores, relogio, ligas, migracao de dados locais, reconciliacao
   e validacao no navegador com o dominio inteiro. A migracao nova existe
   somente no banco local; nenhum `db push` foi feito e a flag de presets
   permanece desligada por padrao.

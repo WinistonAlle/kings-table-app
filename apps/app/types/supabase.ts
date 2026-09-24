@@ -99,7 +99,10 @@ interface DatabaseSchema {
           eliminated_at: string | null;
           registered_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['tournament_players']['Row'], 'id' | 'registered_at'>;
+        Insert: { id?: string; tournament_id: string; display_name: string; user_id?: string | null;
+          buy_ins?: number; re_entries?: number; add_ons?: number; position?: number | null;
+          prize?: number | null; payment_status?: 'pending' | 'confirmed' | 'disputed';
+          eliminated_at?: string | null; registered_at?: string };
         Update: Partial<Database['public']['Tables']['tournament_players']['Insert']>;
       };
       league_standings: {

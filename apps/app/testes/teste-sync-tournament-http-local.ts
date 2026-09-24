@@ -55,7 +55,7 @@ async function main() {
     assert.equal((own.data?.blind_levels as unknown[]).length, 1);
     const edit = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
       kind: 'tournament.update', expectedRevision: 1,
-      payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'Sala nova', capacity: 8 } });
+      payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'Sala nova', capacity: 2 } });
     const edited = await send(edit, signal);
     assert.equal(edited.status, 'confirmed');
     assert.deepEqual(await send(edit, signal), edited);
@@ -68,9 +68,45 @@ async function main() {
     const invalidEdit = await send(createOperation({ ...edit, expectedRevision: 2,
       payload: { ...edit.payload, capacity: 1 } }), signal);
     assert.equal(invalidEdit.status, 'rejected');
+    const playerIds = [randomUUID(), randomUUID(), randomUUID()];
+    const add = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+      kind: 'player.add', expectedRevision: 2,
+      payload: { playerId: playerIds[0], name: ' Ana QA ' } });
+    const added = await send(add, signal);
+    assert.equal(added.status, 'confirmed');
+    assert.deepEqual(await send(add, signal), added);
+    const firstPlayer = await a.from('tournament_players').select('id,display_name,buy_ins,payment_status')
+      .eq('id', playerIds[0]).single();
+    assert.equal(firstPlayer.error, null);
+    assert.equal(firstPlayer.data?.display_name, 'Ana QA');
+    assert.equal(firstPlayer.data?.buy_ins, 1);
+    assert.equal(firstPlayer.data?.payment_status, 'pending');
+    const duplicateName = await send(createOperation({ ...add, expectedRevision: 3,
+      payload: { playerId: playerIds[1], name: 'ana qa' } }), signal);
+    assert.equal(duplicateName.status, 'rejected');
+    const duplicateId = await send(createOperation({ ...add, expectedRevision: 3,
+      payload: { playerId: playerIds[0], name: 'Outra pessoa' } }), signal);
+    assert.equal(duplicateId.status, 'rejected');
+    const secondPlayer = await send(createOperation({ ...add, expectedRevision: 3,
+      payload: { playerId: playerIds[1], name: 'Bia QA' } }), signal);
+    assert.equal(secondPlayer.status, 'confirmed');
+    const full = await send(createOperation({ ...add, expectedRevision: 4,
+      payload: { playerId: playerIds[2], name: 'Caio QA' } }), signal);
+    assert.equal(full.status, 'rejected');
+    const bypassPlayer = await a.from('tournament_players').insert({ id: playerIds[2],
+      tournament_id: tableIds[0], user_id: null, display_name: 'Bypass', buy_ins: 1,
+      re_entries: 0, add_ons: 0, position: null, prize: null,
+      payment_status: 'confirmed', eliminated_at: null });
+    assert.equal(bypassPlayer.error?.code, '42501');
+    const bypassPayment = await a.from('tournament_players').update({ payment_status: 'confirmed' })
+      .eq('id', playerIds[0]);
+    assert.equal(bypassPayment.error?.code, '42501');
     const foreign = await b.from('tournaments').select('id').eq('id', tableIds[0]);
     assert.equal(foreign.error, null);
     assert.deepEqual(foreign.data, []);
+    const foreignPlayers = await b.from('tournament_players').select('id').eq('tournament_id', tableIds[0]);
+    assert.equal(foreignPlayers.error, null);
+    assert.deepEqual(foreignPlayers.data, []);
     const bypass = await a.from('tournaments').update({ name: 'Bypass' }).eq('id', tableIds[0]);
     assert.equal(bypass.error?.code, '42501');
     const spoof = await b.rpc('apply_tournament_operation', { p_operation: op });
@@ -79,13 +115,18 @@ async function main() {
       ...edit, id: randomUUID(), ownerId: users[1], expectedRevision: 2,
     } });
     assert.equal(foreignEdit.error?.code, '42501');
+    const foreignPlayer = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...add, id: randomUUID(), ownerId: users[1], expectedRevision: 4,
+      payload: { playerId: playerIds[2], name: 'Foreign' },
+    } });
+    assert.equal(foreignPlayer.error?.code, '42501');
     const stale = await send(createOperation({ ...op }), signal);
     assert.equal(stale.status, 'conflict');
     const changedId = await send({ ...op, payload: { ...payload, name: 'Alterada' } }, signal);
     assert.equal(changedId.status, 'rejected');
     const invalid = await send(createOperation({ ...op, entityId: randomUUID(), payload: { ...payload, buyIn: 37.501 } }), signal);
     assert.equal(invalid.status, 'rejected');
-    const unsupported = await send(createOperation({ ...op, kind: 'player.add', payload: {} }), signal);
+    const unsupported = await send(createOperation({ ...op, kind: 'player.remove', payload: {} }), signal);
     assert.equal(unsupported.status, 'rejected');
 
     const session = (await a.auth.getSession()).data.session!;
@@ -115,18 +156,30 @@ async function main() {
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondEdit.id)?.status, 'queued');
     await sender.run();
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondEdit.id)?.status, 'confirmed');
+    loseResponse = true;
+    const secondPlayerOp = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'player.add', expectedRevision: 2,
+      payload: { playerId: randomUUID(), name: 'Retry player' } });
+    await outbox.enqueue(secondPlayerOp);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondPlayerOp.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondPlayerOp.id)?.status, 'confirmed');
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 2);
+    assert.equal(audit.data?.length, 3);
     const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
     assert.equal(final.error, null);
-    assert.equal(final.data?.revision, 2);
+    assert.equal(final.data?.revision, 3);
     assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
-    console.log('PASS: local Auth/HTTP tournament create/planning, isolation, revisions and lost-response retry.');
+    const finalPlayers = await a.from('tournament_players').select('id').eq('tournament_id', tableIds[1]);
+    assert.equal(finalPlayers.error, null);
+    assert.equal(finalPlayers.data?.length, 1);
+    console.log('PASS: local Auth/HTTP tournament, planning and player entry; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

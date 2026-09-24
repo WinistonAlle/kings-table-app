@@ -54,6 +54,7 @@ await sql(await readFile(new URL('../supabase/tests/account_backups.sql', import
 await sql(await readFile(new URL('../supabase/tests/preset_operations.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_create.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_planning.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/player_add.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
 const presetId = randomUUID();
@@ -201,9 +202,51 @@ try {
     }
   }
   assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[0]}';`), '3');
-  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '6');
-  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '6');
-  console.log('PASS: canonical migrations, RLS, validation and rollback, backup/preset/tournament creation/planning races.');
+  const plan = { version: 1, id: randomUUID(), ownerId: actor, entity: 'tournament',
+    entityId: tournamentIds[1], kind: 'tournament.update', expectedRevision: 1,
+    createdAt: new Date().toISOString(), payload: {
+      startTime: new Date(Date.now() + 86400000).toISOString(), location: 'Capacity race', capacity: 3,
+    } };
+  const seedPlayer = { ...plan, id: randomUUID(), kind: 'player.add', expectedRevision: 2,
+    payload: { playerId: randomUUID(), name: 'First player' } };
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand(plan)} ${tournamentCommand(seedPlayer)}`);
+  for (const mode of ['duplicate', 'last-seat']) {
+    const revision = mode === 'duplicate' ? 3 : 4;
+    const firstOp = { ...seedPlayer, id: randomUUID(), expectedRevision: revision,
+      payload: { playerId: randomUUID(), name: mode === 'duplicate' ? 'Second player' : 'Final seat' } };
+    const secondOp = mode === 'duplicate' ? firstOp : { ...firstOp, id: randomUUID(),
+      payload: { playerId: randomUUID(), name: 'Competing seat' } };
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(firstOp)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Player transaction did not acquire lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(secondOp)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+      'Concurrent player command never waited for lock');
+    first.child.stdin.end('commit;\n');
+    const a = await first.completed;
+    const b = await second.completed;
+    assert.equal(a.code, 0, a.stderr);
+    if (mode === 'duplicate') {
+      assert.equal(b.code, 0, b.stderr);
+      const receipt = output => JSON.parse(output.split('\n').find(line => line.startsWith('{')));
+      assert.deepEqual(receipt(a.stdout), receipt(b.stdout));
+    } else {
+      assert.notEqual(b.code, 0, 'Competing final seat was accepted');
+      assert.match(b.stderr, /40001/);
+    }
+  }
+  assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[1]}';`), '5');
+  assert.equal(await sql(`select count(*) from public.tournament_players where tournament_id='${tournamentIds[1]}';`), '3');
+  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '10');
+  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '10');
+  console.log('PASS: canonical migrations, RLS, rollback, backup/preset/tournament/player races and last-seat capacity.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity

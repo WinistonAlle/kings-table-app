@@ -10,7 +10,7 @@ const receiptSchema = z.strictObject({
 const outcome = (status: 'retry' | 'conflict' | 'rejected', code: string, message: string): SyncOutcome =>
   ({ status, issue: { code, message } });
 
-// One account and the two server-backed commands. Player, clock and other
+// One account and only server-backed commands. Other player, clock and
 // tournament mutations must wait for their own domain rules and revisions.
 export function createTournamentTransport(client: Pick<SupabaseClient<Database>, 'rpc'>, ownerId: string): OperationTransport {
   z.uuid().parse(ownerId);
@@ -22,7 +22,7 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
     if (operation.ownerId !== ownerId) {
       return outcome('rejected', 'actor_mismatch', 'Este comando pertence a outra conta.');
     }
-    if (operation.entity !== 'tournament' || !['tournament.create', 'tournament.update'].includes(operation.kind)) {
+    if (operation.entity !== 'tournament' || !['tournament.create', 'tournament.update', 'player.add'].includes(operation.kind)) {
       return outcome('rejected', 'unsupported_operation', 'Este comando da mesa ainda não está disponível online.');
     }
     try {
@@ -35,9 +35,9 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
         if (status === 401 || ['PGRST301', 'PGRST302', 'PGRST303'].includes(error.code)) {
           return outcome('retry', 'session_required', 'Entre novamente para confirmar o envio. O comando continua salvo.');
         }
-        if (error.code === '42501') return outcome('rejected', '42501', 'Sua conta não tem permissão para criar esta mesa.');
-        if (['22023', '22P02', '23514', '55000'].includes(error.code)) {
-          return outcome('rejected', error.code, 'O servidor recusou a mesa. Revise as regras e os valores informados.');
+        if (error.code === '42501') return outcome('rejected', '42501', 'Sua conta não tem permissão para alterar esta mesa.');
+        if (['22023', '22P02', '23505', '23514', '55000'].includes(error.code)) {
+          return outcome('rejected', error.code, 'O servidor recusou o comando. Revise as regras e os dados informados.');
         }
         return outcome('retry', 'remote_unavailable', 'Não foi possível confirmar o envio. O comando continua salvo para reenvio.');
       }

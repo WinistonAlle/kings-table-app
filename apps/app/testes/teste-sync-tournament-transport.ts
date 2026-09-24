@@ -12,6 +12,8 @@ async function main() {
   const edit = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
     kind: 'tournament.update', expectedRevision: 1,
     payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'QA', capacity: 9 } });
+  const add = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
+    kind: 'player.add', expectedRevision: 2, payload: { playerId: novaIdentidade(), name: 'Ana QA' } });
   let expectedOp = op;
   let body: unknown = { operationId: op.id, revision: 1 }, status = 200, calls = 0;
   let fail = false;
@@ -31,6 +33,9 @@ async function main() {
   expectedOp = edit;
   body = { operationId: edit.id, revision: 2 };
   assert.equal((await send(edit, signal)).status, 'confirmed');
+  expectedOp = add;
+  body = { operationId: add.id, revision: 3 };
+  assert.equal((await send(add, signal)).status, 'confirmed');
   expectedOp = op;
   body = { operationId: op.id, revision: 1 };
   for (const bad of [null, {}, { operationId: novaIdentidade(), revision: 1 },
@@ -42,7 +47,7 @@ async function main() {
   }
   for (const [code, expected, http] of [
     ['40001', 'conflict', 409], ['42501', 'rejected', 403], ['22023', 'rejected', 400],
-    ['55000', 'rejected', 400],
+    ['23505', 'rejected', 409], ['55000', 'rejected', 400],
     ['PGRST301', 'retry', 401], ['PGRST202', 'retry', 404], ['XX000', 'retry', 500],
   ] as const) {
     status = http;

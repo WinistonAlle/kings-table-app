@@ -37,7 +37,13 @@ usar db push como parte dos testes.
 `20260924175500_transactional_tournament_planning.sql` adiciona edicao
 transacional de data, local e vagas enquanto a mesa ainda nao comecou. Mantem
 as mesmas restricoes de conta, revisao, recibo e auditoria. So foi aplicada
-localmente; jogadores, convites e relogio ainda nao possuem comandos online.
+localmente; convites e relogio ainda nao possuem comandos online.
+
+`20260924180639_transactional_player_add.sql` acrescenta apenas a primeira
+entrada de jogador, com nome, buy-in pendente, limite de vagas, revisao,
+recibo e auditoria. Revoga escrita direta em `tournament_players` para impedir
+mudancas sem comando. Ainda nao ha remocao, reentrada, pagamento ou vinculacao
+de perfil por essa API. Tambem e somente local, sem ativacao na interface.
 
 Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
 validar novas alteracoes em banco isolado. A CLI canonica agora usa
@@ -87,6 +93,8 @@ na mesma revisao resultam em um commit e conflito 40001. Valida ausencia de
 efeito parcial quando a auditoria falha e remove so as fixtures criadas.
 `tournament_planning.sql` cobre validacao, permissao, mesa iniciada, capacidade,
 rollback de auditoria e disputa de edicoes em duas conexoes.
+`player_add.sql` cobre validacao, capacidade, escrita direta negada, isolamento
+e rollback; o runner disputa a ultima vaga com duas conexoes reais.
 
 Testes incluem RLS de duas contas/anonimo, versao ausente/nula/invalida,
 tamanho acima de 5 MB, revisao invalida e reassociacao do dono. Isso testa
