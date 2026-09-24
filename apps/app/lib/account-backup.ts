@@ -7,6 +7,7 @@ import { useBlindsStore } from '@/stores/blindsStore';
 import type { Json } from '@/types/supabase';
 import { commitRestore } from './restore-transaction';
 import { sincronizar } from './timer';
+import { waitForLocalSaves } from './armazenamento';
 
 export interface OnlineBackup { revision: number; updatedAt: string; snapshot: AccountSnapshot }
 
@@ -65,6 +66,10 @@ export async function saveBackup(userId: string, expectedRevision: number) {
 export async function restoreBackup(userId: string, backup: OnlineBackup) {
   const snapshot = parseBackup(backup.snapshot);
   await checkAccount(userId);
+  if (!await waitForLocalSaves()) {
+    throw new Error('Há alterações locais ainda não salvas. Salve novamente antes de restaurar a cópia online.');
+  }
+  checkStorage(userId);
   const previous = captureBackup(userId);
   const clock = snapshot.blinds;
   const target = {
@@ -96,6 +101,9 @@ export async function restoreBackup(userId: string, backup: OnlineBackup) {
     }
   };
   await checkAccount(userId);
+  if (!await waitForLocalSaves()) {
+    throw new Error('Há alterações locais ainda não salvas. Salve novamente antes de restaurar a cópia online.');
+  }
   await commitRestore(userId, target, previous, () => checkStorage(userId),
     () => apply(target), () => apply(previous));
 }

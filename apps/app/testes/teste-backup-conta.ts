@@ -23,8 +23,12 @@ async function main() {
   supabase.auth.getUser = (async () => ({ data: { user: { id: account } }, error: null })) as typeof supabase.auth.getUser;
   let conflict = false;
   let revision = -1;
-  supabase.rpc = (async (_name: string, args: { p_expected_revision: number }) => {
+  let sentSnapshot: ReturnType<typeof captureBackup> | null = null;
+  type BackupPayload = ReturnType<typeof captureBackup>;
+  type BackupArgs = { p_expected_revision: number; p_snapshot: BackupPayload };
+  supabase.rpc = (async (_name: string, args: BackupArgs) => {
     revision = args.p_expected_revision;
+    sentSnapshot = args.p_snapshot;
     return { data: null, error: conflict ? { code: '40001' } : null };
   }) as unknown as typeof supabase.rpc;
   await loadAccountData(account);
@@ -40,6 +44,23 @@ async function main() {
   assert.equal(store.getState().tournaments[0].name, 'Original');
   const modified = structuredClone(saved);
   modified.tournaments[0].name = 'Online';
+  failKey = 'kt-tournaments:conta-a';
+  failCount = 1;
+  store.getState().updateTournament(saved.tournaments[0].id, { name: 'Edição não salva' });
+  await new Promise(resolve => setTimeout(resolve, 0));
+  assert.equal(store.getState().tournaments[0].name, 'Edição não salva');
+  conflict = false;
+  await saveBackup(account, 4);
+  assert.equal((sentSnapshot as BackupPayload | null)?.tournaments[0].name, 'Edição não salva', 'copia online pode resgatar o estado em memoria');
+  conflict = true;
+  await assert.rejects(() => restoreBackup(account, { snapshot: modified, revision: 4, updatedAt: '' }),
+    /alterações locais ainda não salvas/);
+  assert.equal(memory.has('kt-restore-journal:conta-a'), false, 'restauracao nao comeca com escrita local falha');
+  failKey = null;
+  const { retryPendingLocalSaves } = await import('../lib/armazenamento');
+  assert.equal(await retryPendingLocalSaves(), true);
+  store.getState().updateTournament(saved.tournaments[0].id, { name: 'Original' });
+  await new Promise(resolve => setTimeout(resolve, 0));
   const originalRaw = new Map(memory);
   failKey = 'kt-structures:conta-a';
   failCount = 1;
