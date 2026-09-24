@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { clockAlert } from '../lib/clock-alerts';
+import { clockAnnouncement } from '../lib/clock-announcement';
 
 const before = { tournamentId: 'a', currentLevel: 0, secondsRemaining: 61, isRunning: true };
 assert.equal(clockAlert(before, { ...before, secondsRemaining: 60 }), 'minute');
@@ -8,7 +9,18 @@ assert.equal(clockAlert(before, { ...before, currentLevel: 1, secondsRemaining: 
 assert.equal(clockAlert(before, { ...before, secondsRemaining: 0, isRunning: false }), 'end');
 assert.equal(clockAlert(before, { ...before, tournamentId: 'b', currentLevel: 1 }), null);
 assert.equal(clockAlert({ ...before, isRunning: false }, { ...before, secondsRemaining: 60 }), null);
+assert.equal(clockAlert({ ...before, isRunning: false }, { ...before, currentLevel: 1 }), 'level', 'salto manual tambem anuncia o proximo nivel');
 assert.equal(clockAlert({ ...before, currentLevel: 1 }, before), null);
+const speechLevels = [
+  { level: 1, smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 20 },
+  { level: 2, smallBlind: 1000, bigBlind: 2000, ante: 200, durationMinutes: 15 },
+  { level: 3, smallBlind: 0, bigBlind: 0, ante: 0, durationMinutes: 10, isBreak: true },
+];
+assert.equal(clockAnnouncement('level', { ...before, currentLevel: 1 }, speechLevels), 'Nível 2. Small blind 1.000. Big blind 2.000. Ante 200.');
+assert.equal(clockAnnouncement('level', { ...before, currentLevel: 2 }, speechLevels), 'Intervalo de 10 minutos.');
+assert.equal(clockAnnouncement('minute', { ...before, currentLevel: 2 }, speechLevels), 'Falta um minuto para o fim do intervalo.');
+assert.equal(clockAnnouncement('end', { ...before, currentLevel: 2 }, speechLevels), 'A estrutura de blinds terminou.');
+assert.equal(clockAnnouncement('level', { ...before, currentLevel: 3 }, speechLevels), null);
 
 async function main() {
   const memory = new Map<string, string>();
