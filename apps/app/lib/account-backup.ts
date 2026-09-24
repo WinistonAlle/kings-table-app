@@ -5,6 +5,8 @@ import { useTournamentStore } from '@/stores/tournamentStore';
 import { usePresetsStore } from '@/stores/presetsStore';
 import { useBlindsStore } from '@/stores/blindsStore';
 import type { Json } from '@/types/supabase';
+import { commitRestore } from './restore-transaction';
+import { sincronizar } from './timer';
 
 export interface OnlineBackup { revision: number; updatedAt: string; snapshot: AccountSnapshot }
 
@@ -63,13 +65,39 @@ export async function saveBackup(userId: string, expectedRevision: number) {
 export async function restoreBackup(userId: string, backup: OnlineBackup) {
   const snapshot = parseBackup(backup.snapshot);
   await checkAccount(userId);
-  // Preservar a copia anterior antes de qualquer substituicao na memoria.
-  await AsyncStorage.setItem(`kt-before-restore:${userId}`, JSON.stringify(captureBackup(userId)));
+  const previous = captureBackup(userId);
+  const clock = snapshot.blinds;
+  const target = {
+    ...snapshot,
+    blinds: {
+      ...clock,
+      ...sincronizar(clock.structure, clock.handForHand
+        ? { ...clock, isRunning: false, levelEndsAt: null } : clock),
+      handForHand: clock.handForHand ?? false,
+    },
+  };
+  const apply = (data: AccountSnapshot) => {
+    const t = useTournamentStore.persist;
+    const p = usePresetsStore.persist;
+    const b = useBlindsStore.persist;
+    const storages = [t.getOptions().storage, p.getOptions().storage, b.getOptions().storage];
+    const silentStorage = { getItem: () => null, setItem: () => undefined, removeItem: () => undefined };
+    t.setOptions({ storage: silentStorage });
+    p.setOptions({ storage: silentStorage });
+    b.setOptions({ storage: silentStorage });
+    try {
+      useTournamentStore.setState({ tournaments: data.tournaments, activeTournamentId: data.activeTournamentId });
+      usePresetsStore.setState({ presets: data.presets });
+      useBlindsStore.setState({ ...data.blinds, handForHand: data.blinds.handForHand ?? false });
+    } finally {
+      t.setOptions({ storage: storages[0] });
+      p.setOptions({ storage: storages[1] });
+      b.setOptions({ storage: storages[2] });
+    }
+  };
   await checkAccount(userId);
-  useTournamentStore.setState({ tournaments: snapshot.tournaments, activeTournamentId: snapshot.activeTournamentId });
-  usePresetsStore.setState({ presets: snapshot.presets });
-  useBlindsStore.setState({ ...snapshot.blinds, handForHand: snapshot.blinds.handForHand ?? false });
-  useBlindsStore.getState().sync();
+  await commitRestore(userId, target, previous, () => checkStorage(userId),
+    () => apply(target), () => apply(previous));
 }
 
 export async function hasPreviousBackup(userId: string) {

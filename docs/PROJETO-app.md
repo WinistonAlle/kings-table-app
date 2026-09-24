@@ -6,6 +6,16 @@ atualizadas para nao contradizer as implementacoes mais recentes.
 
 ## Copia Online Em 23/09/2026
 
+- A restauracao local agora escreve um diario com os tres arquivos anteriores
+  e a copia de desfazer antes de substituir qualquer dado. As gravacoes sao
+  aguardadas antes de trocar a memoria; falha parcial tenta rollback. Se a
+  operacao for interrompida, a proxima abertura recupera os arquivos antes
+  de hidratar a conta, inclusive se a mesma conta ja estava carregada.
+- Teste por conta forcou falha de armazenamento durante a escrita e durante
+  o rollback, alem de simular reinicio com diario pendente. Conferiu estado
+  anterior na memoria e no disco, nova tentativa e limpeza do diario. As 22
+  suites, TypeScript, export web e build do site passaram; preview 3301
+  respondeu. Isto ainda nao valida cota real de navegador nem outros browsers.
 - Chrome em localhost:3302 com duas contas temporarias no Supabase local.
   A conta A criou uma mesa com buy-in de R$ 73 e salvou uma copia online.
   Uma segunda sessao da mesma conta, sem mesas locais, leu a copia,
@@ -22,7 +32,7 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   inspecionadas, sem overflow horizontal.
 - O teste de interrupcao da requisicao de salvamento nao foi concluido
   antes da sessao de navegador encerrar; nao conta como validacao de falha
-  de rede. Cota local, rollback de restauracao parcial, outros navegadores
+  de rede. Cota local real, rollback parcial no navegador, outros navegadores
   e Supabase remoto ainda precisam de verificacao. Contas e copia de QA
   foram removidas; nenhuma configuracao de producao foi alterada.
 

@@ -1,6 +1,7 @@
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { usePresetsStore } from '@/stores/presetsStore';
 import { useBlindsStore } from '@/stores/blindsStore';
+import { recoverInterruptedRestore } from './restore-transaction';
 
 let loading: Promise<void> = Promise.resolve();
 
@@ -12,6 +13,7 @@ export function loadAccountData(userId: string): Promise<void> {
 }
 
 async function hydrateAccount(userId: string) {
+  const recovered = await recoverInterruptedRestore(userId);
   const stores = [
     { persist: useTournamentStore.persist, reset: () => useTournamentStore.setState(useTournamentStore.getInitialState(), true) },
     { persist: usePresetsStore.persist, reset: () => usePresetsStore.setState(usePresetsStore.getInitialState(), true) },
@@ -23,7 +25,10 @@ async function hydrateAccount(userId: string) {
     const options = store.persist.getOptions();
     const baseName = options.name!.split(':')[0];
     const name = `${baseName}:${userId}`;
-    if (options.name === name) continue;
+    if (options.name === name) {
+      if (recovered) await store.persist.rehydrate();
+      continue;
+    }
     // Resetar a memoria sem sobrescrever o arquivo da conta que vamos abrir.
     store.persist.setOptions({ storage: { getItem: () => null, setItem: () => undefined, removeItem: () => undefined } });
     store.reset();
