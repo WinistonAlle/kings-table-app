@@ -48,7 +48,7 @@ export async function recoverInterruptedRestore(ownerId: string): Promise<boolea
 const restoring = new Set<string>();
 
 export async function commitRestore(ownerId: string, target: AccountSnapshot, previous: AccountSnapshot,
-  assertOwner: () => void, applyTarget: () => void, applyPrevious: () => void) {
+  assertOwner: () => void, assertUnchanged: () => void, applyTarget: () => void, applyPrevious: () => void) {
   if (restoring.has(ownerId)) throw new Error('Outra restauração desta conta já está em andamento.');
   restoring.add(ownerId);
   try {
@@ -68,12 +68,15 @@ export async function commitRestore(ownerId: string, target: AccountSnapshot, pr
     let applied = false;
     try {
       assertOwner();
+      assertUnchanged();
       await AsyncStorage.setItem(beforeKey(ownerId), JSON.stringify(previous));
       for (let index = 0; index < keys.length; index++) {
         assertOwner();
+        assertUnchanged();
         await AsyncStorage.setItem(keys[index], JSON.stringify({ state: next[index], version: 0 }));
       }
       assertOwner();
+      assertUnchanged();
       applied = true;
       applyTarget();
       await AsyncStorage.removeItem(journalKey(ownerId));

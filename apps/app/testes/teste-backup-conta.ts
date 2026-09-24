@@ -4,13 +4,24 @@ async function main() {
   const memory = new Map<string, string>();
   let failKey: string | null = null;
   let failCount = 0;
+  let onWrite: ((key: string) => void) | null = null;
+  let onRemove: ((key: string) => void) | null = null;
+  let failRemoveKey: string | null = null;
   Object.defineProperty(globalThis, 'window', { value: { localStorage: {
     getItem: (k: string) => memory.get(k) ?? null,
     setItem: (k: string, v: string) => {
       if (k === failKey && failCount-- > 0) throw new Error('QuotaExceededError');
       memory.set(k, v);
+      onWrite?.(k);
     },
-    removeItem: (k: string) => memory.delete(k),
+    removeItem: (k: string) => {
+      if (k === failRemoveKey) {
+        failRemoveKey = null;
+        onRemove?.(k);
+        throw new Error('Falha ao remover o diário');
+      }
+      memory.delete(k);
+    },
   } }, configurable: true });
   process.env.EXPO_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
   process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY = 'test-only';
@@ -68,6 +79,33 @@ async function main() {
   failKey = null;
   assert.deepEqual([...memory], [...originalRaw], 'falha parcial reverte todos os arquivos e remove o diario');
   assert.equal(store.getState().tournaments[0].name, 'Original');
+
+  let changed = false;
+  onWrite = key => {
+    if (key !== 'kt-structures:conta-a' || changed) return;
+    changed = true;
+    store.getState().updateTournament(saved.tournaments[0].id, { name: 'Edição concorrente' });
+  };
+  await assert.rejects(() => restoreBackup(account, { snapshot: modified, revision: 4, updatedAt: '' }),
+    /dados mudaram durante a restauração e foram preservados/);
+  onWrite = null;
+  assert.equal(changed, true, 'edicao intercalada com a escrita do segundo arquivo');
+  assert.equal(store.getState().tournaments[0].name, 'Edição concorrente');
+  assert.equal(JSON.parse(memory.get('kt-tournaments:conta-a')!).state.tournaments[0].name, 'Edição concorrente');
+  assert.equal(memory.has('kt-restore-journal:conta-a'), false);
+  store.getState().updateTournament(saved.tournaments[0].id, { name: 'Original' });
+  await new Promise(resolve => setTimeout(resolve, 0));
+
+  failRemoveKey = 'kt-restore-journal:conta-a';
+  onRemove = () => store.getState().updateTournament(saved.tournaments[0].id, { name: 'Edição tardia' });
+  await assert.rejects(() => restoreBackup(account, { snapshot: modified, revision: 4, updatedAt: '' }),
+    /dados mudaram durante a restauração e foram preservados/);
+  onRemove = null;
+  assert.equal(store.getState().tournaments[0].name, 'Edição tardia');
+  assert.equal(JSON.parse(memory.get('kt-tournaments:conta-a')!).state.tournaments[0].name, 'Edição tardia');
+  assert.equal(memory.has('kt-restore-journal:conta-a'), false);
+  store.getState().updateTournament(saved.tournaments[0].id, { name: 'Original' });
+  await new Promise(resolve => setTimeout(resolve, 0));
 
   await restoreBackup(account, { snapshot: modified, revision: 4, updatedAt: '' });
   assert.equal(store.getState().tournaments[0].name, 'Online');

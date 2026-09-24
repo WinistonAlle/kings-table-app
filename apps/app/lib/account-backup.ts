@@ -81,6 +81,27 @@ export async function restoreBackup(userId: string, backup: OnlineBackup) {
       handForHand: clock.handForHand ?? false,
     },
   };
+  let editedDuringRestore = false;
+  let applyingRestore = false;
+  const tournamentState = useTournamentStore.getState();
+  const presetsState = usePresetsStore.getState();
+  const blindsState = useBlindsStore.getState();
+  const unsubscribe = [
+    useTournamentStore.subscribe(state => {
+      if (!applyingRestore && (state.tournaments !== tournamentState.tournaments
+        || state.activeTournamentId !== tournamentState.activeTournamentId)) editedDuringRestore = true;
+    }),
+    usePresetsStore.subscribe(state => {
+      if (!applyingRestore && state.presets !== presetsState.presets) editedDuringRestore = true;
+    }),
+    useBlindsStore.subscribe(state => {
+      if (!applyingRestore && (state.tournamentId !== blindsState.tournamentId
+        || state.clocks !== blindsState.clocks || state.structure !== blindsState.structure
+        || state.currentLevel !== blindsState.currentLevel || state.secondsRemaining !== blindsState.secondsRemaining
+        || state.levelEndsAt !== blindsState.levelEndsAt || state.isRunning !== blindsState.isRunning
+        || state.handForHand !== blindsState.handForHand)) editedDuringRestore = true;
+    }),
+  ];
   const apply = (data: AccountSnapshot) => {
     const t = useTournamentStore.persist;
     const p = usePresetsStore.persist;
@@ -90,22 +111,49 @@ export async function restoreBackup(userId: string, backup: OnlineBackup) {
     t.setOptions({ storage: silentStorage });
     p.setOptions({ storage: silentStorage });
     b.setOptions({ storage: silentStorage });
+    applyingRestore = true;
     try {
       useTournamentStore.setState({ tournaments: data.tournaments, activeTournamentId: data.activeTournamentId });
       usePresetsStore.setState({ presets: data.presets });
       useBlindsStore.setState({ ...data.blinds, handForHand: data.blinds.handForHand ?? false });
     } finally {
+      applyingRestore = false;
       t.setOptions({ storage: storages[0] });
       p.setOptions({ storage: storages[1] });
       b.setOptions({ storage: storages[2] });
     }
   };
-  await checkAccount(userId);
-  if (!await waitForLocalSaves()) {
-    throw new Error('Há alterações locais ainda não salvas. Salve novamente antes de restaurar a cópia online.');
+  try {
+    await checkAccount(userId);
+    if (!await waitForLocalSaves()) {
+      throw new Error('Há alterações locais ainda não salvas. Salve novamente antes de restaurar a cópia online.');
+    }
+    if (editedDuringRestore) throw new Error('Os dados foram alterados durante a restauração. Tente novamente.');
+    await commitRestore(userId, target, previous, () => checkStorage(userId),
+      () => { if (editedDuringRestore) throw new Error('Os dados foram alterados durante a restauração.'); },
+      () => apply(target), () => { if (!editedDuringRestore) apply(previous); });
+  } catch (error) {
+    // The transaction rolled back its disk writes. Re-persist any newer edits
+    // made while it was running, including edits queued during that rollback.
+    if (editedDuringRestore && !await AsyncStorage.getItem(`kt-restore-journal:${userId}`)) {
+      checkStorage(userId);
+      const t = useTournamentStore.getState();
+      const p = usePresetsStore.getState();
+      const b = useBlindsStore.getState();
+      useTournamentStore.setState({ tournaments: t.tournaments, activeTournamentId: t.activeTournamentId });
+      usePresetsStore.setState({ presets: p.presets });
+      useBlindsStore.setState({ tournamentId: b.tournamentId, clocks: b.clocks, structure: b.structure,
+        currentLevel: b.currentLevel, secondsRemaining: b.secondsRemaining, levelEndsAt: b.levelEndsAt,
+        isRunning: b.isRunning, handForHand: b.handForHand });
+      if (!await waitForLocalSaves()) {
+        throw new Error('Os dados mudaram durante a restauração, mas ainda não foram salvos neste aparelho. Tente salvar novamente antes de sair.');
+      }
+      throw new Error('Os dados mudaram durante a restauração e foram preservados. Confira a mesa antes de tentar novamente.');
+    }
+    throw error;
+  } finally {
+    unsubscribe.forEach(stop => stop());
   }
-  await commitRestore(userId, target, previous, () => checkStorage(userId),
-    () => apply(target), () => apply(previous));
 }
 
 export async function hasPreviousBackup(userId: string) {
