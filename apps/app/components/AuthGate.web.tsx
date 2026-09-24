@@ -4,7 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { loadAccountData } from '@/lib/account-storage';
 import { PresetSyncProvider } from './PresetSync';
-import { hasPendingLocalSaves } from '@/lib/armazenamento';
+import { waitForLocalSaves } from '@/lib/armazenamento';
 
 const Account = createContext<User | null>(null);
 export const useAccount = () => useContext(Account);
@@ -83,8 +83,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
     {preview ? <View style={{ flex: 1 }}>
       <View style={{ backgroundColor: '#181818', padding: 10, flexDirection: 'row', justifyContent: 'space-between', gap: 16 }}>
         <Text style={{ color: '#d3b27e', fontSize: 12 }}>Modo de teste · Dados locais</Text>
-        <Pressable accessibilityRole="button" onPress={() => {
-          if (hasPendingLocalSaves()) { window.alert('Há alterações não salvas. Salve novamente antes de sair do teste.'); return; }
+        <Pressable accessibilityRole="button" onPress={async () => {
+          if (!await waitForLocalSaves()) { window.alert('Há alterações não salvas. Salve novamente antes de sair do teste.'); return; }
           sessionStorage.removeItem('kt-test-access');
           if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
         }}><Text style={{ color: '#bab8b5', fontSize: 12 }}>Sair do teste</Text></Pressable>

@@ -16,7 +16,7 @@ const writes = new Map<string, Promise<void>>();
 const listeners = new Set<() => void>();
 
 export const localSaveFailureCount = () => failed.size;
-export const hasPendingLocalSaves = () => failed.size > 0;
+export const hasPendingLocalSaves = () => failed.size > 0 || writes.size > 0;
 export const subscribeLocalSaveFailures = (listener: () => void) => {
   listeners.add(listener);
   return () => { listeners.delete(listener); };
@@ -55,6 +55,20 @@ function enqueue(key: string, value: string | null): Promise<void> {
 
 export async function retryPendingLocalSaves(): Promise<boolean> {
   await Promise.all([...failed.keys()].map(key => enqueue(key, latest.has(key) ? latest.get(key)! : failed.get(key)!)));
+  return failed.size === 0;
+}
+
+export async function waitForLocalSaves(timeoutMs = 5000): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  while (writes.size > 0) {
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) return false;
+    const completed = await new Promise<boolean>(resolve => {
+      const timer = setTimeout(() => resolve(false), remaining);
+      void Promise.all([...writes.values()]).then(() => { clearTimeout(timer); resolve(true); });
+    });
+    if (!completed) return false;
+  }
   return failed.size === 0;
 }
 
