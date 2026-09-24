@@ -148,7 +148,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | F080 | **Busca e filtros**: Encontre mesas abertas e encerradas por nome, período, local ou formato. | pendente | Nome/estado locais; faltam periodo, local e formato. |
 | F081 | **Conta e recuperação**: Acesse seu perfil, recupere o acesso e gerencie as sessões da conta. | pendente | Telas/Auth implementados; e-mail real, renovacao e sessoes pendentes. |
 | F082 | **Sincronização entre aparelhos**: Reúna os dados da mesa nos dispositivos do anfitrião, da equipe e dos jogadores. | pendente | Nucleo de presets validado no browser/local; faltam stores, cache/reconciliacao, Auth lifecycle e dominio de torneios remoto. |
-| F083 | **Operação offline**: Continue organizando a noite sem sinal e sincronize os registros quando a conexão voltar. | pendente | Fila de presets com IndexedDB/HTTP reais testada, incluindo reconexao/reload online. Nao ativada nos stores; abertura/reload do aplicativo sem rede e demais comandos ainda pendentes. |
+| F083 | **Operação offline**: Continue organizando a noite sem sinal e sincronize os registros quando a conexão voltar. | pendente | Fila de presets com IndexedDB/HTTP reais testada, incluindo reconexao/reload online. Gravacoes locais dos tres stores agora avisam quando falham e permitem retry da ultima versao em memoria; isso nao e sincronizacao offline. Fila de presets nao ativada nos stores; abertura/reload do aplicativo sem rede e demais comandos ainda pendentes. |
 | F084 | **Backup automático**: Preserve os dados com backups no servidor e recuperação de versões anteriores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F085 | **Restauração pontual**: Recupere um estado específico do histórico e configure a retenção dos backups. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F086 | **Auditoria e desfazer**: Veja autor, horário, valor anterior e valor novo de cada alteração importante. | pendente | Auditoria e algumas reversoes locais; autoria e cobertura completa pendentes. |
@@ -194,6 +194,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | D10 | Tokens compartilhados site/app e revisao de dependencias vulneraveis | pendente | PROXIMA-ETAPA/REPOSITORIO; preservar identidade e React compativel com Expo. |
 | D11 | Backups automaticos, retencao, restauracao pontual e fila local de eventos | pendente | Backup atual e uma unica copia manual; desenho de versoes/eventos necessario. |
 | D12 | Aplicativo iOS/Android, acessibilidade nativa e testes em aparelhos reais | pendente | Depois de consolidar web; export web nao valida nativo. |
+| D13 | Falha de salvamento local visivel e recuperavel | implementado | Adaptador de AsyncStorage serializa escritas por chave, retém a ultima versao falha em memoria, avisa em todas as telas e permite tentar novamente; web alerta ao fechar e impede sair da conta/modo teste enquanto houver falha. Teste unitario cobre falhas repetidas, versao mais recente e troca de conta. Chromium em 390 px: QuotaExceededError injetado ao adicionar jogador, copia em disco permaneceu antiga, aviso e bloqueio de saida apareceram; retry gravou o jogador e reload o preservou. Desktop 1440 px sem overflow. Faltam cota fisicamente esgotada, outros navegadores e aparelho nativo. |
 
 ## Registro Da Etapa Atual
 
@@ -278,7 +279,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V02 | Detecao de minuto, nivel e fim, sem duplicar a cada tick | validado | clock-alerts.ts e teste-clock-controls.ts; pipeline web criou osciladores no teste e no salto de nivel. Nao prova audio audivel no hardware do usuario. |
 | V03 | TV somente leitura do estado do torneio e hand-for-hand persistido no reload | validado | Playwright atual; screenshot clock-controls-tv.png; controles de alteracao ausentes. |
 | V04 | Layout do controle em 320/390/1440 e leitura visual em 390/1440 | validado | Playwright sem overflow; capturas clock-controls-mobile.png e clock-controls-tv.png inspecionadas em sessao nova. |
-| V05 | TypeScript, 22 suites e export web das alteracoes atuais | validado | npx tsc --noEmit; npm run testes; expo export web, todos passaram em 24/09. |
+| V05 | TypeScript, 23 suites e export web das alteracoes atuais | validado | npx tsc --noEmit; npm run testes; expo export web, todos passaram em 24/09. |
 | V06 | Voz, audio nativo/segundo plano e coordenacao multimesa/remota | pendente | Nao implementados nem validados; F022/F023 permanecem em andamento. |
 | V07 | Criacoes locais no mesmo milissegundo, inclusive apos rehydrate | validado | teste-contas.ts: IDs distintos, jogador isolado e exclusao independente; nao cobre concorrencia entre aparelhos. |
 | V08 | Trocas locais concorrentes, erro de leitura e recuperacao da fila | validado | teste-contas.ts: leitura controlada, scopes dos tres stores e dados da conta A preservados. |

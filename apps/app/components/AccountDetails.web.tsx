@@ -2,6 +2,7 @@ import { View, Text, Pressable } from 'react-native';
 import { useState } from 'react';
 import { useAccount } from './AuthGate.web';
 import { supabase } from '@/lib/supabase';
+import { hasPendingLocalSaves } from '@/lib/armazenamento';
 
 export function AccountDetails() {
   const user = useAccount();
@@ -12,6 +13,10 @@ export function AccountDetails() {
     <Text style={{ color: '#ebebea', fontSize: 18, fontWeight: '600' }}>{String(user.user_metadata.name || user.email)}</Text>
     <Text style={{ color: '#bab8b5', fontSize: 14 }}>{user.email}</Text>
     <Pressable accessibilityRole="button" disabled={pending} onPress={async () => {
+      if (hasPendingLocalSaves()) {
+        setError('Há alterações não salvas neste aparelho. Salve novamente antes de sair da conta.');
+        return;
+      }
       setPending(true); setError('');
       try {
         const { error: err } = await supabase.auth.signOut({ scope: 'local' });
