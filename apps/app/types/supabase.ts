@@ -69,9 +69,20 @@ interface DatabaseSchema {
           seconds_remaining: number | null;
           created_by: string;
           created_at: string;
+          revision: number;
+          deleted_at: string | null;
+          updated_at: string;
+          blind_levels: Json;
+          details: Json;
         };
         Insert: Omit<Database['public']['Tables']['tournaments']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['tournaments']['Insert']>;
+      };
+      sync_operation_audit: {
+        Row: { actor_id: string; operation_id: string; entity_id: string; entity: string;
+          kind: string; before_revision: number; after_revision: number; committed_at: string };
+        Insert: never;
+        Update: never;
       };
       tournament_players: {
         Row: {
@@ -150,6 +161,10 @@ interface DatabaseSchema {
     };
     Views: {};
     Functions: {
+      apply_tournament_operation: {
+        Args: { p_operation: Json };
+        Returns: Json;
+      };
       apply_preset_operation: {
         Args: { p_operation: Json };
         Returns: Json;

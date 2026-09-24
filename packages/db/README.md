@@ -28,8 +28,11 @@ As copias antigas continuam preservadas em `migrations/` e nos apps.
 `20260917013930_transactional_blind_presets.sql` e a primeira migracao
 nova apos consolidacao: API de comandos para presets, revisoes, tombstones,
 recibos/auditoria e leitura isolada. Aplicada somente no banco local, nao
-no remoto. Ver contrato e limites em docs/SINCRONIZACAO.md. Nao usar db push
-como parte dos testes; ativacao remota/UI e dominio de torneios pendentes.
+no remoto. `20260924170458_transactional_tournament_create.sql` acrescenta
+somente a criacao transacional de torneio com revisao, validacao, recibo e
+auditoria. Tambem esta somente no banco local; nao ativa a UI nem os outros
+comandos de torneio. Ver contrato e limites em docs/SINCRONIZACAO.md. Nao
+usar db push como parte dos testes.
 
 Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
 validar novas alteracoes em banco isolado. A CLI canonica agora usa
@@ -73,6 +76,11 @@ Verifica quantidade de recibos/auditoria e revisao final. Remove apenas
 o preset UUID da fixture antes de apagar seu ator. Historico esperado agora
 vem dos arquivos canonicos, incluindo a migracao nova somente local.
 
+Executa tambem `tournament_create.sql` (rollback) e disputa criacoes da
+mesma mesa: reenvio do mesmo ID recebe o mesmo recibo e dois IDs diferentes
+na mesma revisao resultam em um commit e conflito 40001. Valida ausencia de
+efeito parcial quando a auditoria falha e remove so as fixtures criadas.
+
 Testes incluem RLS de duas contas/anonimo, versao ausente/nula/invalida,
 tamanho acima de 5 MB, revisao invalida e reassociacao do dono. Isso testa
 Postgres real com papeis/JWT definidos na sessao, nao o login Auth nem
@@ -93,6 +101,7 @@ Da raiz, iniciar apenas DB/Auth/API para teste separado do app:
 ```sh
 npx supabase start --workdir packages/db --exclude realtime,storage-api,imgproxy,mailpit,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
 npm run test:sync-http-local --workspace kings-table-app
+npm run test:tournament-http-local --workspace kings-table-app
 npx supabase stop --project-id kings-table-local --workdir packages/db
 ```
 

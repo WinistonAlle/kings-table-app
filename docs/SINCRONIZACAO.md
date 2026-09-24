@@ -3,6 +3,26 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Primeiro comando de mesa em 24/09/2026
+
+- `tournament.create` agora tem uma transacao no Supabase LOCAL: valida nome,
+  formato, buy-in em centavos, reentradas, horario, niveis e intervalos;
+  grava mesa, revisao 1, recibo idempotente e auditoria juntos. A conta
+  autenticada deve coincidir com a dona do comando. Leitura e isolada por RLS;
+  escrita direta de tabelas pelo navegador e negada.
+- O transporte do app aceita apenas esse comando para uma conta fixa. Testes
+  cobrem recibo incorreto, conflito, erro de rede e abort. Postgres local
+  passou validacao/rollback e corridas de duas conexoes; Auth/HTTP local com
+  duas contas passou isolamento, escrita negada e reenvio apos resposta perdida
+  depois de commit real. O runner HTTP usa IndexedDB simulado e remove suas
+  fixtures no fim.
+- Esta e uma fundacao, nao uma mesa sincronizada entregue: o transporte nao
+  esta ligado ao fluxo de criacao da interface. Faltam outros comandos de
+  torneio, jogadores, relogio, ligas, migracao de dados locais, reconciliacao
+  e validacao no navegador com o dominio inteiro. A migracao nova existe
+  somente no banco local; nenhum `db push` foi feito e a flag de presets
+  permanece desligada por padrao.
+
 ## Falha De Gravacao Da Decisao Em 23/09/2026
 
 - Chrome em localhost:3302, com Auth/HTTP do Supabase local e IndexedDB
