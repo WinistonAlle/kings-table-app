@@ -3,6 +3,23 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Edicao de agendamento em 24/09/2026
+
+- `tournament.update` aceita somente data futura, local e capacidade da mesa
+  enquanto ela esta em preparacao. Exige a revisao atual, preserva naipe e cor,
+  recusa capacidade menor que o numero de jogadores ja registrados no banco
+  e grava alteracao, recibo e auditoria na mesma transacao. Local vazio e
+  capacidade nula removem os respectivos detalhes. Nao muda buy-in, blinds,
+  status, jogadores, relogio nem pagamentos.
+- Postgres local passou teste de campos invalidos, conta errada, mesa iniciada,
+  escrita direta negada, rollback por falha de auditoria e corrida de duas
+  conexoes. Auth/HTTP local passou leitura e edicao com duas contas, revisao
+  obsoleta e resposta perdida apos commit, reconciliada com o mesmo ID.
+- Ainda nao esta ligado a tela. O banco nao conhece convites locais, portanto
+  so consegue validar a capacidade contra jogadores persistidos nele; o
+  invariante completo de reservas depende dos futuros comandos de convidados.
+  Migracao e testes continuam apenas locais, sem deploy no Supabase remoto.
+
 ## Primeiro comando de mesa em 24/09/2026
 
 - `tournament.create` agora tem uma transacao no Supabase LOCAL: valida nome,

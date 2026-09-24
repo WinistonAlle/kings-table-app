@@ -34,6 +34,11 @@ auditoria. Tambem esta somente no banco local; nao ativa a UI nem os outros
 comandos de torneio. Ver contrato e limites em docs/SINCRONIZACAO.md. Nao
 usar db push como parte dos testes.
 
+`20260924175500_transactional_tournament_planning.sql` adiciona edicao
+transacional de data, local e vagas enquanto a mesa ainda nao comecou. Mantem
+as mesmas restricoes de conta, revisao, recibo e auditoria. So foi aplicada
+localmente; jogadores, convites e relogio ainda nao possuem comandos online.
+
 Antes de qualquer `supabase db push`, conferir novamente o historico remoto,
 validar novas alteracoes em banco isolado. A CLI canonica agora usa
 `supabase/config.toml`, ID `kings-table-local` e portas 55320-55329,
@@ -80,6 +85,8 @@ Executa tambem `tournament_create.sql` (rollback) e disputa criacoes da
 mesma mesa: reenvio do mesmo ID recebe o mesmo recibo e dois IDs diferentes
 na mesma revisao resultam em um commit e conflito 40001. Valida ausencia de
 efeito parcial quando a auditoria falha e remove so as fixtures criadas.
+`tournament_planning.sql` cobre validacao, permissao, mesa iniciada, capacidade,
+rollback de auditoria e disputa de edicoes em duas conexoes.
 
 Testes incluem RLS de duas contas/anonimo, versao ausente/nula/invalida,
 tamanho acima de 5 MB, revisao invalida e reassociacao do dono. Isso testa

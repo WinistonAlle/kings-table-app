@@ -9,6 +9,10 @@ async function main() {
   const actor = novaIdentidade();
   const op = createOperation({ ownerId: actor, entityId: novaIdentidade(), entity: 'tournament',
     kind: 'tournament.create', expectedRevision: 0, payload: { name: 'Mesa QA' } });
+  const edit = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
+    kind: 'tournament.update', expectedRevision: 1,
+    payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'QA', capacity: 9 } });
+  let expectedOp = op;
   let body: unknown = { operationId: op.id, revision: 1 }, status = 200, calls = 0;
   let fail = false;
   const client = createClient<Database>('http://localhost:59999', 'qa-public-key', {
@@ -16,7 +20,7 @@ async function main() {
     global: { fetch: async (url, init) => {
       calls++;
       assert.equal(new URL(String(url)).pathname, '/rest/v1/rpc/apply_tournament_operation');
-      assert.deepEqual(JSON.parse(String(init?.body)), { p_operation: op });
+      assert.deepEqual(JSON.parse(String(init?.body)), { p_operation: expectedOp });
       if (fail) throw new Error('Connection lost');
       return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
     } },
@@ -24,6 +28,11 @@ async function main() {
   const send = createTournamentTransport(client, actor);
   const signal = new AbortController().signal;
   assert.equal((await send(op, signal)).status, 'confirmed');
+  expectedOp = edit;
+  body = { operationId: edit.id, revision: 2 };
+  assert.equal((await send(edit, signal)).status, 'confirmed');
+  expectedOp = op;
+  body = { operationId: op.id, revision: 1 };
   for (const bad of [null, {}, { operationId: novaIdentidade(), revision: 1 },
     { operationId: op.id, revision: 2 }, { operationId: op.id, revision: 1, extra: true }]) {
     body = bad;
@@ -33,6 +42,7 @@ async function main() {
   }
   for (const [code, expected, http] of [
     ['40001', 'conflict', 409], ['42501', 'rejected', 403], ['22023', 'rejected', 400],
+    ['55000', 'rejected', 400],
     ['PGRST301', 'retry', 401], ['PGRST202', 'retry', 404], ['XX000', 'retry', 500],
   ] as const) {
     status = http;
@@ -47,7 +57,7 @@ async function main() {
   const mismatch = await send({ ...op, ownerId: novaIdentidade() }, signal);
   assert.notEqual(mismatch.status, 'confirmed');
   if (mismatch.status !== 'confirmed') assert.equal(mismatch.issue.code, 'actor_mismatch');
-  const unsupported = await send(createOperation({ ...op, kind: 'tournament.update' }), signal);
+  const unsupported = await send(createOperation({ ...op, kind: 'tournament.start' }), signal);
   assert.notEqual(unsupported.status, 'confirmed');
   if (unsupported.status !== 'confirmed') assert.equal(unsupported.issue.code, 'unsupported_operation');
   const invalid = await send({ ...op, expectedRevision: -1 }, signal);

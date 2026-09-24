@@ -53,6 +53,21 @@ async function main() {
     assert.equal(own.data?.name, 'Mesa HTTP QA');
     assert.equal((own.data?.details as { capacity: number }).capacity, 9);
     assert.equal((own.data?.blind_levels as unknown[]).length, 1);
+    const edit = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+      kind: 'tournament.update', expectedRevision: 1,
+      payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'Sala nova', capacity: 8 } });
+    const edited = await send(edit, signal);
+    assert.equal(edited.status, 'confirmed');
+    assert.deepEqual(await send(edit, signal), edited);
+    const planned = await a.from('tournaments').select('revision,details').eq('id', tableIds[0]).single();
+    assert.equal(planned.error, null);
+    assert.equal(planned.data?.revision, 2);
+    assert.equal((planned.data?.details as { location: string }).location, 'Sala nova');
+    const staleEdit = await send(createOperation({ ...edit }), signal);
+    assert.equal(staleEdit.status, 'conflict');
+    const invalidEdit = await send(createOperation({ ...edit, expectedRevision: 2,
+      payload: { ...edit.payload, capacity: 1 } }), signal);
+    assert.equal(invalidEdit.status, 'rejected');
     const foreign = await b.from('tournaments').select('id').eq('id', tableIds[0]);
     assert.equal(foreign.error, null);
     assert.deepEqual(foreign.data, []);
@@ -60,6 +75,10 @@ async function main() {
     assert.equal(bypass.error?.code, '42501');
     const spoof = await b.rpc('apply_tournament_operation', { p_operation: op });
     assert.equal(spoof.error?.code, '42501');
+    const foreignEdit = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...edit, id: randomUUID(), ownerId: users[1], expectedRevision: 2,
+    } });
+    assert.equal(foreignEdit.error?.code, '42501');
     const stale = await send(createOperation({ ...op }), signal);
     assert.equal(stale.status, 'conflict');
     const changedId = await send({ ...op, payload: { ...payload, name: 'Alterada' } }, signal);
@@ -87,14 +106,27 @@ async function main() {
     assert.equal((await outbox.list(users[0]))[0].status, 'queued');
     await sender.run();
     assert.equal((await outbox.list(users[0]))[0].status, 'confirmed');
+    loseResponse = true;
+    const secondEdit = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'tournament.update', expectedRevision: 1,
+      payload: { startTime: new Date(Date.now() + 172800000).toISOString(), location: 'Retry QA', capacity: null } });
+    await outbox.enqueue(secondEdit);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondEdit.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondEdit.id)?.status, 'confirmed');
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 1);
-    console.log('PASS: local Auth/HTTP tournament create, RLS, direct-write denial, validation, conflict and lost-response retry.');
+    assert.equal(audit.data?.length, 2);
+    const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
+    assert.equal(final.error, null);
+    assert.equal(final.data?.revision, 2);
+    assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
+    console.log('PASS: local Auth/HTTP tournament create/planning, isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

@@ -10,8 +10,8 @@ const receiptSchema = z.strictObject({
 const outcome = (status: 'retry' | 'conflict' | 'rejected', code: string, message: string): SyncOutcome =>
   ({ status, issue: { code, message } });
 
-// One account and one command family. Other tournament mutations must not be
-// sent until the server implements their domain rules and revisions.
+// One account and the two server-backed commands. Player, clock and other
+// tournament mutations must wait for their own domain rules and revisions.
 export function createTournamentTransport(client: Pick<SupabaseClient<Database>, 'rpc'>, ownerId: string): OperationTransport {
   z.uuid().parse(ownerId);
   return async (input, signal) => {
@@ -22,8 +22,8 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
     if (operation.ownerId !== ownerId) {
       return outcome('rejected', 'actor_mismatch', 'Este comando pertence a outra conta.');
     }
-    if (operation.entity !== 'tournament' || operation.kind !== 'tournament.create') {
-      return outcome('rejected', 'unsupported_operation', 'Este transporte aceita somente a criação de mesas.');
+    if (operation.entity !== 'tournament' || !['tournament.create', 'tournament.update'].includes(operation.kind)) {
+      return outcome('rejected', 'unsupported_operation', 'Este comando da mesa ainda não está disponível online.');
     }
     try {
       const { data, error, status } = await client.rpc('apply_tournament_operation', {
@@ -31,12 +31,12 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
       }).abortSignal(signal);
       signal.throwIfAborted();
       if (error) {
-        if (error.code === '40001') return outcome('conflict', '40001', 'Esta mesa já foi criada em outra tela. Revise a versão atual antes de reenviar.');
+        if (error.code === '40001') return outcome('conflict', '40001', 'Esta mesa mudou em outra tela. Revise a versão atual antes de reenviar.');
         if (status === 401 || ['PGRST301', 'PGRST302', 'PGRST303'].includes(error.code)) {
           return outcome('retry', 'session_required', 'Entre novamente para confirmar o envio. O comando continua salvo.');
         }
         if (error.code === '42501') return outcome('rejected', '42501', 'Sua conta não tem permissão para criar esta mesa.');
-        if (['22023', '22P02', '23514'].includes(error.code)) {
+        if (['22023', '22P02', '23514', '55000'].includes(error.code)) {
           return outcome('rejected', error.code, 'O servidor recusou a mesa. Revise as regras e os valores informados.');
         }
         return outcome('retry', 'remote_unavailable', 'Não foi possível confirmar o envio. O comando continua salvo para reenvio.');

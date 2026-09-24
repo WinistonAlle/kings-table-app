@@ -53,6 +53,7 @@ assert.deepEqual(versions.split('\n'), expected);
 await sql(await readFile(new URL('../supabase/tests/account_backups.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/preset_operations.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_create.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/tournament_planning.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
 const presetId = randomUUID();
@@ -165,9 +166,44 @@ try {
     }
     assert.equal(await sql(`select count(*) from public.tournaments where id='${entityId}' and created_by='${actor}';`), '1');
   }
-  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '4');
-  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '4');
-  console.log('PASS: canonical migrations, RLS, preset/tournament validation and rollback, backup race, preset and tournament command races.');
+  for (const mode of ['duplicate', 'competing']) {
+    const revision = mode === 'duplicate' ? 1 : 2;
+    const firstOp = { version: 1, id: randomUUID(), ownerId: actor, entity: 'tournament',
+      entityId: tournamentIds[0], kind: 'tournament.update', expectedRevision: revision,
+      createdAt: new Date().toISOString(), payload: {
+        startTime: new Date(Date.now() + 86400000).toISOString(), location: mode,
+        capacity: 9,
+      } };
+    const secondOp = mode === 'duplicate' ? firstOp : { ...firstOp, id: randomUUID() };
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(firstOp)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Planning transaction did not acquire lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(secondOp)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+      'Concurrent planning command never waited for lock');
+    first.child.stdin.end('commit;\n');
+    const a = await first.completed;
+    const b = await second.completed;
+    assert.equal(a.code, 0, a.stderr);
+    if (mode === 'duplicate') {
+      assert.equal(b.code, 0, b.stderr);
+      const receipt = output => JSON.parse(output.split('\n').find(line => line.startsWith('{')));
+      assert.deepEqual(receipt(a.stdout), receipt(b.stdout));
+    } else {
+      assert.notEqual(b.code, 0, 'Competing planning revision was accepted');
+      assert.match(b.stderr, /40001/);
+    }
+  }
+  assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[0]}';`), '3');
+  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '6');
+  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '6');
+  console.log('PASS: canonical migrations, RLS, validation and rollback, backup/preset/tournament creation/planning races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity
