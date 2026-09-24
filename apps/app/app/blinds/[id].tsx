@@ -54,6 +54,7 @@ export default function Relogio() {
 
   const alerta = secondsRemaining <= 60;
   const critico = secondsRemaining <= 30;
+  const concluido = structure.length > 0 && currentLevel >= structure.length - 1 && secondsRemaining === 0;
   const corTempo = critico ? Colors.danger : alerta ? Colors.warn : torneio?.color ?? Colors.gold50;
 
   /* Pulso nos últimos 30s. Só a opacidade, não a escala: número que muda de
@@ -164,7 +165,7 @@ export default function Relogio() {
               {formatar(secondsRemaining)}
             </KTText>
             <KTText papel="rotulo" color={Colors.text3}>
-              {handForHand ? 'Hand-for-hand' : isRunning ? 'Em andamento' : 'Pausado'}
+              {concluido ? 'Estrutura concluída' : handForHand ? 'Hand-for-hand' : isRunning ? 'Em andamento' : 'Pausado'}
             </KTText>
           </Animated.View>
         </Pressable>

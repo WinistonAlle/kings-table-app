@@ -61,12 +61,12 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | F018 | **Controle pelo celular**: O organizador controla a noite enquanto a TV, o tablet e os jogadores acompanham. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F019 | **Sincronização ao vivo**: Mantenha as telas alinhadas pelo mesmo tempo de referência, sem relógios correndo separados. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F020 | **Intervalos programados**: Inclua pausas na estrutura e acompanhe o tempo de descanso até a retomada. | implementado | lib/estrutura.ts; lib/timer.ts |
-| F021 | **Alertas visuais**: Destaques nos segundos finais e na mudança de nível ajudam a perceber o próximo blind. | em andamento | Pulso/clarao existentes; reduced motion e revisao atual pendentes. |
+| F021 | **Alertas visuais**: Destaques nos segundos finais e na mudança de nível ajudam a perceber o próximo blind. | em andamento | Pulso/clarao existentes; modo reduzido aplicado tambem ao anel e estado final explicito. Conferencia visual em Chromium desktop e 390 px em 24/09; faltam validar virada/ultimos segundos visualmente e outros navegadores. |
 | F022 | **Avisos sonoros e voz**: Receba anúncios de mudança de nível, último minuto e início ou fim do intervalo. | em andamento | Sons web em andamento; voz e suporte nativo pendentes. |
 | F023 | **Hand-for-hand**: Controle a bolha com rodadas sincronizadas e congelamento do relógio quando necessário. | em andamento | Congelamento local em andamento; coordenacao multimesa/remota pendente. |
 | F024 | **Shot clock**: Acompanhe o tempo de decisão nas mesas que usam limite por ação. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F025 | **Atividades no celular**: Acompanhe o torneio com notificações e Live Activities, incluindo Dynamic Island em aparelhos compatíveis. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
-| F026 | **Tela ligada e baixo consumo**: Mantenha a apresentação ativa, com opções de baixo consumo, contraste e movimento reduzido. | pendente | Keep-awake existe; baixo consumo e reduced motion completo pendentes. |
+| F026 | **Tela ligada e baixo consumo**: Mantenha a apresentação ativa, com opções de baixo consumo, contraste e movimento reduzido. | pendente | Keep-awake existe; pulso, clarao e anel do relogio respeitam preferencia do sistema, inclusive mudanca em tempo real. Falta opcao de baixo consumo, ajuste de contraste e auditoria de movimento do restante da apresentacao. |
 
 ### Ranking de liga
 
@@ -278,7 +278,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | V02 | Detecao de minuto, nivel e fim, sem duplicar a cada tick | validado | clock-alerts.ts e teste-clock-controls.ts; pipeline web criou osciladores no teste e no salto de nivel. Nao prova audio audivel no hardware do usuario. |
 | V03 | TV somente leitura do estado do torneio e hand-for-hand persistido no reload | validado | Playwright atual; screenshot clock-controls-tv.png; controles de alteracao ausentes. |
 | V04 | Layout do controle em 320/390/1440 e leitura visual em 390/1440 | validado | Playwright sem overflow; capturas clock-controls-mobile.png e clock-controls-tv.png inspecionadas em sessao nova. |
-| V05 | TypeScript, 14 suites e export web das alteracoes atuais | validado | npx tsc --noEmit; npm run testes; expo export web, todos passaram. |
+| V05 | TypeScript, 22 suites e export web das alteracoes atuais | validado | npx tsc --noEmit; npm run testes; expo export web, todos passaram em 24/09. |
 | V06 | Voz, audio nativo/segundo plano e coordenacao multimesa/remota | pendente | Nao implementados nem validados; F022/F023 permanecem em andamento. |
 | V07 | Criacoes locais no mesmo milissegundo, inclusive apos rehydrate | validado | teste-contas.ts: IDs distintos, jogador isolado e exclusao independente; nao cobre concorrencia entre aparelhos. |
 | V08 | Trocas locais concorrentes, erro de leitura e recuperacao da fila | validado | teste-contas.ts: leitura controlada, scopes dos tres stores e dados da conta A preservados. |

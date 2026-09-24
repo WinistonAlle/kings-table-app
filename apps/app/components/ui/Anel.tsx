@@ -1,7 +1,8 @@
 import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, G, Line, type CircleProps } from 'react-native-svg';
 import { Colors, Degrade } from '@/constants/tokens';
 import { useEffect, useRef, useId, forwardRef } from 'react';
-import { Animated, AccessibilityInfo, Platform } from 'react-native';
+import { Animated, Platform } from 'react-native';
+import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 // Animated injeta collapsable; SVG no navegador nao aceita esse atributo nativo.
 const AnimatableCircle = forwardRef<Circle, CircleProps & { collapsable?: boolean }>(
@@ -41,17 +42,13 @@ export function Anel({
   const volta = 2 * Math.PI * r;
   const p = Math.max(0, Math.min(1, progresso));
   const arcoId = `arco-${useId().replace(/:/g, '')}`;
+  const reducedMotion = useReducedMotion();
   const animado = useRef(new Animated.Value(p)).current;
   useEffect(() => {
-    let cancelado = false;
-    let movimento: Animated.CompositeAnimation | undefined;
-    AccessibilityInfo.isReduceMotionEnabled().then(reduzido => {
-      if (cancelado) return;
-      movimento = Animated.timing(animado, { toValue: p, duration: reduzido ? 0 : 600, useNativeDriver: false });
-      movimento.start();
-    });
-    return () => { cancelado = true; movimento?.stop(); };
-  }, [p, animado]);
+    const movimento = Animated.timing(animado, { toValue: p, duration: reducedMotion ? 0 : 600, useNativeDriver: false });
+    movimento.start();
+    return () => movimento.stop();
+  }, [p, animado, reducedMotion]);
 
   return (
     <Svg width={tamanho} height={tamanho}>
