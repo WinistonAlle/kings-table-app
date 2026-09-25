@@ -1,4 +1,4 @@
-import type { Tournament } from '@/types';
+import type { Tournament, TournamentPlayer } from '@/types';
 import { distribuirPremios, prizePool } from './payouts';
 
 /* Regras do torneio que não dependem de React nem de armazenamento.
@@ -10,6 +10,17 @@ import { distribuirPremios, prizePool } from './payouts';
 
 /** Quem ainda está de pé: sem posição final é porque não caiu. */
 export const emJogo = (t: Tournament) => t.players.filter((p) => !p.position);
+
+export function motivoBloqueioRemocao(t: Tournament, p: TournamentPlayer): string | null {
+  if (t.status !== 'upcoming') return 'Depois que a noite começa, a entrada precisa permanecer no histórico.';
+  if (p.position || p.eliminatedAt || p.prize !== undefined) return 'Este jogador já tem um resultado registrado.';
+  if (p.buyIns !== 1 || p.reEntries !== 0 || p.addOns !== 0) return 'Remova reentradas e add-ons antes de retirar a entrada.';
+  if (p.paymentStatus !== 'pending') return 'Confira o pagamento e qualquer devolução antes de retirar esta entrada.';
+  if (t.settlementPayments?.some(payment => payment.from === p.id || payment.to === p.id)) {
+    return 'Há um acerto ligado a este jogador. A entrada deve permanecer no histórico.';
+  }
+  return null;
+}
 
 /**
  * Fecha o torneio quando sobra um. O último de pé é campeão e cada faixa

@@ -198,6 +198,13 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Remocao local de jogador agora so aceita entrada unica, pendente e de noite
+  ainda nao iniciada, sem resultado nem acerto associado. A regra fica no
+  dominio e no store; a tela explica o bloqueio ao tocar em Remover. Suite do
+  app e build do site passaram; Chrome em modo teste confirmou remocao valida,
+  bloqueio de entrada paga e layout sem overflow em 390/1440 px. Nao cobre
+  estorno financeiro, historico de pagamento revertido nem remocao online;
+  F050 continua pendente e D03, em andamento.
 - Presets web integrados ao AuthGate e criar mesa sob ativacao controlada,
   desativada por padrao. Chrome/GoTrue/JWT/PostgREST/IndexedDB reais no QA:
   salvar, offline/retomada, reload online, usar no editor, conflito bloqueado,

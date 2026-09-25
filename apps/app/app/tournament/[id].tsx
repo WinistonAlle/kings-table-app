@@ -10,7 +10,7 @@ import { KTButton } from '@/components/ui/Button';
 import { Coroa, Filete, Naipe } from '@/components/ui/Ornamento';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { distribuirPremios, entriesOf, payoutLabel, prizePool } from '@/lib/payouts';
-import { emJogo, podeDesfazerEliminacao } from '@/lib/torneio';
+import { emJogo, motivoBloqueioRemocao, podeDesfazerEliminacao } from '@/lib/torneio';
 import type { TournamentPlayer } from '@/types';
 import { semAnelDeFoco } from '@/components/ui/campo';
 import { NightPlanning } from '@/components/NightPlanning';
@@ -161,6 +161,7 @@ export default function Mesa() {
                 preparando={torneio.status === 'upcoming'}
                 emPe={naMesa.length}
                 buyIn={torneio.buyIn}
+                motivoRemocao={motivoBloqueioRemocao(torneio, j)}
                 onPagamento={() => confirmarAcao(`${j.name}: alterar pagamento para ${PAGAMENTO[proximoPagamento(j.paymentStatus)].texto}? Total registrado: ${dinheiro(entriesOf(j) * torneio.buyIn)}.`, () => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) }))}
                 onContador={(campo, d) => confirmarAcao(`${j.name}: ${d > 0 ? 'adicionar' : 'remover'} ${campo === 'reEntries' ? 'uma reentrada' : 'um add-on'} de ${dinheiro(torneio.buyIn)}? O valor total da noite será alterado.`, () => updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) }))}
                 onEliminar={() => confirmarAcao(naMesa.length === 2 ? `Eliminar ${j.name} em 2º lugar? A noite será encerrada e a premiação será calculada.` : `Eliminar ${j.name} em ${naMesa.length}º lugar?`, () => eliminatePlayer(torneio.id, j.id))}
@@ -286,7 +287,7 @@ function Cel({ rotulo, valor, nota }: { rotulo: string; valor: string; nota: str
 }
 
 function CardJogador({
-  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover, preparando,
+  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover, preparando, motivoRemocao,
 }: {
   jogador: TournamentPlayer;
   preparando?: boolean;
@@ -296,10 +297,12 @@ function CardJogador({
   onContador: (campo: 'reEntries' | 'addOns', delta: number) => void;
   onEliminar: () => void;
   onRemover: () => void;
+  motivoRemocao: string | null;
 }) {
   const pago = PAGAMENTO[jogador.paymentStatus];
   const devido = entriesOf(jogador) * buyIn;
   const ultimo = emPe <= 1;
+  const [mostrarMotivoRemocao, setMostrarMotivoRemocao] = useState(false);
 
   return (
     <KTSurface nivel="card" padding={Space.lg}>
@@ -332,8 +335,8 @@ function CardJogador({
           {preparando ? 'Entrada registrada' : ultimo ? 'Último de pé' : `Cai agora em ${emPe}º`}
         </KTText>
         {jogador.buyIns + jogador.reEntries + jogador.addOns === 1 && (ultimo || preparando) ? (
-          <Pressable accessibilityRole="button" accessibilityLabel={`Remover entrada de ${jogador.name}`} onPress={onRemover} style={styles.removerBtn} hitSlop={6}>
-            <KTText papel="rotulo" color={Colors.text2}>Remover</KTText>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Remover entrada de ${jogador.name}`} onPress={() => motivoRemocao ? setMostrarMotivoRemocao(true) : onRemover()} style={styles.removerBtn} hitSlop={6}>
+            <KTText papel="rotulo" color={motivoRemocao ? Colors.text3 : Colors.text2}>Remover</KTText>
           </Pressable>
         ) : null}
         <Pressable
@@ -347,6 +350,7 @@ function CardJogador({
           <KTText papel="rotulo" color={Colors.red}>Eliminar</KTText>
         </Pressable>
       </View>
+      {mostrarMotivoRemocao && motivoRemocao ? <KTText papel="apoio" color={Colors.warn} accessibilityLiveRegion="polite">{motivoRemocao}</KTText> : null}
     </KTSurface>
   );
 }

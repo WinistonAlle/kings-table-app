@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
-import { desfazerEliminacao, eliminar } from '@/lib/torneio';
+import { desfazerEliminacao, eliminar, motivoBloqueioRemocao } from '@/lib/torneio';
 import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
@@ -118,11 +118,12 @@ export const useTournamentStore = create<TournamentStore>()(
 
       removePlayer: (tournamentId, playerId) =>
         set(s => ({
-          tournaments: s.tournaments.map(t =>
-            t.id === tournamentId
+          tournaments: s.tournaments.map(t => {
+            const player = t.players.find(p => p.id === playerId);
+            return t.id === tournamentId && player && !motivoBloqueioRemocao(t, player)
               ? { ...t, players: t.players.filter(p => p.id !== playerId), invitees: t.invitees?.map(c => c.playerId === playerId ? { ...c, playerId: undefined } : c) }
-              : t
-          ),
+              : t;
+          }),
         })),
 
       updatePlayer: (tournamentId, playerId, updates) =>
