@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Retirada de entrada em 25/09/2026
+
+- `player.remove` aceita somente uma entrada pendente, sem reentrada,
+  add-on, resultado ou comprovante, enquanto a mesa ainda esta em preparacao.
+  Um lock na linha do jogador serializa a checagem de comprovantes com
+  insercoes concorrentes que usam a chave estrangeira. O comando remove o
+  jogador, incrementa a revisao e grava recibo/auditoria atomicamente.
+- Postgres local passou payload invalido, idempotencia, conta alheia,
+  bloqueios de comprovante/pagamento/noite iniciada, falha forcada de
+  auditoria com rollback e concorrencia entre duas conexoes. Auth/HTTP local
+  passou duas contas, escrita direta negada e resposta perdida apos commit
+  com reenvio pelo mesmo ID; fixtures foram removidas. Suite do app e tipos
+  passaram. A interface continua com a retirada local.
+- A migracao existe apenas no banco local. O banco nao tem ainda convites,
+  acertos ou historico de mudancas de pagamento sincronizados, portanto a
+  garantia financeira online so cobre o estado e comprovantes que estao
+  efetivamente no banco. Integracao a UI, reconciliacao e Supabase remoto
+  continuam pendentes.
+
 ## Primeira entrada de jogador em 24/09/2026
 
 - `player.add` recebe ID estavel e nome para um convidado sem conta vinculada.
@@ -16,7 +35,7 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   ultima vaga. Auth/HTTP local com duas contas passou bloqueio de escrita
   direta, capacidade, nomes duplicados e reenvio apos resposta perdida depois
   do commit sem jogador duplicado. Fixtures dos testes foram removidas.
-- A UI ainda usa o fluxo local. `player.remove`, `player.update`, reentrada,
+- A UI ainda usa o fluxo local. `player.update`, reentrada,
   add-on, eliminacao, pagamentos e vinculacao a perfil ainda nao existem nesse
   contrato online. Convites confirmados ainda nao estao no banco, portanto a
   capacidade online so conta entradas registradas. Migracao so no banco local;

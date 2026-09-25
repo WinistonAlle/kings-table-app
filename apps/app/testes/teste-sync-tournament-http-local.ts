@@ -101,6 +101,8 @@ async function main() {
     const bypassPayment = await a.from('tournament_players').update({ payment_status: 'confirmed' })
       .eq('id', playerIds[0]);
     assert.equal(bypassPayment.error?.code, '42501');
+    const bypassRemoval = await a.from('tournament_players').delete().eq('id', playerIds[0]);
+    assert.equal(bypassRemoval.error?.code, '42501');
     const foreign = await b.from('tournaments').select('id').eq('id', tableIds[0]);
     assert.equal(foreign.error, null);
     assert.deepEqual(foreign.data, []);
@@ -120,13 +122,29 @@ async function main() {
       payload: { playerId: playerIds[2], name: 'Foreign' },
     } });
     assert.equal(foreignPlayer.error?.code, '42501');
+    const foreignRemoval = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...add, id: randomUUID(), kind: 'player.remove', ownerId: users[1], expectedRevision: 4,
+      payload: { playerId: playerIds[0] },
+    } });
+    assert.equal(foreignRemoval.error?.code, '42501');
+    const remove = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+      kind: 'player.remove', expectedRevision: 4, payload: { playerId: playerIds[1] } });
+    const removed = await send(remove, signal);
+    assert.equal(removed.status, 'confirmed');
+    assert.deepEqual(await send(remove, signal), removed);
+    const afterRemoval = await a.from('tournament_players').select('id').eq('tournament_id', tableIds[0]);
+    assert.equal(afterRemoval.error, null);
+    assert.deepEqual(afterRemoval.data?.map(row => row.id), [playerIds[0]]);
+    assert.equal((await send(createOperation({ ...remove }), signal)).status, 'conflict');
+    assert.equal((await send(createOperation({ ...remove, expectedRevision: 5,
+      payload: { playerId: playerIds[1] } }), signal)).status, 'rejected');
     const stale = await send(createOperation({ ...op }), signal);
     assert.equal(stale.status, 'conflict');
     const changedId = await send({ ...op, payload: { ...payload, name: 'Alterada' } }, signal);
     assert.equal(changedId.status, 'rejected');
     const invalid = await send(createOperation({ ...op, entityId: randomUUID(), payload: { ...payload, buyIn: 37.501 } }), signal);
     assert.equal(invalid.status, 'rejected');
-    const unsupported = await send(createOperation({ ...op, kind: 'player.remove', payload: {} }), signal);
+    const unsupported = await send(createOperation({ ...op, kind: 'player.update', payload: {} }), signal);
     assert.equal(unsupported.status, 'rejected');
 
     const session = (await a.auth.getSession()).data.session!;
@@ -165,21 +183,30 @@ async function main() {
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondPlayerOp.id)?.status, 'queued');
     await sender.run();
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === secondPlayerOp.id)?.status, 'confirmed');
+    loseResponse = true;
+    const removeAfterLostResponse = createOperation({ ownerId: users[0], entityId: tableIds[1],
+      entity: 'tournament', kind: 'player.remove', expectedRevision: 3,
+      payload: { playerId: secondPlayerOp.payload.playerId } });
+    await outbox.enqueue(removeAfterLostResponse);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === removeAfterLostResponse.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === removeAfterLostResponse.id)?.status, 'confirmed');
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 3);
+    assert.equal(audit.data?.length, 4);
     const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
     assert.equal(final.error, null);
-    assert.equal(final.data?.revision, 3);
+    assert.equal(final.data?.revision, 4);
     assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
     const finalPlayers = await a.from('tournament_players').select('id').eq('tournament_id', tableIds[1]);
     assert.equal(finalPlayers.error, null);
-    assert.equal(finalPlayers.data?.length, 1);
-    console.log('PASS: local Auth/HTTP tournament, planning and player entry; isolation, revisions and lost-response retry.');
+    assert.equal(finalPlayers.data?.length, 0);
+    console.log('PASS: local Auth/HTTP tournament, planning and player add/remove; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

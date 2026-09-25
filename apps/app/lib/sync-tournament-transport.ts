@@ -22,7 +22,7 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
     if (operation.ownerId !== ownerId) {
       return outcome('rejected', 'actor_mismatch', 'Este comando pertence a outra conta.');
     }
-    if (operation.entity !== 'tournament' || !['tournament.create', 'tournament.update', 'player.add'].includes(operation.kind)) {
+    if (operation.entity !== 'tournament' || !['tournament.create', 'tournament.update', 'player.add', 'player.remove'].includes(operation.kind)) {
       return outcome('rejected', 'unsupported_operation', 'Este comando da mesa ainda não está disponível online.');
     }
     try {

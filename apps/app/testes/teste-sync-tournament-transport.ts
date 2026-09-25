@@ -14,6 +14,8 @@ async function main() {
     payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'QA', capacity: 9 } });
   const add = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
     kind: 'player.add', expectedRevision: 2, payload: { playerId: novaIdentidade(), name: 'Ana QA' } });
+  const remove = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
+    kind: 'player.remove', expectedRevision: 3, payload: { playerId: add.payload.playerId } });
   let expectedOp = op;
   let body: unknown = { operationId: op.id, revision: 1 }, status = 200, calls = 0;
   let fail = false;
@@ -36,6 +38,9 @@ async function main() {
   expectedOp = add;
   body = { operationId: add.id, revision: 3 };
   assert.equal((await send(add, signal)).status, 'confirmed');
+  expectedOp = remove;
+  body = { operationId: remove.id, revision: 4 };
+  assert.equal((await send(remove, signal)).status, 'confirmed');
   expectedOp = op;
   body = { operationId: op.id, revision: 1 };
   for (const bad of [null, {}, { operationId: novaIdentidade(), revision: 1 },
