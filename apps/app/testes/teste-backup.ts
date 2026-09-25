@@ -17,6 +17,14 @@ const parsed = parseBackup(snapshot);
 assert.equal(parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true } }).blinds.handForHand, true);
 assert.throws(() => parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true, isRunning: true, levelEndsAt: Date.now() + 60000 } }));
 assert.equal(parsed.tournaments[0].buyIn, 37.5);
+const withFinancialHistory = { ...mesa, players: [{
+  id: 'jogador-a', userId: 'guest', name: 'Ana', buyIns: 1, reEntries: 0,
+  addOns: 0, paymentStatus: 'pending', financialActivityRecorded: true,
+}] };
+assert.equal(parseBackup({ ...snapshot, tournaments: [withFinancialHistory] })
+  .tournaments[0].players[0].financialActivityRecorded, true);
+assert.throws(() => parseBackup({ ...snapshot, tournaments: [{ ...withFinancialHistory,
+  players: [{ ...withFinancialHistory.players[0], financialActivityRecorded: 'yes' }] }] }));
 parsed.tournaments[0].name = 'Alterado';
 assert.equal(snapshot.tournaments[0].name, 'Amigos', 'validacao produz copia independente');
 assert.throws(() => parseBackup({ ...snapshot, version: 2 }));

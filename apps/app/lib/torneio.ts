@@ -11,11 +11,44 @@ import { distribuirPremios, prizePool } from './payouts';
 /** Quem ainda está de pé: sem posição final é porque não caiu. */
 export const emJogo = (t: Tournament) => t.players.filter((p) => !p.position);
 
+function temAtividadeFinanceiraAuditada(t: Tournament, nomeAtual: string): boolean {
+  const renomes = new Map<string, Set<string>>();
+  for (const event of t.audit ?? []) {
+    for (const change of event.changes) {
+      if (!change.label.startsWith('Nome de ')) continue;
+      if (!renomes.has(change.before)) renomes.set(change.before, new Set());
+      if (!renomes.has(change.after)) renomes.set(change.after, new Set());
+      renomes.get(change.before)!.add(change.after);
+      renomes.get(change.after)!.add(change.before);
+    }
+  }
+  const nomes = new Set([nomeAtual]);
+  const fila = [nomeAtual];
+  for (const nome of fila) {
+    for (const alias of renomes.get(nome) ?? []) {
+      if (nomes.has(alias)) continue;
+      nomes.add(alias);
+      fila.push(alias);
+    }
+  }
+  const rotulos = new Set([...nomes].flatMap(nome =>
+    ['Pagamento', 'Buy-ins', 'Reentradas', 'Add-ons'].map(campo => `${campo} de ${nome}`)));
+  return (t.audit ?? []).some(event => event.changes.some(change =>
+    rotulos.has(change.label)));
+}
+
+export function temHistoricoFinanceiro(t: Tournament, p: TournamentPlayer): boolean {
+  return p.financialActivityRecorded || (p.financialActivityRecorded === undefined && temAtividadeFinanceiraAuditada(t, p.name));
+}
+
 export function motivoBloqueioRemocao(t: Tournament, p: TournamentPlayer): string | null {
   if (t.status !== 'upcoming') return 'Depois que a noite começa, a entrada precisa permanecer no histórico.';
   if (p.position || p.eliminatedAt || p.prize !== undefined) return 'Este jogador já tem um resultado registrado.';
   if (p.buyIns !== 1 || p.reEntries !== 0 || p.addOns !== 0) return 'Remova reentradas e add-ons antes de retirar a entrada.';
   if (p.paymentStatus !== 'pending') return 'Confira o pagamento e qualquer devolução antes de retirar esta entrada.';
+  if (temHistoricoFinanceiro(t, p)) {
+    return 'Esta entrada já teve pagamento ou movimentação financeira. Preserve-a no histórico.';
+  }
   if (t.settlementPayments?.some(payment => payment.from === p.id || payment.to === p.id)) {
     return 'Há um acerto ligado a este jogador. A entrada deve permanecer no histórico.';
   }

@@ -15,6 +15,7 @@ const player = seat.extend({
   userId: z.string(), name: z.string().min(1), avatar: z.string().optional(),
   buyIns: count, reEntries: count, addOns: count, position: positive.optional(),
   prize: money.optional(), paymentStatus: z.enum(['pending', 'confirmed', 'disputed']),
+  financialActivityRecorded: z.boolean().optional(),
   eliminatedAt: z.string().optional(),
 }).passthrough();
 const tournament = z.object({

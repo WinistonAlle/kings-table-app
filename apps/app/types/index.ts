@@ -69,6 +69,7 @@ export interface TournamentPlayer {
   position?: number;
   prize?: number;
   paymentStatus: 'pending' | 'confirmed' | 'disputed';
+  financialActivityRecorded?: boolean;
   eliminatedAt?: string;
 }
 

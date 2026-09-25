@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
-import { desfazerEliminacao, eliminar, motivoBloqueioRemocao } from '@/lib/torneio';
+import { desfazerEliminacao, eliminar, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
 import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
@@ -76,7 +76,7 @@ export const useTournamentStore = create<TournamentStore>()(
         const existente = t.players.find(p => p.name.trim().toLocaleLowerCase('pt-BR') === c.name.trim().toLocaleLowerCase('pt-BR'));
         if (!existente && t.capacity && t.players.length >= t.capacity) return t;
         const playerId = existente?.id ?? novaIdentidade();
-        return { ...t, players: existente ? t.players : [...t.players, { id: playerId, userId: `guest_${novaIdentidade()}`, name: c.name, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const }], invitees: t.invitees!.map(i => i.id === guestId ? { ...i, playerId } : i) };
+        return { ...t, players: existente ? t.players : [...t.players, { id: playerId, userId: `guest_${novaIdentidade()}`, name: c.name, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const, financialActivityRecorded: false }], invitees: t.invitees!.map(i => i.id === guestId ? { ...i, playerId } : i) };
       }) })),
 
       createTournament: (data) => {
@@ -110,7 +110,7 @@ export const useTournamentStore = create<TournamentStore>()(
         set(s => ({
           tournaments: s.tournaments.map(t =>
             t.id === tournamentId && (t.status === 'upcoming' || t.status === 'running') && vagaParaJogador(t, player.name)
-              ? { ...t, players: [...t.players, { ...player, id }] }
+              ? { ...t, players: [...t.players, { ...player, id, financialActivityRecorded: false }] }
               : t
           ),
         }));
@@ -130,7 +130,14 @@ export const useTournamentStore = create<TournamentStore>()(
         set((s) => ({
           tournaments: s.tournaments.map((t) =>
             t.id === tournamentId
-              ? { ...t, players: t.players.map((p) => (p.id === playerId ? { ...p, ...updates } : p)) }
+              ? { ...t, players: t.players.map((p) => {
+                if (p.id !== playerId) return p;
+                const next = { ...p, ...updates };
+                const financialActivityRecorded = temHistoricoFinanceiro(t, p)
+                  || next.paymentStatus !== 'pending' || p.paymentStatus !== 'pending'
+                  || next.buyIns !== p.buyIns || next.reEntries !== p.reEntries || next.addOns !== p.addOns;
+                return { ...next, financialActivityRecorded: Boolean(financialActivityRecorded) };
+              }) }
               : t
           ),
         })),

@@ -1,6 +1,6 @@
 # Checklist do produto
 
-Atualizado em 24/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
+Atualizado em 25/09/2026. Escopo integral: docs/PROJETO-app.md, docs/PROJETO-site.md,
 docs/AUTENTICACAO.md, docs/PROXIMA-ETAPA.md e catalogo FEATURES da landing.
 Web primeiro; mobile depois. Historico antigo nao substitui evidencia atual.
 
@@ -100,7 +100,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 | F047 | **Permissões por função**: Separe os acessos de anfitrião, co-host, organizador, participante e convidado. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F048 | **Equipe de operação**: Distribua funções de proprietário, administrador, floor e dealer nos eventos maiores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F049 | **Passagem de organização**: Compartilhe o controle ou entregue a operação a outro anfitrião durante a noite. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
-| F050 | **Confirmações de ações**: Confira eliminações, pagamentos, premiações e encerramentos antes de concluir. | pendente | Confirmacoes locais; validar todos os fluxos e autorizacao online. |
+| F050 | **Confirmações de ações**: Confira eliminações, pagamentos, premiações e encerramentos antes de concluir. | pendente | Confirmacoes locais; remocao de entrada preserva atividade financeira mesmo apos reversao do status e recarga. Ainda faltam validar todos os fluxos e autorizacao online. |
 | F051 | **Acompanhamento de convidados**: Compartilhe uma visão somente de leitura para amigos e espectadores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F052 | **Lembretes e avisos**: Receba convites, confirmações de presença, anúncios e atualizações da noite. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 
@@ -198,6 +198,15 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 ## Registro Da Etapa Atual
 
+- Retirada local nao pode apagar uma entrada que ja teve pagamento,
+  reentrada ou add-on, mesmo se o estado atual voltou a pendente/zero.
+  Marcador persistente no jogador e historico de auditoria para dados
+  legados (incluindo renomeacoes); backup valida/preserva o marcador.
+  Suite do app, TypeScript e export web passaram. Chromium em modo teste
+  confirmou pago, contestado, pendente, retirada recusada e recarga; telas
+  390/1440 px inspecionadas sem overflow. Auditorias legadas sem identidade
+  estavel podem bloquear por coincidencia de nome; nao existe fluxo de
+  estorno financeiro real nem integracao online dessa regra.
 - `player.remove` implementado no contrato online local, sem ativacao na UI:
   so retira entrada unica pendente antes da noite, sem resultado nem
   comprovante; atualiza revisao, recibo e auditoria na mesma transacao.
