@@ -8,7 +8,7 @@ export const operationSchema = z.strictObject({
   entity: z.enum(['tournament', 'preset']),
   kind: z.enum([
     'tournament.create', 'tournament.update', 'tournament.delete', 'tournament.start',
-    'player.add', 'player.remove', 'player.update', 'player.payment.set', 'player.eliminate', 'player.undoElimination',
+    'player.add', 'player.remove', 'player.update', 'player.payment.set', 'player.entries.adjust', 'player.eliminate', 'player.undoElimination',
     'invite.add', 'invite.remove', 'invite.attendance', 'invite.checkIn',
     'seats.draw', 'seats.move', 'seats.undo', 'settlement.record', 'settlement.void',
     'clock.start', 'clock.pause', 'clock.reset', 'clock.level', 'clock.handForHand', 'clock.structure',

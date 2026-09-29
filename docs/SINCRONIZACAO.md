@@ -3,6 +3,28 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Reentradas e add-ons em 29/09/2026
+
+- `player.entries.adjust` recebe tipo, delta de uma unidade e total esperado em
+  centavos. A transacao valida revisao, propriedade, limite de reentradas,
+  total, estado da mesa e jogador; grava contador, marcador financeiro,
+  evento de entrada, recibo e auditoria juntos. Add-ons seguem o valor do
+  buy-in atual, como no app local. Reentrada desativada ou acima do limite e
+  recusada.
+- Acrescentar valor a uma entrada confirmada volta o estado do jogador a
+  pendente e registra a transicao. Reducoes sao correcoes permitidas somente
+  em estado pendente e sem comprovante; entradas confirmadas ou contestadas
+  nao sao reduzidas. A retirada consulta os eventos de entrada mesmo quando
+  o marcador financeiro esta incorreto.
+- Postgres local passou validacao, limites, isolamento, rollback por falha de
+  auditoria, reenvio idempotente e corridas entre duas conexoes. Auth/HTTP
+  local passou duas contas, bloqueio de escrita direta, cancelamento de uma
+  reentrada e resposta perdida apos commit sem duplicar add-on. Tipos, suite
+  do app, export web e verificador de seguranca local passaram.
+- Nao ha valor proprio por add-on, pagamento parcial, estorno financeiro nem
+  conciliacao com comprovantes. O transporte nao esta ligado ao store/tela e
+  a migracao foi aplicada somente no Supabase local, sem deploy remoto.
+
 ## Leitura de mesa em 29/09/2026
 
 - O leitor recebe a conta e o ID da mesa, consulta somente esse escopo,

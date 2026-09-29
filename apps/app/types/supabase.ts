@@ -91,6 +91,15 @@ interface DatabaseSchema {
         Insert: never;
         Update: never;
       };
+      player_entry_events: {
+        Row: { operation_id: string; actor_id: string; tournament_id: string; player_id: string;
+          player_name: string; entry_kind: 'reEntry' | 'addOn'; delta: -1 | 1;
+          count_before: number; count_after: number; total_before_cents: number;
+          total_after_cents: number; payment_status_before: 'pending' | 'confirmed' | 'disputed';
+          payment_status_after: 'pending' | 'confirmed' | 'disputed'; recorded_at: string };
+        Insert: never;
+        Update: never;
+      };
       tournament_players: {
         Row: {
           id: string;
