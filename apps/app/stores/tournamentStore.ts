@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
-import { desfazerEliminacao, eliminar, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
+import { corrigirNomeJogador, desfazerEliminacao, eliminar, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
 import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
@@ -23,6 +23,7 @@ interface TournamentStore {
   addPlayer: (tournamentId: string, player: Omit<TournamentPlayer, 'id'>) => void;
   removePlayer: (tournamentId: string, playerId: string) => void;
   updatePlayer: (tournamentId: string, playerId: string, updates: Partial<TournamentPlayer>) => void;
+  renamePlayer: (tournamentId: string, playerId: string, name: string) => string | null;
   getActiveTournament: () => Tournament | undefined;
   invite: (id: string, name: string, status: Attendance) => void;
   setAttendance: (id: string, guestId: string, status: Attendance) => void;
@@ -141,6 +142,17 @@ export const useTournamentStore = create<TournamentStore>()(
               : t
           ),
         })),
+
+      renamePlayer: (tournamentId, playerId, name) => {
+        let error: string | null = 'Mesa não encontrada.';
+        set(s => ({ tournaments: s.tournaments.map(t => {
+          if (t.id !== tournamentId) return t;
+          const result = corrigirNomeJogador(t, playerId, name);
+          error = result.error;
+          return result.tournament;
+        }) }));
+        return error;
+      },
 
       startTournament: (id) =>
         set(s => ({

@@ -90,7 +90,7 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 | ID | Requisito e criterio de entrega | Estado | Evidencia ou lacuna |
 |---|---|---|---|
-| F040 | **Cadastro simples**: Adicione participantes por nome, apelido, avatar e contato, sem complicar a entrada na mesa. | pendente | Entrada e correcao de nome locais; `player.update` de nome com revisao/auditoria testado apenas no Supabase local. Faltam ativacao na UI online, apelido, avatar e contato. |
+| F040 | **Cadastro simples**: Adicione participantes por nome, apelido, avatar e contato, sem complicar a entrada na mesa. | pendente | Entrada e correcao de nome locais na tela da mesa, com validacao, auditoria, persistencia e teste de interface desktop/mobile; `player.update` de nome com revisao/auditoria testado apenas no Supabase local. Faltam ativacao na UI online, apelido, avatar e contato. |
 | F041 | **Perfis sem duplicação**: Identifique cadastros repetidos e reúna o histórico de uma mesma pessoa. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F042 | **Entradas e recompras**: Registre buy-ins, reentradas, rebuys, add-ons e observações por jogador. | em andamento | Contadores locais; comando online transacional de reentrada/add-on com limites, eventos e isolamento validado somente no Supabase local. Ainda faltam ativacao na UI, rebuy distinto, observacoes e custos independentes. |
 | F043 | **Eliminação e colocação**: Marque saídas, atribua posições e corrija uma eliminação registrada por engano. | implementado | lib/torneio.ts; teste-torneio.ts |

@@ -11,6 +11,27 @@ import { distribuirPremios, prizePool } from './payouts';
 /** Quem ainda está de pé: sem posição final é porque não caiu. */
 export const emJogo = (t: Tournament) => t.players.filter((p) => !p.position);
 
+export function corrigirNomeJogador(t: Tournament, playerId: string, name: string): {
+  tournament: Tournament; error: string | null;
+} {
+  if (t.status === 'cancelled') return { tournament: t, error: 'Uma noite cancelada não pode ser alterada.' };
+  const player = t.players.find(p => p.id === playerId);
+  if (!player) return { tournament: t, error: 'Jogador não encontrado nesta mesa.' };
+  const normalized = name.trim();
+  if (!normalized || normalized.length > 60) {
+    return { tournament: t, error: 'Use um nome de 1 a 60 caracteres.' };
+  }
+  if (player.name === normalized) return { tournament: t, error: 'O nome já está assim.' };
+  if (t.players.some(p => p.id !== playerId && p.name.trim().toLocaleLowerCase('pt-BR') === normalized.toLocaleLowerCase('pt-BR'))) {
+    return { tournament: t, error: 'Já existe um jogador com esse nome nesta mesa.' };
+  }
+  return { tournament: {
+    ...t,
+    players: t.players.map(p => p.id === playerId ? { ...p, name: normalized } : p),
+    invitees: t.invitees?.map(invite => invite.playerId === playerId ? { ...invite, name: normalized } : invite),
+  }, error: null };
+}
+
 function temAtividadeFinanceiraAuditada(t: Tournament, nomeAtual: string): boolean {
   const renomes = new Map<string, Set<string>>();
   for (const event of t.audit ?? []) {

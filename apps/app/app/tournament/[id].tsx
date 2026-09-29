@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, View, TextInput, Pressable, StyleSheet } from 'react-native';
+import { ScrollView, View, TextInput, Pressable, StyleSheet, Modal } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Space } from '@/constants/tokens';
@@ -53,14 +53,18 @@ const proximoPagamento = (s: TournamentPlayer['paymentStatus']) =>
 export default function Mesa() {
   const params = useLocalSearchParams<{ id?: string }>();
   const id = typeof params.id === 'string' ? params.id : '';
-  const { tournaments, addPlayer, removePlayer, updatePlayer, setActive, eliminatePlayer, undoElimination } =
+  const { tournaments, addPlayer, removePlayer, updatePlayer, renamePlayer, setActive, eliminatePlayer, undoElimination } =
     useTournamentStore();
   const [nome, setNome] = useState('');
   const [erroJogador, setErroJogador] = useState('');
   const [confirmacaoJogador, setConfirmacaoJogador] = useState('');
   const [mostrarPremios, setMostrarPremios] = useState(false);
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [editedName, setEditedName] = useState('');
+  const [renameError, setRenameError] = useState('');
 
   const torneio = tournaments.find((t) => t.id === id);
+  const editedPlayer = torneio?.players.find(p => p.id === editingPlayerId);
 
   const premiacao = useMemo(() => {
     if (!torneio) return null;
@@ -107,6 +111,18 @@ export default function Mesa() {
     if (torneio.players.some(p => p.name.trim().toLocaleLowerCase('pt-BR') === limpo.toLocaleLowerCase('pt-BR'))) { setErroJogador('Já existe um jogador com esse nome. Use um sobrenome para diferenciar.'); return; }
     addPlayer(torneio.id, { userId: `guest_${novaIdentidade()}`, name: limpo, buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' });
     setNome(''); setErroJogador(''); setConfirmacaoJogador(`${limpo} entrou na mesa.`);
+  };
+  const openRename = (player: TournamentPlayer) => {
+    setEditingPlayerId(player.id);
+    setEditedName(player.name);
+    setRenameError('');
+  };
+  const saveRename = () => {
+    if (!torneio || !editedPlayer) return;
+    const error = renamePlayer(torneio.id, editedPlayer.id, editedName);
+    if (error) { setRenameError(error); return; }
+    setEditingPlayerId(null);
+    setRenameError('');
   };
 
   return (
@@ -162,6 +178,7 @@ export default function Mesa() {
                 emPe={naMesa.length}
                 buyIn={torneio.buyIn}
                 motivoRemocao={motivoBloqueioRemocao(torneio, j)}
+                onRename={() => openRename(j)}
                 onPagamento={() => confirmarAcao(`${j.name}: alterar pagamento para ${PAGAMENTO[proximoPagamento(j.paymentStatus)].texto}? Total registrado: ${dinheiro(entriesOf(j) * torneio.buyIn)}.`, () => updatePlayer(torneio.id, j.id, { paymentStatus: proximoPagamento(j.paymentStatus) }))}
                 onContador={(campo, d) => confirmarAcao(`${j.name}: ${d > 0 ? 'adicionar' : 'remover'} ${campo === 'reEntries' ? 'uma reentrada' : 'um add-on'} de ${dinheiro(torneio.buyIn)}? O valor total da noite será alterado.`, () => updatePlayer(torneio.id, j.id, { [campo]: Math.max(0, j[campo] + d) }))}
                 onEliminar={() => confirmarAcao(naMesa.length === 2 ? `Eliminar ${j.name} em 2º lugar? A noite será encerrada e a premiação será calculada.` : `Eliminar ${j.name} em ${naMesa.length}º lugar?`, () => eliminatePlayer(torneio.id, j.id))}
@@ -247,7 +264,12 @@ export default function Mesa() {
                     </KTText>
                   </View>
                   <View style={{ flex: 1 }}>
-                    <KTText papel="corpo" color={Colors.text1}>{j.name}</KTText>
+                    <View style={styles.nomeLinha}>
+                      <KTText papel="corpo" color={Colors.text1} style={{ flexShrink: 1 }}>{j.name}</KTText>
+                      {torneio.status !== 'cancelled' && <Pressable accessibilityRole="button" accessibilityLabel={`Corrigir nome de ${j.name}`} onPress={() => openRename(j)} style={styles.nomeAcao} hitSlop={4}>
+                        <Ionicons name="pencil-outline" size={17} color={Colors.text2} />
+                      </Pressable>}
+                    </View>
                     <KTText papel="apoio" color={Colors.text3}>
                       {j.prize ? dinheiro(j.prize) : 'fora do ITM'}
                     </KTText>
@@ -270,6 +292,20 @@ export default function Mesa() {
         </View>
         <View style={{ height: 60 }} />
       </ScrollView>
+      <Modal transparent animationType="fade" visible={!!editedPlayer && torneio.status !== 'cancelled'} onRequestClose={() => setEditingPlayerId(null)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalPanel} accessibilityViewIsModal>
+            <KTText papel="subtitulo">Corrigir nome</KTText>
+            <KTText papel="apoio" color={Colors.text1}>{editedPlayer?.name}</KTText>
+            <TextInput accessibilityLabel="Novo nome do jogador" value={editedName} onChangeText={value => { setEditedName(value); setRenameError(''); }} autoFocus selectTextOnFocus maxLength={60} returnKeyType="done" onSubmitEditing={saveRename} style={styles.campo} />
+            {!!renameError && <KTText accessibilityLiveRegion="polite" color={Colors.danger}>{renameError}</KTText>}
+            <View style={styles.modalActions}>
+              <KTButton label="Cancelar" variant="fantasma" onPress={() => setEditingPlayerId(null)} style={{ flex: 1 }} />
+              <KTButton label="Salvar" onPress={saveRename} style={{ flex: 1 }} />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </KTScreen>
   );
 }
@@ -287,7 +323,7 @@ function Cel({ rotulo, valor, nota }: { rotulo: string; valor: string; nota: str
 }
 
 function CardJogador({
-  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover, preparando, motivoRemocao,
+  jogador, emPe, buyIn, onPagamento, onContador, onEliminar, onRemover, onRename, preparando, motivoRemocao,
 }: {
   jogador: TournamentPlayer;
   preparando?: boolean;
@@ -297,6 +333,7 @@ function CardJogador({
   onContador: (campo: 'reEntries' | 'addOns', delta: number) => void;
   onEliminar: () => void;
   onRemover: () => void;
+  onRename: () => void;
   motivoRemocao: string | null;
 }) {
   const pago = PAGAMENTO[jogador.paymentStatus];
@@ -308,7 +345,12 @@ function CardJogador({
     <KTSurface nivel="card" padding={Space.lg}>
       <View style={styles.jogadorTopo}>
         <View style={{ flex: 1 }}>
-          <KTText papel="corpoForte" color={Colors.text0}>{jogador.name}</KTText>
+          <View style={styles.nomeLinha}>
+            <KTText papel="corpoForte" color={Colors.text0} style={{ flexShrink: 1 }}>{jogador.name}</KTText>
+            <Pressable accessibilityRole="button" accessibilityLabel={`Corrigir nome de ${jogador.name}`} onPress={onRename} style={styles.nomeAcao} hitSlop={4}>
+              <Ionicons name="pencil-outline" size={17} color={Colors.text2} />
+            </Pressable>
+          </View>
           <KTText papel="apoio" color={Colors.gold200}>{lugarJogador(jogador)}</KTText>
           <KTText papel="apoio" color={Colors.text2}>
             {entriesOf(jogador)} {entriesOf(jogador) === 1 ? 'entrada' : 'entradas'} · {dinheiro(devido)}
@@ -425,6 +467,13 @@ const styles = StyleSheet.create({
   dica: { textAlign: 'center', paddingVertical: Space.lg },
 
   jogadorTopo: { flexDirection: 'row', alignItems: 'flex-start', gap: Space.md },
+  nomeLinha: { flexDirection: 'row', alignItems: 'center', gap: Space.xs, flexWrap: 'wrap' },
+  nomeAcao: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.76)', justifyContent: 'center', padding: Space.lg },
+  modalPanel: { width: '100%', maxWidth: 440, alignSelf: 'center', backgroundColor: Colors.bg1,
+    borderRadius: Radius.md, borderWidth: StyleSheet.hairlineWidth, borderColor: Colors.borderStrong,
+    padding: Space.xl, gap: Space.md },
+  modalActions: { flexDirection: 'row', gap: Space.sm, marginTop: Space.sm },
   selo: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     paddingHorizontal: Space.md, paddingVertical: 6,
