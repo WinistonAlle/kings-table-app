@@ -3,6 +3,23 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Estado de pagamento em 29/09/2026
+
+- `player.payment.set` altera o estado financeiro do jogador inteiro entre
+  pendente, confirmado e contestado. Exige valor esperado em centavos, revisao
+  atual, conta organizadora e estado diferente do anterior. A transacao grava
+  marcador de atividade financeira, evento imutavel, revisao, recibo e auditoria.
+  Retornar a pendente nao autoriza apagar a entrada nem apaga o historico.
+- Postgres local passou payloads invalidos, revisao e valor obsoletos,
+  rollback, isolamento, reenvio idempotente e corrida de duas conexoes. Auth/HTTP
+  local passou duas contas, RLS dos eventos, escrita direta negada, reversao e
+  resposta perdida apos commit com reenvio pelo mesmo ID. Tipos e suite do app
+  passaram. Fixtures foram removidas.
+- O transporte aceita o comando, mas a UI ainda usa o fluxo local. Nao ha
+  pagamentos parciais, valor efetivamente recebido por evento, reconciliacao
+  com comprovantes nem migracao de historico local. A migracao foi aplicada
+  somente no Supabase local; producao e ativacao para usuarios pendentes.
+
 ## Retirada de entrada em 25/09/2026
 
 - `player.remove` aceita somente uma entrada pendente, sem reentrada,
@@ -16,10 +33,10 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   passou duas contas, escrita direta negada e resposta perdida apos commit
   com reenvio pelo mesmo ID; fixtures foram removidas. Suite do app e tipos
   passaram. A interface continua com a retirada local.
-- A migracao existe apenas no banco local. O banco nao tem ainda convites,
-  acertos ou historico de mudancas de pagamento sincronizados, portanto a
-  garantia financeira online so cobre o estado e comprovantes que estao
-  efetivamente no banco. Integracao a UI, reconciliacao e Supabase remoto
+- A migracao existe apenas no banco local. O banco nao tem ainda convites
+  ou acertos sincronizados; a garantia financeira online so cobre o estado,
+  eventos e comprovantes que estao efetivamente no banco. Integracao a UI,
+  reconciliacao e Supabase remoto
   continuam pendentes.
 
 ## Primeira entrada de jogador em 24/09/2026
@@ -36,7 +53,7 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   direta, capacidade, nomes duplicados e reenvio apos resposta perdida depois
   do commit sem jogador duplicado. Fixtures dos testes foram removidas.
 - A UI ainda usa o fluxo local. `player.update`, reentrada,
-  add-on, eliminacao, pagamentos e vinculacao a perfil ainda nao existem nesse
+  add-on, eliminacao e vinculacao a perfil ainda nao existem nesse
   contrato online. Convites confirmados ainda nao estao no banco, portanto a
   capacidade online so conta entradas registradas. Migracao so no banco local;
   a sincronizacao de mesas segue desativada para o usuario.

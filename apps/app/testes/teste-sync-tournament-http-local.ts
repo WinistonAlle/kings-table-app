@@ -138,6 +138,40 @@ async function main() {
     assert.equal((await send(createOperation({ ...remove }), signal)).status, 'conflict');
     assert.equal((await send(createOperation({ ...remove, expectedRevision: 5,
       payload: { playerId: playerIds[1] } }), signal)).status, 'rejected');
+    const payment = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+      kind: 'player.payment.set', expectedRevision: 5,
+      payload: { playerId: playerIds[0], status: 'confirmed', expectedAmountCents: 3750 } });
+    const paid = await send(payment, signal);
+    assert.equal(paid.status, 'confirmed');
+    assert.deepEqual(await send(payment, signal), paid);
+    const paymentEvents = await a.from('player_payment_events').select('operation_id,status_before,status_after,amount_cents')
+      .eq('tournament_id', tableIds[0]);
+    assert.equal(paymentEvents.error, null);
+    assert.deepEqual(paymentEvents.data, [{ operation_id: payment.id, status_before: 'pending',
+      status_after: 'confirmed', amount_cents: 3750 }]);
+    const foreignEvents = await b.from('player_payment_events').select('operation_id').eq('tournament_id', tableIds[0]);
+    assert.equal(foreignEvents.error, null);
+    assert.deepEqual(foreignEvents.data, []);
+    const bypassEvent = await a.from('player_payment_events').delete().eq('operation_id', payment.id);
+    assert.equal(bypassEvent.error?.code, '42501');
+    const foreignPayment = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...payment, id: randomUUID(), ownerId: users[1], expectedRevision: 6,
+    } });
+    assert.equal(foreignPayment.error?.code, '42501');
+    assert.equal((await send(createOperation({ ...payment, expectedRevision: 6,
+      payload: { ...payment.payload, status: 'confirmed' } }), signal)).status, 'rejected');
+    assert.equal((await send(createOperation({ ...payment, expectedRevision: 6,
+      payload: { ...payment.payload, status: 'pending', expectedAmountCents: 3700 } }), signal)).status, 'conflict');
+    const reversed = await send(createOperation({ ...payment, expectedRevision: 6,
+      payload: { ...payment.payload, status: 'pending' } }), signal);
+    assert.equal(reversed.status, 'confirmed');
+    assert.equal((await send(createOperation({ ...remove, expectedRevision: 7,
+      payload: { playerId: playerIds[0] } }), signal)).status, 'rejected');
+    const preserved = await a.from('tournament_players').select('payment_status,financial_activity_recorded')
+      .eq('id', playerIds[0]).single();
+    assert.equal(preserved.error, null);
+    assert.equal(preserved.data?.payment_status, 'pending');
+    assert.equal(preserved.data?.financial_activity_recorded, true);
     const stale = await send(createOperation({ ...op }), signal);
     assert.equal(stale.status, 'conflict');
     const changedId = await send({ ...op, payload: { ...payload, name: 'Alterada' } }, signal);
@@ -192,21 +226,36 @@ async function main() {
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === removeAfterLostResponse.id)?.status, 'queued');
     await sender.run();
     assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === removeAfterLostResponse.id)?.status, 'confirmed');
+    const paidPlayer = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'player.add', expectedRevision: 4, payload: { playerId: randomUUID(), name: 'Paid retry player' } });
+    assert.equal((await send(paidPlayer, signal)).status, 'confirmed');
+    loseResponse = true;
+    const paymentAfterLostResponse = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'player.payment.set', expectedRevision: 5,
+      payload: { playerId: paidPlayer.payload.playerId, status: 'confirmed', expectedAmountCents: 3750 } });
+    await outbox.enqueue(paymentAfterLostResponse);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === paymentAfterLostResponse.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === paymentAfterLostResponse.id)?.status, 'confirmed');
+    const retryEvents = await a.from('player_payment_events').select('operation_id').eq('tournament_id', tableIds[1]);
+    assert.equal(retryEvents.error, null);
+    assert.deepEqual(retryEvents.data, [{ operation_id: paymentAfterLostResponse.id }]);
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 4);
+    assert.equal(audit.data?.length, 6);
     const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
     assert.equal(final.error, null);
-    assert.equal(final.data?.revision, 4);
+    assert.equal(final.data?.revision, 6);
     assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
     const finalPlayers = await a.from('tournament_players').select('id').eq('tournament_id', tableIds[1]);
     assert.equal(finalPlayers.error, null);
-    assert.equal(finalPlayers.data?.length, 0);
-    console.log('PASS: local Auth/HTTP tournament, planning and player add/remove; isolation, revisions and lost-response retry.');
+    assert.deepEqual(finalPlayers.data?.map(row => row.id), [paidPlayer.payload.playerId]);
+    console.log('PASS: local Auth/HTTP tournament, planning, players and payment; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

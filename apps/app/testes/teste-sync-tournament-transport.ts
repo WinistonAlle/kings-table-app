@@ -16,6 +16,9 @@ async function main() {
     kind: 'player.add', expectedRevision: 2, payload: { playerId: novaIdentidade(), name: 'Ana QA' } });
   const remove = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
     kind: 'player.remove', expectedRevision: 3, payload: { playerId: add.payload.playerId } });
+  const payment = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
+    kind: 'player.payment.set', expectedRevision: 4,
+    payload: { playerId: add.payload.playerId, status: 'confirmed', expectedAmountCents: 3750 } });
   let expectedOp = op;
   let body: unknown = { operationId: op.id, revision: 1 }, status = 200, calls = 0;
   let fail = false;
@@ -41,6 +44,9 @@ async function main() {
   expectedOp = remove;
   body = { operationId: remove.id, revision: 4 };
   assert.equal((await send(remove, signal)).status, 'confirmed');
+  expectedOp = payment;
+  body = { operationId: payment.id, revision: 5 };
+  assert.equal((await send(payment, signal)).status, 'confirmed');
   expectedOp = op;
   body = { operationId: op.id, revision: 1 };
   for (const bad of [null, {}, { operationId: novaIdentidade(), revision: 1 },

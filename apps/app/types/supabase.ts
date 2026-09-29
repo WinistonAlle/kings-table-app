@@ -84,6 +84,13 @@ interface DatabaseSchema {
         Insert: never;
         Update: never;
       };
+      player_payment_events: {
+        Row: { operation_id: string; actor_id: string; tournament_id: string; player_id: string;
+          player_name: string; status_before: 'pending' | 'confirmed' | 'disputed';
+          status_after: 'pending' | 'confirmed' | 'disputed'; amount_cents: number; recorded_at: string };
+        Insert: never;
+        Update: never;
+      };
       tournament_players: {
         Row: {
           id: string;
@@ -96,12 +103,14 @@ interface DatabaseSchema {
           position: number | null;
           prize: number | null;
           payment_status: 'pending' | 'confirmed' | 'disputed';
+          financial_activity_recorded: boolean;
           eliminated_at: string | null;
           registered_at: string;
         };
         Insert: { id?: string; tournament_id: string; display_name: string; user_id?: string | null;
           buy_ins?: number; re_entries?: number; add_ons?: number; position?: number | null;
           prize?: number | null; payment_status?: 'pending' | 'confirmed' | 'disputed';
+          financial_activity_recorded?: boolean;
           eliminated_at?: string | null; registered_at?: string };
         Update: Partial<Database['public']['Tables']['tournament_players']['Insert']>;
       };
