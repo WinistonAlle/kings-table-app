@@ -7,6 +7,7 @@ import { deleteDB } from 'idb';
 import type { Database } from '../types/supabase';
 import { createOperation } from '../lib/sync-operation';
 import { createTournamentTransport } from '../lib/sync-tournament-transport';
+import { createTournamentReader } from '../lib/sync-tournament-reader';
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 
@@ -172,6 +173,11 @@ async function main() {
     assert.equal(preserved.error, null);
     assert.equal(preserved.data?.payment_status, 'pending');
     assert.equal(preserved.data?.financial_activity_recorded, true);
+    const ownSnapshot = await createTournamentReader(a, users[0], tableIds[0], 1)(signal);
+    assert.equal(ownSnapshot?.tournament.revision, 7);
+    assert.deepEqual(ownSnapshot?.players.map(player => player.id), [playerIds[0]]);
+    assert.equal(ownSnapshot?.players[0].financial_activity_recorded, true);
+    assert.equal(await createTournamentReader(b, users[1], tableIds[0])(signal), null);
     const stale = await send(createOperation({ ...op }), signal);
     assert.equal(stale.status, 'conflict');
     const changedId = await send({ ...op, payload: { ...payload, name: 'Alterada' } }, signal);
@@ -255,7 +261,7 @@ async function main() {
     const finalPlayers = await a.from('tournament_players').select('id').eq('tournament_id', tableIds[1]);
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data?.map(row => row.id), [paidPlayer.payload.playerId]);
-    console.log('PASS: local Auth/HTTP tournament, planning, players and payment; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, planning, players, payment and scoped snapshot; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

@@ -3,6 +3,22 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Leitura de mesa em 29/09/2026
+
+- O leitor recebe a conta e o ID da mesa, consulta somente esse escopo,
+  percorre jogadores por ID e confere a revisao antes e depois. Mudanca durante
+  a leitura causa ate tres tentativas; uma resposta invalida ou incompleta e
+  recusada sem retornar um snapshot parcial. Ausencia nao e interpretada como
+  exclusao de dados locais.
+- Testes HTTP simulados cobrem paginas curtas, erro em pagina posterior,
+  isolamento, revisao mutavel, resposta invalida e cancelamento tardio.
+  Auth/HTTP local com duas contas confirmou a leitura da mesa com pagamento
+  revertido, marcador financeiro e invisibilidade para outra conta. Tipos,
+  suite do app e export web passaram; fixtures foram removidas.
+- Isto ainda nao e reconciliacao: o leitor nao mescla dados, nao acompanha
+  mudancas via Realtime e nao grava no store local. A interface continua local
+  enquanto faltam comandos online do dominio e migracao das noites existentes.
+
 ## Estado de pagamento em 29/09/2026
 
 - `player.payment.set` altera o estado financeiro do jogador inteiro entre
