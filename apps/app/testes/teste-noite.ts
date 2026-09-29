@@ -51,6 +51,21 @@ assert.equal(useTournamentStore.getState().tournaments[0].invitees!.length, 3, '
 store.startTournament(t.id);
 store.invite(t.id, 'Novo', 'confirmed');
 assert.equal(useTournamentStore.getState().tournaments[0].invitees!.length, 3, 'RSVP encerrado após início');
+const late: Tournament = { ...t, id: 'late-night', status: 'running', capacity: undefined,
+  invitees: undefined, players: ['Ana', 'Bia', 'Caio'].map((name, i) => ({
+    id: `late-${i}`, userId: `guest-${i}`, name, buyIns: 1, reEntries: 0, addOns: 0,
+    paymentStatus: 'pending' as const,
+  })) };
+useTournamentStore.setState({ tournaments: [late], activeTournamentId: late.id });
+store.eliminatePlayer(late.id, 'late-2');
+store.addPlayer(late.id, { userId: 'guest-new', name: 'Duda', buyIns: 1,
+  reEntries: 0, addOns: 0, paymentStatus: 'pending' });
+await useTournamentStore.persist.rehydrate();
+const afterLate = useTournamentStore.getState().tournaments[0];
+assert.equal(afterLate.players.find(player => player.id === 'late-2')?.position, 4,
+  'entrada tardia desloca colocacao anterior e persiste');
+assert.equal(afterLate.players.find(player => player.name === 'Duda')?.position, undefined);
+assert.equal(afterLate.players.length, 4);
 console.log('Agendamento, presença, vagas e check-in: tudo passou.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

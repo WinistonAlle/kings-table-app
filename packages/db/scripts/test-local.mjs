@@ -55,6 +55,7 @@ await sql(await readFile(new URL('../supabase/tests/preset_operations.sql', impo
 await sql(await readFile(new URL('../supabase/tests/tournament_create.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_planning.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_add.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/player_late_entry.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_rename.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_remove.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_payment.sql', import.meta.url), 'utf8'));
@@ -450,7 +451,7 @@ try {
   assert.equal(await sql(`select display_name from public.tournament_players where id='${removableIds[2]}';`), 'Renamed twice');
   assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '21');
   assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '21');
-  console.log('PASS: canonical migrations, RLS, rollback and backup/preset/tournament/player/payment/entry/clock/rename races.');
+console.log('PASS: canonical migrations, RLS, rollback, late-entry checks and backup/preset/tournament/player/payment/entry/clock/rename races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity

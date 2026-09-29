@@ -1,4 +1,4 @@
-import { eliminar, desfazerEliminacao, emJogo } from '../lib/torneio';
+import { eliminar, desfazerEliminacao, emJogo, incluirJogador } from '../lib/torneio';
 import { prizePool } from '../lib/payouts';
 import { calcularClassificacao } from '../lib/standings';
 import type { Tournament } from '../types';
@@ -54,7 +54,7 @@ ok(JSON.stringify(depois) === antes, 'eliminar num torneio encerrado nao muda na
 let u = desfazerEliminacao(t, 'p1');
 ok(u.status === 'running', 'desfazer reabre o torneio');
 ok(emJogo(u).length === 2, 'campeao volta pra mesa junto (2 de pe)');
-ok(u.players.every(p => p.prize === undefined || p.position! > 2), 'premios do topo foram limpos');
+ok(u.players.every(p => p.prize === undefined), 'reabrir limpa todos os premios ate recalcular resultado');
 
 // e refazer leva ao mesmo lugar
 u = eliminar(u, 'p1');
@@ -83,6 +83,32 @@ ok(premiosCentavos[0] >= premiosCentavos[1] && premiosCentavos.every(value => va
 const reaberto = desfazerEliminacao(fracionado, 'centavos-1');
 ok(reaberto.status === 'running' && reaberto.players[0].prize === undefined,
   'desfazer elimina premios calculados em centavos');
+
+let tardia: Tournament = {
+  ...t, id: 'tardia', status: 'running',
+  players: t.players.map(p => ({ ...p, position: undefined, prize: undefined, eliminatedAt: undefined })),
+};
+tardia = eliminar(tardia, 'p6');
+ok(tardia.players.find(p => p.id === 'p6')?.position === 7, 'primeira queda tem colocacao inicial');
+tardia = incluirJogador(tardia, {
+  id: 'late', userId: 'guest-late', name: 'Entrada tardia', buyIns: 1,
+  reEntries: 0, addOns: 0, paymentStatus: 'pending',
+});
+ok(tardia.players.find(p => p.id === 'p6')?.position === 8 && emJogo(tardia).length === 7,
+  'entrada tardia desloca quedas anteriores sem duplicar colocacao');
+tardia = eliminar(tardia, 'late');
+ok(tardia.players.find(p => p.id === 'late')?.position === 7, 'queda seguinte ocupa a nova posicao');
+ok(desfazerEliminacao(tardia, 'p6') === tardia, 'nao desfaz queda antiga fora de ordem');
+tardia = desfazerEliminacao(tardia, 'late');
+ok(tardia.players.find(p => p.id === 'late')?.position === undefined,
+  'ultima queda apos entrada tardia ainda pode ser desfeita');
+tardia = eliminar(tardia, 'late');
+for (let i = 5; i >= 1; i--) tardia = eliminar(tardia, `p${i}`);
+const posicoesTardias = tardia.players.map(p => p.position).sort((a, b) => a! - b!);
+ok(JSON.stringify(posicoesTardias) === JSON.stringify([1, 2, 3, 4, 5, 6, 7, 8]),
+  'resultado final com entrada tardia tem todas as posicoes sem repeticao');
+ok(tardia.players.reduce((sum, p) => sum + (p.prize ?? 0), 0) === prizePool(tardia),
+  'premiacao da entrada tardia conserva o bolo');
 
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTudo passou');
 process.exit(falhas ? 1 : 0);

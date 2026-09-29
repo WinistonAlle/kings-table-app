@@ -22,7 +22,7 @@ async function main() {
   const a = createClient<Database>(url, local.ANON_KEY, options);
   const b = createClient<Database>(url, local.ANON_KEY, options);
   const users: string[] = [];
-  const tableIds = [randomUUID(), randomUUID()];
+  const tableIds = [randomUUID(), randomUUID(), randomUUID()];
   const dbName = `qa-tournament-create-${randomUUID()}`;
   const outbox = new SyncOutbox(dbName);
   const password = `Qa-${randomUUID()}!`;
@@ -357,10 +357,41 @@ async function main() {
       payload: { ...renameAfterLostResponse.payload, name: 'Intruso' },
     } });
     assert.equal(foreignRename.error?.code, '42501');
+    const lateBase = createOperation({ ownerId: users[0], entityId: tableIds[2], entity: 'tournament',
+      kind: 'tournament.create', expectedRevision: 0,
+      payload: { ...payload, name: 'Entrada tardia HTTP QA' } });
+    assert.equal((await send(lateBase, signal)).status, 'confirmed');
+    const latePlayers = [randomUUID(), randomUUID(), randomUUID()];
+    for (const [i, playerId] of latePlayers.entries()) {
+      assert.equal((await send(createOperation({ ...lateBase, kind: 'player.add', expectedRevision: i + 1,
+        payload: { playerId, name: `Jogador ${i + 1}` } }), signal)).status, 'confirmed');
+    }
+    assert.equal((await send(createOperation({ ...lateBase, kind: 'tournament.start',
+      expectedRevision: 4, payload: {} }), signal)).status, 'confirmed');
+    const fixtureElimination = await admin.from('tournament_players')
+      .update({ position: 3, eliminated_at: new Date().toISOString() }).eq('id', latePlayers[2]);
+    assert.equal(fixtureElimination.error, null);
+    const lateEntry = createOperation({ ...lateBase, kind: 'player.add', expectedRevision: 5,
+      payload: { playerId: randomUUID(), name: 'Entrada tardia' } });
+    const lateResult = await send(lateEntry, signal);
+    assert.equal(lateResult.status, 'confirmed');
+    assert.deepEqual(await send(lateEntry, signal), lateResult);
+    const lateSnapshot = await createTournamentReader(a, users[0], tableIds[2])(signal);
+    assert.equal(lateSnapshot?.tournament.revision, 6);
+    assert.equal(lateSnapshot?.players.find(player => player.id === latePlayers[2])?.position, 4);
+    assert.equal(lateSnapshot?.players.find(player => player.id === lateEntry.payload.playerId)?.position, null);
+    assert.equal((await send(createOperation({ ...lateEntry,
+      payload: { playerId: randomUUID(), name: 'Revisao antiga' } }), signal)).status, 'conflict');
+    const foreignLate = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...lateEntry, id: randomUUID(), ownerId: users[1], expectedRevision: 6,
+      payload: { playerId: randomUUID(), name: 'Intruso' },
+    } });
+    assert.equal(foreignLate.error?.code, '42501');
+    assert.equal((await createTournamentReader(b, users[1], tableIds[2])(signal)), null);
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
-    assert.equal(rows.data?.length, 2);
+    assert.equal(rows.data?.length, 3);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
     assert.equal(audit.data?.length, 15);
@@ -372,7 +403,7 @@ async function main() {
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
       add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, players, late entry, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

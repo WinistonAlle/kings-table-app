@@ -11,6 +11,18 @@ import { distribuirPremios, prizePool } from './payouts';
 /** Quem ainda está de pé: sem posição final é porque não caiu. */
 export const emJogo = (t: Tournament) => t.players.filter((p) => !p.position);
 
+export function incluirJogador(t: Tournament, player: TournamentPlayer): Tournament {
+  return {
+    ...t,
+    players: [
+      ...t.players.map(p => t.status === 'running' && p.position
+        ? { ...p, position: p.position + 1 }
+        : p),
+      player,
+    ],
+  };
+}
+
 export function corrigirNomeJogador(t: Tournament, playerId: string, name: string): {
   tournament: Tournament; error: string | null;
 } {
@@ -150,7 +162,9 @@ export function desfazerEliminacao(t: Tournament, playerId: string): Tournament 
     ...t,
     status: 'running',
     players: t.players.map((p) =>
-      p.id === playerId || (t.status === 'finished' && p.position === 1) ? limpar(p) : p,
+      p.id === playerId || (t.status === 'finished' && p.position === 1)
+        ? limpar(p)
+        : t.status === 'finished' ? { ...p, prize: undefined } : p,
     ),
   };
 }

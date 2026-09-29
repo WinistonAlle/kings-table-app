@@ -3,6 +3,22 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Entrada tardia apos eliminacao em 29/09/2026
+
+- Ao adicionar jogador durante a noite, as colocacoes ja registradas avancam
+  uma posicao antes da nova entrada. Assim, a proxima eliminacao ocupa uma
+  colocacao unica; desfazer o encerramento limpa todos os premios ate novo
+  calculo. O store local passou testes de dominio, recarga e interface web
+  em Chromium desktop/390 px.
+- `player.add` aplica o mesmo deslocamento sob lock da mesa e na mesma
+  transacao de revisao, recibo e auditoria. SQL local passou reenvio,
+  revisao obsoleta, rollback de auditoria e isolamento. Auth/HTTP local
+  com duas contas confirmou leitura, reenvio e bloqueio de outra conta.
+  A queda anterior foi preparada diretamente na fixture porque ainda nao
+  existe comando online de eliminacao; as fixtures foram removidas.
+- Migracao aplicada apenas no Supabase local. A UI continua usando o store
+  local; eliminacao online, reconciliacao, espera remota e producao pendentes.
+
 ## Premiação local em 29/09/2026
 
 - A distribuição local agora calcula quotas em centavos inteiros, trunca as

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
-import { corrigirNomeJogador, desfazerEliminacao, eliminar, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
+import { corrigirNomeJogador, desfazerEliminacao, eliminar, incluirJogador, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
 import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
@@ -111,7 +111,7 @@ export const useTournamentStore = create<TournamentStore>()(
         set(s => ({
           tournaments: s.tournaments.map(t =>
             t.id === tournamentId && (t.status === 'upcoming' || t.status === 'running') && vagaParaJogador(t, player.name)
-              ? { ...t, players: [...t.players, { ...player, id, financialActivityRecorded: false }] }
+              ? incluirJogador(t, { ...player, id, financialActivityRecorded: false })
               : t
           ),
         }));
