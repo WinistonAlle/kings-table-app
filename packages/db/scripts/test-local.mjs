@@ -58,6 +58,7 @@ await sql(await readFile(new URL('../supabase/tests/player_add.sql', import.meta
 await sql(await readFile(new URL('../supabase/tests/player_remove.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_payment.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_entries.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/tournament_clock.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
 const presetId = randomUUID();
@@ -375,9 +376,46 @@ try {
   assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[1]}';`), '11');
   assert.equal(await sql(`select add_ons from public.tournament_players where id='${removableIds[2]}';`), '2');
   assert.equal(await sql(`select count(*) from public.player_entry_events where tournament_id='${tournamentIds[1]}';`), '2');
-  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '16');
-  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '16');
-  console.log('PASS: canonical migrations, RLS, rollback and backup/preset/tournament/player/payment/entry races.');
+  const startOp = { ...seedPlayer, id: randomUUID(), kind: 'tournament.start',
+    expectedRevision: 11, payload: {} };
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand(startOp)}`);
+  for (const mode of ['duplicate', 'competing']) {
+    const revision = mode === 'duplicate' ? 12 : 13;
+    const firstOp = { ...startOp, id: randomUUID(), kind: mode === 'duplicate' ? 'clock.start' : 'clock.pause',
+      expectedRevision: revision };
+    const secondOp = mode === 'duplicate' ? firstOp : { ...firstOp, id: randomUUID() };
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(firstOp)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Clock transaction did not acquire lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(secondOp)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+      'Concurrent clock command never waited for lock');
+    first.child.stdin.end('commit;\n');
+    const a = await first.completed;
+    const b = await second.completed;
+    assert.equal(a.code, 0, a.stderr);
+    if (mode === 'duplicate') {
+      assert.equal(b.code, 0, b.stderr);
+      const receipt = output => JSON.parse(output.split('\n').find(line => line.startsWith('{')));
+      assert.deepEqual(receipt(a.stdout), receipt(b.stdout));
+    } else {
+      assert.notEqual(b.code, 0, 'Competing clock revision was accepted');
+      assert.match(b.stderr, /40001/);
+    }
+  }
+  assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[1]}';`), '14');
+  assert.equal(await sql(`select status from public.tournaments where id='${tournamentIds[1]}';`), 'running');
+  assert.equal(await sql(`select clock_ends_at is null from public.tournaments where id='${tournamentIds[1]}';`), 't');
+  assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '19');
+  assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '19');
+  console.log('PASS: canonical migrations, RLS, rollback and backup/preset/tournament/player/payment/entry/clock races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity

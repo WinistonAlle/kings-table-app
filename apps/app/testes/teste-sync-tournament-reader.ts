@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 import { novaIdentidade } from '../lib/identidade';
-import { createTournamentReader } from '../lib/sync-tournament-reader';
+import { createTournamentReader, createTournamentClockReader } from '../lib/sync-tournament-reader';
 
 async function main() {
   const owner = novaIdentidade(), tableId = novaIdentidade();
@@ -12,6 +12,7 @@ async function main() {
     max_re_entries: 0, start_time: '2026-09-29T12:00:00+00:00', current_level: 0,
     seconds_remaining: 1200, revision, deleted_at: null,
     updated_at: `2026-09-29T12:00:0${revision}+00:00`,
+    clock_ends_at: null, clock_hand_for_hand: false,
     blind_levels: [{ level: 1, smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 20 }],
     details: { suit: 'copas', capacity: 9 } });
   const player = (id: string) => ({ id, tournament_id: tableId, user_id: null,
@@ -98,6 +99,36 @@ async function main() {
   lateController.abort();
   finish(new Response(JSON.stringify(table()), { status: 200 }));
   await assert.rejects(pending, { name: 'AbortError' });
+  const goodClock = { currentLevel: 0, secondsRemaining: 60,
+    levelEndsAt: null, isRunning: false, handForHand: false,
+    revision: 1, serverNow: '2026-09-29T12:00:00+00:00' };
+  let clockBody: unknown = goodClock;
+  let clockStatus = 200, clockNetworkFail = false;
+  const clockClient = createClient<Database>('http://localhost:59999', 'qa-public-key', {
+    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    global: { fetch: async (url, init) => {
+      assert.equal(new URL(String(url)).pathname, '/rest/v1/rpc/read_tournament_clock');
+      assert.deepEqual(JSON.parse(String(init?.body)), { p_tournament_id: tableId });
+      if (clockNetworkFail) throw new Error('Private network details');
+      return new Response(JSON.stringify(clockBody), { status: clockStatus,
+        headers: { 'Content-Type': 'application/json' } });
+    } },
+  });
+  const readClock = createTournamentClockReader(clockClient, tableId);
+  assert.equal((await readClock(signal)).secondsRemaining, 60);
+  for (const bad of [null, {}, { ...goodClock, revision: -1 },
+    { ...goodClock, isRunning: true }, { ...goodClock, extra: true }]) {
+    clockBody = bad;
+    await assert.rejects(readClock(signal), { code: 'invalid_response' });
+  }
+  clockBody = { code: '42501', message: 'Private database details' }; clockStatus = 403;
+  await assert.rejects(readClock(signal), error => (error as { code: string }).code === 'unavailable'
+    && !String(error).includes('Private'));
+  clockStatus = 200; clockNetworkFail = true;
+  await assert.rejects(readClock(signal), { code: 'unavailable' });
+  const stopped = new AbortController(); stopped.abort();
+  await assert.rejects(readClock(stopped.signal), { name: 'AbortError' });
+  assert.throws(() => createTournamentClockReader(clockClient, 'bad-id'));
   console.log('Tournament reader: scope, pages, revision drift, validation, errors and abort passed (HTTP simulated).');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });

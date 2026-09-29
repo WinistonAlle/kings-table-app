@@ -3,6 +3,29 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Relogio compartilhado em 29/09/2026
+
+- O servidor guarda `clock_ends_at` separado de `updated_at`: entradas e
+  pagamentos nao movem o relogio. `read_tournament_clock` usa a hora do banco
+  para calcular nivel, segundos restantes, fim do nivel e hand-for-hand,
+  devolvendo tambem `serverNow` e revisao. O leitor exige a conta organizadora.
+  Os campos brutos da mesa nao substituem essa leitura enquanto o tempo corre.
+- `tournament.start` inicia a noite com o relogio pausado. `clock.start`,
+  `clock.pause`, `clock.level`, `clock.reset` e `clock.handForHand` exigem
+  revisao atual e gravam estado, recibo e auditoria na mesma transacao. Um ID
+  reenviado devolve o mesmo recibo; duas operacoes concorrentes com a mesma
+  revisao nao alteram o relogio duas vezes. Hand-for-hand congela o tempo;
+  desativar o modo deixa o relogio pausado ate novo start.
+- SQL local cobriu progressao, expiracao, pausa, isolamento, payloads invalidos,
+  rollback e corridas em duas conexoes. Auth/HTTP local cobriu duas contas,
+  escrita direta negada e resposta perdida apos commit. Leitor e transporte
+  passaram testes de HTTP simulado; suite do app, tipos, export web e advisor
+  de seguranca local passaram.
+- Migracao aplicada apenas no Supabase local. Transporte e leitura ainda nao
+  estao ligados ao store/tela; nao ha Realtime, controle remoto, reconciliacao
+  offline nem implantacao remota. Portanto, F019 ainda nao esta entregue ao
+  usuario: dois aparelhos com a UI atual nao compartilham esse relogio.
+
 ## Reentradas e add-ons em 29/09/2026
 
 - `player.entries.adjust` recebe tipo, delta de uma unidade e total esperado em
@@ -90,9 +113,10 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   ultima vaga. Auth/HTTP local com duas contas passou bloqueio de escrita
   direta, capacidade, nomes duplicados e reenvio apos resposta perdida depois
   do commit sem jogador duplicado. Fixtures dos testes foram removidas.
-- A UI ainda usa o fluxo local. `player.update`, reentrada,
-  add-on, eliminacao e vinculacao a perfil ainda nao existem nesse
-  contrato online. Convites confirmados ainda nao estao no banco, portanto a
+- A UI ainda usa o fluxo local. `player.update`, eliminacao e vinculacao a
+  perfil ainda nao existem nesse contrato online; reentrada e add-on ja tem
+  comandos transacionais, mas nao estao integrados a tela. Convites confirmados
+  ainda nao estao no banco, portanto a
   capacidade online so conta entradas registradas. Migracao so no banco local;
   a sincronizacao de mesas segue desativada para o usuario.
 

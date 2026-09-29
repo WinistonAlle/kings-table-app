@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { createClient } from '@supabase/supabase-js';
-import type { Database } from '../types/supabase';
+import type { Database, Json } from '../types/supabase';
 import { novaIdentidade } from '../lib/identidade';
-import { createOperation } from '../lib/sync-operation';
+import { createOperation, type SyncOperation } from '../lib/sync-operation';
 import { createTournamentTransport } from '../lib/sync-tournament-transport';
 
 async function main() {
@@ -53,6 +53,18 @@ async function main() {
   expectedOp = entries;
   body = { operationId: entries.id, revision: 6 };
   assert.equal((await send(entries, signal)).status, 'confirmed');
+  const clockCommands: { kind: SyncOperation['kind']; payload: Record<string, Json> }[] = [
+    { kind: 'tournament.start', payload: {} }, { kind: 'clock.start', payload: {} },
+    { kind: 'clock.pause', payload: {} }, { kind: 'clock.level', payload: { level: 0 } },
+    { kind: 'clock.handForHand', payload: { enabled: true } }, { kind: 'clock.reset', payload: {} },
+  ];
+  for (const [index, { kind, payload }] of clockCommands.entries()) {
+    const command = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',
+      kind, expectedRevision: 6 + index, payload });
+    expectedOp = command;
+    body = { operationId: command.id, revision: 7 + index };
+    assert.equal((await send(command, signal)).status, 'confirmed');
+  }
   expectedOp = op;
   body = { operationId: op.id, revision: 1 };
   for (const bad of [null, {}, { operationId: novaIdentidade(), revision: 1 },
@@ -79,7 +91,7 @@ async function main() {
   const mismatch = await send({ ...op, ownerId: novaIdentidade() }, signal);
   assert.notEqual(mismatch.status, 'confirmed');
   if (mismatch.status !== 'confirmed') assert.equal(mismatch.issue.code, 'actor_mismatch');
-  const unsupported = await send(createOperation({ ...op, kind: 'tournament.start' }), signal);
+  const unsupported = await send(createOperation({ ...op, kind: 'tournament.delete' }), signal);
   assert.notEqual(unsupported.status, 'confirmed');
   if (unsupported.status !== 'confirmed') assert.equal(unsupported.issue.code, 'unsupported_operation');
   const invalid = await send({ ...op, expectedRevision: -1 }, signal);

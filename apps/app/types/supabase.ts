@@ -72,6 +72,8 @@ interface DatabaseSchema {
           revision: number;
           deleted_at: string | null;
           updated_at: string;
+          clock_ends_at: string | null;
+          clock_hand_for_hand: boolean;
           blind_levels: Json;
           details: Json;
         };
@@ -182,6 +184,10 @@ interface DatabaseSchema {
     };
     Views: {};
     Functions: {
+      read_tournament_clock: {
+        Args: { p_tournament_id: string };
+        Returns: Json;
+      };
       apply_tournament_operation: {
         Args: { p_operation: Json };
         Returns: Json;

@@ -7,7 +7,7 @@ import { deleteDB } from 'idb';
 import type { Database } from '../types/supabase';
 import { createOperation } from '../lib/sync-operation';
 import { createTournamentTransport } from '../lib/sync-tournament-transport';
-import { createTournamentReader } from '../lib/sync-tournament-reader';
+import { createTournamentReader, createTournamentClockReader } from '../lib/sync-tournament-reader';
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 
@@ -295,21 +295,66 @@ async function main() {
       { operation_id: paymentAfterLostResponse.id, status_before: 'pending', status_after: 'confirmed' },
       { operation_id: entryAfterLostResponse.id, status_before: 'confirmed', status_after: 'pending' },
     ]);
+    loseResponse = true;
+    const startAfterLostResponse = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'tournament.start', expectedRevision: 7, payload: {} });
+    await outbox.enqueue(startAfterLostResponse);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === startAfterLostResponse.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === startAfterLostResponse.id)?.status, 'confirmed');
+    const readClock = createTournamentClockReader(a, tableIds[1]);
+    const beforeClock = await readClock(signal);
+    assert.equal(beforeClock.revision, 8);
+    assert.equal(beforeClock.isRunning, false);
+    assert.equal(beforeClock.secondsRemaining, 1200);
+    const foreignClock = await b.rpc('read_tournament_clock', { p_tournament_id: tableIds[1] });
+    assert.equal(foreignClock.error?.code, '42501');
+    const bypassClock = await a.from('tournaments').update({ clock_ends_at: new Date().toISOString() })
+      .eq('id', tableIds[1]);
+    assert.equal(bypassClock.error?.code, '42501');
+    const clockStart = createOperation({ ownerId: users[0], entityId: tableIds[1], entity: 'tournament',
+      kind: 'clock.start', expectedRevision: 8, payload: {} });
+    assert.equal((await send(clockStart, signal)).status, 'confirmed');
+    const ticking = await readClock(signal);
+    assert.equal(ticking.revision, 9);
+    assert.equal(ticking.isRunning, true);
+    assert.ok(ticking.secondsRemaining > 0 && ticking.secondsRemaining <= 1200);
+    assert.ok(Date.parse(ticking.levelEndsAt!) > Date.parse(ticking.serverNow));
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 9,
+      kind: 'clock.pause', payload: {} }), signal)).status, 'confirmed');
+    const paused = await readClock(signal);
+    assert.equal(paused.isRunning, false);
+    assert.equal(paused.levelEndsAt, null);
+    assert.ok(paused.secondsRemaining > 0 && paused.secondsRemaining <= 1200);
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 10,
+      kind: 'clock.level', payload: { level: 0 } }), signal)).status, 'confirmed');
+    assert.equal((await readClock(signal)).secondsRemaining, 1200);
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 11,
+      kind: 'clock.handForHand', payload: { enabled: true } }), signal)).status, 'confirmed');
+    assert.equal((await readClock(signal)).handForHand, true);
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 12,
+      kind: 'clock.start', payload: {} }), signal)).status, 'rejected');
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 12,
+      kind: 'clock.handForHand', payload: { enabled: false } }), signal)).status, 'confirmed');
+    assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 13,
+      kind: 'clock.reset', payload: {} }), signal)).status, 'confirmed');
+    assert.equal((await readClock(signal)).revision, 14);
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 7);
+    assert.equal(audit.data?.length, 14);
     const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
     assert.equal(final.error, null);
-    assert.equal(final.data?.revision, 7);
+    assert.equal(final.data?.revision, 14);
     assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
     const finalPlayers = await a.from('tournament_players').select('id,add_ons,payment_status').eq('tournament_id', tableIds[1]);
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, payment, entries and scoped snapshot; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, players, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);
