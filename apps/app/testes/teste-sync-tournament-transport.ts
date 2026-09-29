@@ -54,7 +54,7 @@ async function main() {
   body = { operationId: entries.id, revision: 6 };
   assert.equal((await send(entries, signal)).status, 'confirmed');
   const clockCommands: { kind: SyncOperation['kind']; payload: Record<string, Json> }[] = [
-    { kind: 'tournament.start', payload: {} }, { kind: 'clock.start', payload: {} },
+    { kind: 'tournament.start', payload: {} }, { kind: 'player.update', payload: { playerId: novaIdentidade(), name: 'Novo nome' } }, { kind: 'clock.start', payload: {} },
     { kind: 'clock.pause', payload: {} }, { kind: 'clock.level', payload: { level: 0 } },
     { kind: 'clock.handForHand', payload: { enabled: true } }, { kind: 'clock.reset', payload: {} },
   ];

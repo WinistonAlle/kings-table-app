@@ -212,7 +212,7 @@ async function main() {
     assert.equal(changedId.status, 'rejected');
     const invalid = await send(createOperation({ ...op, entityId: randomUUID(), payload: { ...payload, buyIn: 37.501 } }), signal);
     assert.equal(invalid.status, 'rejected');
-    const unsupported = await send(createOperation({ ...op, kind: 'player.update', payload: {} }), signal);
+    const unsupported = await send(createOperation({ ...op, kind: 'tournament.delete', payload: {} }), signal);
     assert.equal(unsupported.status, 'rejected');
 
     const session = (await a.auth.getSession()).data.session!;
@@ -340,21 +340,39 @@ async function main() {
     assert.equal((await send(createOperation({ ...clockStart, expectedRevision: 13,
       kind: 'clock.reset', payload: {} }), signal)).status, 'confirmed');
     assert.equal((await readClock(signal)).revision, 14);
+    loseResponse = true;
+    const renameAfterLostResponse = createOperation({ ownerId: users[0], entityId: tableIds[1],
+      entity: 'tournament', kind: 'player.update', expectedRevision: 14,
+      payload: { playerId: paidPlayer.payload.playerId, name: 'Nome corrigido' } });
+    await outbox.enqueue(renameAfterLostResponse);
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === renameAfterLostResponse.id)?.status, 'queued');
+    await sender.run();
+    assert.equal((await outbox.list(users[0])).find(entry => entry.operation.id === renameAfterLostResponse.id)?.status, 'confirmed');
+    const renamedSnapshot = await createTournamentReader(a, users[0], tableIds[1])(signal);
+    assert.equal(renamedSnapshot?.tournament.revision, 15);
+    assert.equal(renamedSnapshot?.players[0].display_name, 'Nome corrigido');
+    const foreignRename = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...renameAfterLostResponse, id: randomUUID(), ownerId: users[1], expectedRevision: 15,
+      payload: { ...renameAfterLostResponse.payload, name: 'Intruso' },
+    } });
+    assert.equal(foreignRename.error?.code, '42501');
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 2);
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
-    assert.equal(audit.data?.length, 14);
+    assert.equal(audit.data?.length, 15);
     const final = await a.from('tournaments').select('revision,details').eq('id', tableIds[1]).single();
     assert.equal(final.error, null);
-    assert.equal(final.data?.revision, 14);
+    assert.equal(final.data?.revision, 15);
     assert.equal((final.data?.details as { location: string }).location, 'Retry QA');
-    const finalPlayers = await a.from('tournament_players').select('id,add_ons,payment_status').eq('tournament_id', tableIds[1]);
+    const finalPlayers = await a.from('tournament_players').select('id,display_name,add_ons,payment_status').eq('tournament_id', tableIds[1]);
     assert.equal(finalPlayers.error, null);
-    assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
+    assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
+      add_ons: 1, payment_status: 'pending' }]);
+    console.log('PASS: local Auth/HTTP tournament, players, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

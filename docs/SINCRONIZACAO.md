@@ -3,6 +3,22 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Correcao de nome de jogador em 29/09/2026
+
+- `player.update` aceita somente `playerId` e `name` nesta etapa. O servidor
+  normaliza espacos externos, exige 1-60 caracteres e recusa nome duplicado
+  na mesma mesa, jogador ausente, noite cancelada ou revisao obsoleta. Pode
+  corrigir um nome apos o encerramento sem alterar identidade, entradas,
+  pagamento ou resultado. Outros campos enviados no payload sao rejeitados.
+- A transacao grava nome, revisao da mesa, recibo e auditoria juntos. Postgres
+  local passou validacao, acesso de outra conta negado, escrita direta negada,
+  falha forcada da auditoria com rollback e disputa real em duas conexoes.
+  Auth/HTTP local passou leitura, isolamento e reenvio apos perda de resposta
+  sem segunda alteracao. Fixtures temporarias foram removidas.
+- O contrato e o transporte existem somente no ambiente local de QA; a tela
+  ainda usa o store local e nao envia esta operacao. Apelido, avatar, contato,
+  vinculo a perfil e demais campos de `player.update` continuam pendentes.
+
 ## Relogio compartilhado em 29/09/2026
 
 - O servidor guarda `clock_ends_at` separado de `updated_at`: entradas e
@@ -113,9 +129,10 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   ultima vaga. Auth/HTTP local com duas contas passou bloqueio de escrita
   direta, capacidade, nomes duplicados e reenvio apos resposta perdida depois
   do commit sem jogador duplicado. Fixtures dos testes foram removidas.
-- A UI ainda usa o fluxo local. `player.update`, eliminacao e vinculacao a
-  perfil ainda nao existem nesse contrato online; reentrada e add-on ja tem
-  comandos transacionais, mas nao estao integrados a tela. Convites confirmados
+- A UI ainda usa o fluxo local. `player.update` existe apenas para corrigir o
+  nome; eliminacao e vinculacao a perfil ainda nao existem nesse contrato
+  online. Reentrada e add-on ja tem comandos transacionais, mas nao estao
+  integrados a tela. Convites confirmados
   ainda nao estao no banco, portanto a
   capacidade online so conta entradas registradas. Migracao so no banco local;
   a sincronizacao de mesas segue desativada para o usuario.
