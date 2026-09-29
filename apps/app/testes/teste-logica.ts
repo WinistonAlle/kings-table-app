@@ -13,6 +13,23 @@ for (const [pool, n] of [[6000, 12], [2500, 9], [1000, 5], [3333, 7], [777, 11]]
   ok(soma === pool, `bolo ${pool} com ${n} jogadores soma exato (deu ${soma})`);
 }
 
+let centavosCorretos = true;
+for (const n of [1, 2, 5, 6, 9, 10, 15]) {
+  for (let cents = 1; cents <= 2500; cents++) {
+    const faixas = distribuirPremios(cents / 100, n);
+    const valores = faixas.map(f => Math.round(f.amount * 100));
+    if (valores.reduce((sum, value) => sum + value, 0) !== cents
+      || valores.some((value, i) => value < 0 || (i > 0 && value > valores[i - 1]))) {
+      centavosCorretos = false;
+      break;
+    }
+  }
+}
+ok(centavosCorretos, 'bolos pequenos e fracionados conservam centavos sem inverter a premiacao');
+ok(distribuirPremios(5.5, 10)[0].amount >= distribuirPremios(5.5, 10)[1].amount,
+  'campeao nao recebe menos que vice em bolo pequeno');
+ok(distribuirPremios(25.01, 1)[0].amount === 25.01, 'jogador unico recebe o bolo inteiro');
+
 // ---- pontuação: campo maior vale mais; posição pior vale menos ----
 ok(pontosPor(1, 15) > pontosPor(1, 6), 'vencer mesa de 15 vale mais que mesa de 6');
 ok(pontosPor(1, 10) > pontosPor(2, 10), '1o vale mais que 2o');

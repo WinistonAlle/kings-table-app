@@ -19,24 +19,25 @@ export function entriesOf(player: TournamentPlayer) {
 /** Total arrecadado: toda entrada paga vale um buy-in. */
 export function prizePool(tournament: Tournament) {
   const entradas = tournament.players.reduce((soma, p) => soma + entriesOf(p), 0);
-  return entradas * tournament.buyIn;
+  return (entradas * Math.round(tournament.buyIn * 100)) / 100;
 }
 
 /* Faixas por tamanho de campo. É a escada de home game: mesa curta paga dois,
    mesa cheia paga três, e acima de nove paga quatro. */
 function percentuais(playerCount: number) {
+  if (playerCount <= 0) return [];
+  if (playerCount === 1) return [100];
   if (playerCount <= 5) return [65, 35];
   if (playerCount <= 9) return [50, 30, 20];
   return [40, 30, 20, 10];
 }
 
 export function getPayouts(pool: number, playerCount: number): Payout[] {
+  const poolCents = Math.round(pool * 100);
   return percentuais(playerCount).map((percent, i) => ({
     place: i + 1,
     percent,
-    /* Arredonda pra real inteiro: ninguém paga centavo em mesa de casa. A
-       sobra do arredondamento vai pro campeão em `distribuirPremios`. */
-    amount: Math.round((pool * percent) / 100),
+    amount: Math.floor((poolCents * percent) / 100) / 100,
   }));
 }
 
@@ -50,9 +51,9 @@ export function getPayouts(pool: number, playerCount: number): Payout[] {
 export function distribuirPremios(pool: number, playerCount: number): Payout[] {
   const faixas = getPayouts(pool, playerCount);
   if (faixas.length === 0) return faixas;
-  const soma = faixas.reduce((s, f) => s + f.amount, 0);
-  const sobra = pool - soma;
-  return faixas.map((f, i) => (i === 0 ? { ...f, amount: f.amount + sobra } : f));
+  const poolCents = Math.round(pool * 100);
+  const outrosCents = faixas.slice(1).reduce((s, f) => s + Math.round(f.amount * 100), 0);
+  return faixas.map((f, i) => (i === 0 ? { ...f, amount: (poolCents - outrosCents) / 100 } : f));
 }
 
 /** Quanto o jogador leva, dada a posição final. Fora do ITM, zero. */

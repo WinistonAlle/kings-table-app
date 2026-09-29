@@ -66,5 +66,23 @@ const cl = calcularClassificacao([u]);
 ok(cl[0].name === 'Rafael' && cl[0].wins === 1, 'campeao lidera a classificacao');
 ok(cl.reduce((s, x) => s + x.saldo, 0) === 0, 'saldo da liga soma zero');
 
+let fracionado: Tournament = {
+  ...t, id: 'centavos', status: 'running', buyIn: 0.55,
+  players: Array.from({ length: 10 }, (_, i) => ({
+    id: `centavos-${i}`, userId: `convidado-${i}`, name: `Jogador ${i}`,
+    buyIns: 1, reEntries: 0, addOns: 0, paymentStatus: 'pending' as const,
+  })),
+};
+for (let i = 9; i >= 1; i--) fracionado = eliminar(fracionado, `centavos-${i}`);
+const premiosCentavos = fracionado.players.map(p => Math.round((p.prize ?? 0) * 100));
+ok(fracionado.status === 'finished', 'mesa com buy-in fracionado encerra');
+ok(premiosCentavos.reduce((sum, value) => sum + value, 0) === 550,
+  'premios gravados em centavos somam exatamente o bolo');
+ok(premiosCentavos[0] >= premiosCentavos[1] && premiosCentavos.every(value => value >= 0),
+  'resultado gravado nao inverte premiacao nem cria premio negativo');
+const reaberto = desfazerEliminacao(fracionado, 'centavos-1');
+ok(reaberto.status === 'running' && reaberto.players[0].prize === undefined,
+  'desfazer elimina premios calculados em centavos');
+
 console.log(falhas ? `\n${falhas} FALHA(S)` : '\nTudo passou');
 process.exit(falhas ? 1 : 0);

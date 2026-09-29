@@ -125,9 +125,9 @@ as partes encontradas. Pendencias de configuracao/custo nunca autorizam gastos.
 
 | ID | Requisito e criterio de entrega | Estado | Evidencia ou lacuna |
 |---|---|---|---|
-| F065 | **Premiação automática**: Distribua o bolo conforme o campo e confira os valores de cada posição. | implementado | lib/payouts.ts; lib/torneio.ts |
+| F065 | **Premiação automática**: Distribua o bolo conforme o campo e confira os valores de cada posição. | implementado | Distribuicao local em centavos por tamanho do campo; eliminacao grava premios e desfazer os remove. Testes de dominio e fluxo web em Chromium, desktop/390 px e reload; contrato online de resultado ainda pendente. |
 | F066 | **Percentuais ou valores fixos**: Crie sua tabela de premiação ou escolha uma predefinição salva. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
-| F067 | **Arredondamento correto**: Mantenha a soma dos prêmios igual ao valor total da premiação. | implementado | lib/payouts.ts; teste-logica.ts |
+| F067 | **Arredondamento correto**: Mantenha a soma dos prêmios igual ao valor total da premiação. | implementado | lib/payouts.ts usa centavos inteiros; teste-logica.ts cobre bolos de R$ 0,01 a R$ 25,00, faixas sem inversao e jogador unico. Resultado fracionado conferido no navegador e apos reload; paridade no servidor ainda pendente. |
 | F068 | **Acordos de chop**: Proponha divisões de prêmio e registre a aceitação ou recusa dos jogadores. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F069 | **Calculadora de ICM**: Compare divisões considerando fichas e faixas de premiação. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |
 | F070 | **Equity, pote e side pot**: Confira probabilidades, potes paralelos e divisões em situações com vários all-ins. | pendente | Sem evidencia suficiente de implementacao do requisito completo. |

@@ -3,6 +3,19 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Premiação local em 29/09/2026
+
+- A distribuição local agora calcula quotas em centavos inteiros, trunca as
+  faixas secundarias e entrega o residuo ao campeao. Isso conserva o bolo e
+  evita inversao entre primeiro e segundo em mesas de buy-in pequeno. Uma mesa
+  com um unico jogador tem uma faixa de 100%.
+- Testes cobrem bolos de R$ 0,01 a R$ 25,00, encerramento, desfazer e
+  persistencia. Chromium exibiu R$ 0,72/R$ 0,38 para bolo de R$ 1,10 em
+  desktop e 390 px, inclusive apos reload.
+- Ainda nao existe comando online de eliminacao/resultado. Ao implementa-lo,
+  o servidor deve reproduzir esta regra em centavos e ser testado contra o
+  calculo local antes de ativar sincronizacao de mesas.
+
 ## Correcao de nome de jogador em 29/09/2026
 
 - `player.update` aceita somente `playerId` e `name` nesta etapa. O servidor
