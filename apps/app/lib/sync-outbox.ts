@@ -55,7 +55,7 @@ interface OutboxDatabase extends DBSchema {
   presetBases: { key: Key; value: PresetBase };
   tournamentSummaries: { key: Key; value: TournamentSummary };
 }
-type WriteTransaction = IDBPTransaction<OutboxDatabase, ['operations', 'counter', 'presetBases'], 'readwrite'>;
+type WriteTransaction = IDBPTransaction<OutboxDatabase, ['operations', 'counter', 'presetBases', 'tournamentSummaries'], 'readwrite'>;
 
 function parseEntry(value: unknown): OutboxEntry {
   const entry = entrySchema.parse(value);
@@ -102,7 +102,7 @@ export class SyncOutbox {
 
   private async write<T>(work: (transaction: WriteTransaction) => Promise<T>): Promise<T> {
     const db = await this.connection;
-    const transaction = db.transaction(['operations', 'counter', 'presetBases'], 'readwrite', { durability: 'strict' });
+    const transaction = db.transaction(['operations', 'counter', 'presetBases', 'tournamentSummaries'], 'readwrite', { durability: 'strict' });
     try {
       const result = await work(transaction);
       await transaction.done;
@@ -117,6 +117,42 @@ export class SyncOutbox {
   async enqueue(value: SyncOperation): Promise<OutboxEntry> {
     const operation = parseOperation(value);
     return this.write(transaction => this.add(transaction, operation));
+  }
+
+  async enqueueTournament(value: SyncOperation): Promise<OutboxEntry> {
+    const operation = parseOperation(value);
+    if (operation.entity !== 'tournament') throw new Error('Comando nao pertence a uma mesa.');
+    return this.write(async tx => {
+      const store = tx.objectStore('operations');
+      if (await store.get([operation.ownerId, operation.id])) return this.add(tx, operation);
+      const stored = await tx.objectStore('tournamentSummaries').get([operation.ownerId, operation.entityId]);
+      const base = stored ? tournamentSummarySchema.parse(stored) : null;
+      const entries = (await store.index('entity').getAll([operation.ownerId, 'tournament', operation.entityId]))
+        .map(parseEntry).sort((a, b) => a.sequence - b.sequence);
+      if (operation.kind === 'tournament.create') {
+        if (base || entries.length || operation.expectedRevision !== 0) {
+          throw new Error('A mesa ja possui historico local. Atualize antes de criar.');
+        }
+        return this.add(tx, operation);
+      }
+      let exists = !!base, deleted = base?.deletedAt != null;
+      let revision = base?.revision ?? 0;
+      for (const entry of entries) {
+        const prior = entry.operation;
+        if (entry.status === 'confirmed' && entry.receipt!.revision <= revision) continue;
+        if (entry.status === 'conflict' || entry.status === 'rejected' || deleted
+          || prior.expectedRevision !== revision || (!exists && prior.kind !== 'tournament.create')) {
+          throw new Error('Revise as alteracoes pendentes antes de continuar.');
+        }
+        exists = true;
+        revision = prior.expectedRevision + 1;
+        if (prior.kind === 'tournament.delete') deleted = true;
+      }
+      if (!exists || deleted || operation.expectedRevision !== revision) {
+        throw new Error('Atualize a mesa e revise a versao antes de continuar.');
+      }
+      return this.add(tx, operation);
+    });
   }
 
   private async add(transaction: WriteTransaction, operation: SyncOperation): Promise<OutboxEntry> {

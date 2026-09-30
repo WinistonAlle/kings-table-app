@@ -782,8 +782,16 @@ e https://supabase.com/docs/reference/javascript/using-modifiers-limit
   aceitos: `pending` preserva retry, conflito e rejeicao para tratamento futuro.
   Falha de rede mantem cache e intencoes, e `stop()` impede que uma resposta
   atrasada da conta anterior apareca na sessao nova.
+- `enqueueTournament` reserva a revisao na mesma transacao IndexedDB que le o
+  catalogo, verifica a fila da mesa e grava o comando. Duas abas nao conseguem
+  reservar a mesma revisao com IDs diferentes; reenvio do mesmo ID e aceito.
+  Conflito/rejeicao, lacuna de revisao ou mesa removida bloqueiam novas
+  intencoes sem apagar as anteriores. Isto nao resolve conflitos remotos nem
+  substitui a revisao autoritativa do servidor.
 - `teste-sync-tournament-session.ts` cobre reload, offline, conflitos,
   coalescencia, isolamento e resposta tardia com IndexedDB/transporte simulados.
+  `teste-sync-tournament-reservation.ts` cobre corrida entre duas conexoes,
+  revisoes consecutivas, recarga, conflito, isolamento e tombstone.
   `teste-sync-tournament-http-local.ts` confirmou a sessao com Auth/JWT e HTTP
   locais reais: atualizacao de mesa, recibo, nova revisao no catalogo e conta B
   isolada. Nenhuma migracao foi aplicada no projeto remoto.

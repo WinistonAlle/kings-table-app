@@ -55,7 +55,7 @@ export class TournamentSyncSession {
     if (operation.ownerId !== this.ownerId || operation.entity !== 'tournament') {
       throw new Error('Comando de outra conta ou entidade.');
     }
-    await this.outbox.enqueue(operation);
+    await this.outbox.enqueueTournament(operation);
     this.controller.signal.throwIfAborted();
     if (this.inFlight) this.repeat = true;
     await this.refreshLocal();
