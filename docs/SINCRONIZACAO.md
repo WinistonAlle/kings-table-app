@@ -227,10 +227,23 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   escrita direta negada, rollback por falha de auditoria e corrida de duas
   conexoes. Auth/HTTP local passou leitura e edicao com duas contas, revisao
   obsoleta e resposta perdida apos commit, reconciliada com o mesmo ID.
-- Ainda nao esta ligado a tela. O banco nao conhece convites locais, portanto
-  so consegue validar a capacidade contra jogadores persistidos nele; o
-  invariante completo de reservas depende dos futuros comandos de convidados.
-  Migracao e testes continuam apenas locais, sem deploy no Supabase remoto.
+- Ainda nao esta ligado a tela. O banco conhece convites criados por comandos
+  online, mas nao os convites ja existentes apenas no store local. O invariante
+  de reservas vale para os registros do banco, nao para uma importacao implicita
+  dos dados locais. Migracao e testes continuam apenas locais, sem deploy no remoto.
+
+## Convites no nucleo online em 30/09/2026
+
+- `invite.add`, `invite.attendance`, `invite.remove` e `invite.checkIn` gravam
+  convite, revisao, recibo e auditoria numa transacao, sob bloqueio da mesa.
+  Convite removido permanece como tombstone; check-in vincula um jogador da
+  mesma mesa ou cria um com pagamento pendente. Vaga confirmada conta junto
+  com jogadores; excesso vira espera. Entrada manual e reducao da capacidade
+  nao podem ultrapassar as reservas confirmadas.
+- Leitura paginada inclui convidados, tambem tombstones, entre duas leituras
+  da revisao. Testes SQL e Auth/HTTP locais cobrem isolamento, acesso direto
+  negado, rollback, reenvio idempotente e check-in. Nao ha RSVP pelo jogador,
+  promocao automatica da espera, UI online, migracao local nem deploy remoto.
 
 ## Primeiro comando de mesa em 24/09/2026
 

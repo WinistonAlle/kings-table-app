@@ -125,6 +125,14 @@ interface DatabaseSchema {
           eliminated_at?: string | null; registered_at?: string };
         Update: Partial<Database['public']['Tables']['tournament_players']['Insert']>;
       };
+      tournament_invites: {
+        Row: { id: string; tournament_id: string; name: string;
+          status: 'confirmed' | 'maybe' | 'absent' | 'waiting'; player_id: string | null;
+          created_at: string; deleted_at: string | null };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
       league_standings: {
         Row: {
           id: string;

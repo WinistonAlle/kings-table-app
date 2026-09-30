@@ -13,6 +13,12 @@ const playerSchema = z.strictObject({
   financial_activity_recorded: z.boolean(), eliminated_at: z.iso.datetime({ offset: true }).nullable(),
   registered_at: z.iso.datetime({ offset: true }),
 });
+const inviteSchema = z.strictObject({
+  id: z.uuid(), tournament_id: z.uuid(), name: z.string().trim().min(1).max(60),
+  status: z.enum(['confirmed', 'maybe', 'absent', 'waiting']),
+  player_id: z.uuid().nullable(), created_at: z.iso.datetime({ offset: true }),
+  deleted_at: z.iso.datetime({ offset: true }).nullable(),
+});
 const tournamentSchema = z.strictObject({
   id: z.uuid(), created_by: z.uuid(), name: z.string().trim().min(1),
   format: z.enum(['deep', 'regular', 'turbo', 'hyper', 'rebuy', 'bounty']),
@@ -30,7 +36,7 @@ const tournamentSchema = z.strictObject({
   details: z.record(z.string(), z.json()),
 });
 export type TournamentSnapshot = { tournament: z.infer<typeof tournamentSchema>;
-  players: z.infer<typeof playerSchema>[] };
+  players: z.infer<typeof playerSchema>[]; invites: z.infer<typeof inviteSchema>[] };
 
 function validResults({ tournament, players }: TournamentSnapshot): boolean {
   const count = players.length;
@@ -126,9 +132,37 @@ export function createTournamentReader(client: Pick<SupabaseClient<Database>, 'f
           }
         } catch { throw new TournamentReadError('invalid_response'); }
       }
+      const invites: TournamentSnapshot['invites'] = [];
+      cursor = null;
+      while (true) {
+        signal.throwIfAborted();
+        let query = client.from('tournament_invites')
+          .select('id,tournament_id,name,status,player_id,created_at,deleted_at')
+          .eq('tournament_id', tableId).order('id', { ascending: true }).limit(pageSize);
+        if (cursor) query = query.gt('id', cursor);
+        let response;
+        try { response = await query.abortSignal(signal); }
+        catch { signal.throwIfAborted(); throw new TournamentReadError('unavailable'); }
+        signal.throwIfAborted();
+        if (response.error) throw new TournamentReadError('unavailable');
+        try {
+          const rows = z.array(inviteSchema).max(pageSize).parse(response.data);
+          if (!rows.length) break;
+          for (const row of rows) {
+            const id = row.id.toLowerCase();
+            if (row.tournament_id !== tableId || (cursor && id <= cursor)) throw new Error('Invalid invitation page');
+            invites.push(row);
+            cursor = id;
+          }
+        } catch { throw new TournamentReadError('invalid_response'); }
+      }
       const after = await readTable();
       if (after && after.revision === tournament.revision && after.updated_at === tournament.updated_at) {
-        const snapshot = { tournament: after, players };
+        const playerIds = new Set(players.map(player => player.id));
+        if (invites.some(invite => invite.player_id !== null && !playerIds.has(invite.player_id))) {
+          throw new TournamentReadError('invalid_response');
+        }
+        const snapshot = { tournament: after, players, invites };
         if (!validResults(snapshot)) throw new TournamentReadError('invalid_response');
         return snapshot;
       }

@@ -25,7 +25,7 @@ async function main() {
   const a = createClient<Database>(url, local.ANON_KEY, options);
   const b = createClient<Database>(url, local.ANON_KEY, options);
   const users: string[] = [];
-  const tableIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  const tableIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
   const dbName = `qa-tournament-create-${randomUUID()}`;
   const outbox = new SyncOutbox(dbName);
   const password = `Qa-${randomUUID()}!`;
@@ -476,6 +476,48 @@ async function main() {
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
     assert.equal(rows.data?.length, 3);
+    const inviteTableId = tableIds[4];
+    const inviteTable = createOperation({ ownerId: users[0], entityId: inviteTableId, entity: 'tournament',
+      kind: 'tournament.create', expectedRevision: 0,
+      payload: { ...payload, name: 'Convites HTTP QA', capacity: 2 } });
+    assert.equal((await send(inviteTable, signal)).status, 'confirmed');
+    const inviteId = randomUUID(), invitePlayerId = randomUUID();
+    const inviteAdd = createOperation({ ownerId: users[0], entityId: inviteTableId, entity: 'tournament',
+      kind: 'invite.add', expectedRevision: 1,
+      payload: { inviteId, name: 'Convidada QA', status: 'confirmed' } });
+    const inviteAdded = await send(inviteAdd, signal);
+    assert.equal(inviteAdded.status, 'confirmed');
+    assert.deepEqual(await send(inviteAdd, signal), inviteAdded);
+    const secondInviteId = randomUUID();
+    const secondInvite = createOperation({ ownerId: users[0], entityId: inviteTableId, entity: 'tournament',
+      kind: 'invite.add', expectedRevision: 2,
+      payload: { inviteId: secondInviteId, name: 'Segundo convite', status: 'confirmed' } });
+    assert.equal((await send(secondInvite, signal)).status, 'confirmed');
+    const inviteSnapshot = await createTournamentReader(a, users[0], inviteTableId, 1)(signal);
+    assert.equal(inviteSnapshot?.tournament.revision, 3);
+    assert.equal(inviteSnapshot?.invites.find(row => row.id === inviteId)?.name, 'Convidada QA');
+    assert.equal(inviteSnapshot?.invites.find(row => row.id === inviteId)?.status, 'confirmed');
+    assert.deepEqual(inviteSnapshot?.players, []);
+    const reservedSeat = createOperation({ ownerId: users[0], entityId: inviteTableId, entity: 'tournament',
+      kind: 'player.add', expectedRevision: 3,
+      payload: { playerId: randomUUID(), name: 'Outra pessoa' } });
+    assert.equal((await send(reservedSeat, signal)).status, 'rejected');
+    const inviteCheckIn = createOperation({ ownerId: users[0], entityId: inviteTableId, entity: 'tournament',
+      kind: 'invite.checkIn', expectedRevision: 3, payload: { inviteId, playerId: invitePlayerId } });
+    const checkedIn = await send(inviteCheckIn, signal);
+    assert.equal(checkedIn.status, 'confirmed');
+    assert.deepEqual(await send(inviteCheckIn, signal), checkedIn);
+    const afterCheckIn = await createTournamentReader(a, users[0], inviteTableId, 1)(signal);
+    assert.equal(afterCheckIn?.tournament.revision, 4);
+    assert.equal(afterCheckIn?.invites.find(row => row.id === inviteId)?.player_id, invitePlayerId);
+    assert.equal(afterCheckIn?.players[0].id, invitePlayerId);
+    assert.equal(afterCheckIn?.players[0].payment_status, 'pending');
+    const foreignInvites = await b.from('tournament_invites').select('id').eq('tournament_id', inviteTableId);
+    assert.equal(foreignInvites.error, null);
+    assert.deepEqual(foreignInvites.data, []);
+    const directInvite = await a.from('tournament_invites').insert({ id: randomUUID(),
+      tournament_id: inviteTableId, name: 'Bypass', status: 'confirmed' } as never);
+    assert.equal(directInvite.error?.code, '42501');
     const audit = await a.from('sync_operation_audit').select('operation_id').eq('entity_id', tableIds[1]);
     assert.equal(audit.error, null);
     assert.equal(audit.data?.length, 15);

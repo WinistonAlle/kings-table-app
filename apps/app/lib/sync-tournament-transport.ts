@@ -26,6 +26,7 @@ export function createTournamentTransport(client: Pick<SupabaseClient<Database>,
       'tournament.create', 'tournament.update', 'tournament.start',
       'player.add', 'player.update', 'player.remove', 'player.payment.set', 'player.entries.adjust',
       'player.eliminate', 'player.undoElimination',
+      'invite.add', 'invite.attendance', 'invite.remove', 'invite.checkIn',
       'clock.start', 'clock.pause', 'clock.level', 'clock.reset', 'clock.handForHand',
     ].includes(operation.kind)) {
       return outcome('rejected', 'unsupported_operation', 'Este comando da mesa ainda não está disponível online.');

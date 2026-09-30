@@ -22,6 +22,11 @@ async function main() {
     eliminated_at: null, registered_at: '2026-09-29T12:00:00+00:00' });
   let tables: unknown[] = [table(), table()];
   let pages: unknown[] = [[player(ids[0])], [player(ids[1])], []];
+  const inviteIds = [novaIdentidade(), novaIdentidade()].sort();
+  const invite = (id: string, playerId: string | null = null) => ({ id, tournament_id: tableId,
+    name: 'Bia QA', status: 'confirmed', player_id: playerId,
+    created_at: '2026-09-29T12:00:00+00:00', deleted_at: null });
+  let invitePages: unknown[] = [[invite(inviteIds[0], ids[0])], [invite(inviteIds[1])], []];
   let status = 200, networkFail = false, calls = 0;
   const client = createClient<Database>('http://localhost:59999', 'qa-public-key', {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
@@ -35,11 +40,13 @@ async function main() {
         return new Response(JSON.stringify(tables.shift() ?? null), { status,
           headers: { 'Content-Type': 'application/json' } });
       }
-      assert.equal(parsed.pathname, '/rest/v1/tournament_players');
+      assert.ok(['/rest/v1/tournament_players', '/rest/v1/tournament_invites'].includes(parsed.pathname));
       assert.equal(parsed.searchParams.get('tournament_id'), `eq.${tableId}`);
       assert.equal(parsed.searchParams.get('order'), 'id.asc');
       assert.equal(parsed.searchParams.get('limit'), '200');
-      return new Response(JSON.stringify(pages.length ? pages.shift() : []), { status,
+      const rows = parsed.pathname === '/rest/v1/tournament_players'
+        ? (pages.length ? pages.shift() : []) : (invitePages.length ? invitePages.shift() : []);
+      return new Response(JSON.stringify(rows), { status,
         headers: { 'Content-Type': 'application/json' } });
     } },
   });
@@ -48,7 +55,9 @@ async function main() {
   const snapshot = await read(signal);
   assert.equal(snapshot?.tournament.revision, 1);
   assert.deepEqual(snapshot?.players.map(p => p.id), ids);
-  assert.equal(calls, 5, 'Short pages must not truncate players');
+  assert.deepEqual(snapshot?.invites.map(i => i.id), inviteIds);
+  assert.equal(calls, 8, 'Short pages must not truncate players or invitations');
+  invitePages = [];
 
   const resultIds = [...ids, novaIdentidade()].sort();
   const resultPlayers = resultIds.map((id, index) => ({ ...player(id), position: index + 1,
@@ -67,6 +76,17 @@ async function main() {
     tables = [resultTable, resultTable]; pages = [invalid, []];
     await assert.rejects(read(signal), { code: 'invalid_response' });
   }
+  for (const invalid of [
+    [invite(inviteIds[1]), invite(inviteIds[0])],
+    [{ ...invite(inviteIds[0]), tournament_id: novaIdentidade() }],
+    [{ ...invite(inviteIds[0]), status: 'invalid' }],
+    [{ ...invite(inviteIds[0]), player_id: novaIdentidade() }],
+    null,
+  ]) {
+    tables = [table(), table()]; pages = [[]]; invitePages = [invalid];
+    await assert.rejects(read(signal), { code: 'invalid_response' });
+  }
+  invitePages = [];
   const runningTable = { ...table(), status: 'running' };
   const runningPlayers = resultPlayers.map((row, i) => ({ ...row, position: i === 2 ? 3 : null,
     prize: null, eliminated_at: i === 2 ? '2026-09-29T12:10:00+00:00' : null }));
