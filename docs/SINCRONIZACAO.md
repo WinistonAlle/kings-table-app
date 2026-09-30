@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Cache de detalhes de mesa em 30/09/2026
+
+- O IndexedDB v5 guarda snapshots completos por conta e mesa, separado do
+  store operacional. O upgrade preserva resumos, presets e comandos pendentes.
+  Cada snapshot exige revisao estavel, jogadores e convites da mesma mesa,
+  IDs ordenados sem repeticao, referencias validas e resultados coerentes.
+- A gravacao dos detalhes e do resumo ocorre na mesma transacao. Revisoes
+  antigas nao sobrescrevem novas; a mesma revisao divergente aborta todo o
+  lote. Um resumo mais recente impede a apresentacao do detalhe antigo,
+  tombstones nao ressuscitam mesas e uma leitura ausente nao apaga o cache.
+- Teste IndexedDB simulado cobriu upgrade v4, duas abas em disputa, isolamento
+  de conta, reabertura, abort, rollback de lote e tombstones. Auth/HTTP local
+  leu jogadores reais, gravou o cache e verificou que o catalogo mais novo
+  oculta o detalhe ate uma nova leitura completa. Nenhum dado de QA ficou no
+  banco. Nao houve teste de cota fisica nem de IndexedDB em navegador real.
+- O cache ainda nao substitui mesas do store local, nao resolve comandos
+  offline nem dirige a UI. Reconciliacao, migracao legado, Realtime e remoto
+  seguem pendentes; o relogio ao vivo requer sua leitura propria.
+
 ## Catalogo de mesas da conta em 29/09/2026
 
 - `createTournamentCatalogReader` consulta somente `created_by` da conta fixa,

@@ -38,6 +38,11 @@ const tournamentSchema = z.strictObject({
 });
 export type TournamentSnapshot = { tournament: z.infer<typeof tournamentSchema>;
   players: z.infer<typeof playerSchema>[]; invites: z.infer<typeof inviteSchema>[] };
+const snapshotSchema = z.strictObject({
+  tournament: tournamentSchema,
+  players: z.array(playerSchema),
+  invites: z.array(inviteSchema),
+});
 
 function validResults({ tournament, players }: TournamentSnapshot): boolean {
   const count = players.length;
@@ -71,6 +76,22 @@ function validResults({ tournament, players }: TournamentSnapshot): boolean {
       && players.every(player => player.prize === null);
   }
   return true;
+}
+
+export function parseTournamentSnapshot(value: unknown): TournamentSnapshot {
+  const snapshot = snapshotSchema.parse(value);
+  const { tournament, players, invites } = snapshot;
+  if (!tournament.deleted_at) presetPayloadSchema.parse({ name: tournament.name, levels: tournament.blind_levels });
+  if (!validResults(snapshot)
+    || players.some((player, index) => player.tournament_id !== tournament.id
+      || (index > 0 && players[index - 1].id >= player.id))
+    || invites.some((invite, index) => invite.tournament_id !== tournament.id
+      || (index > 0 && invites[index - 1].id >= invite.id))
+    || invites.some(invite => invite.player_id !== null
+      && !players.some(player => player.id === invite.player_id))) {
+    throw new Error('Tournament snapshot is inconsistent');
+  }
+  return snapshot;
 }
 
 export class TournamentReadError extends Error {
@@ -159,13 +180,8 @@ export function createTournamentReader(client: Pick<SupabaseClient<Database>, 'f
       }
       const after = await readTable();
       if (after && after.revision === tournament.revision && after.updated_at === tournament.updated_at) {
-        const playerIds = new Set(players.map(player => player.id));
-        if (invites.some(invite => invite.player_id !== null && !playerIds.has(invite.player_id))) {
-          throw new TournamentReadError('invalid_response');
-        }
-        const snapshot = { tournament: after, players, invites };
-        if (!validResults(snapshot)) throw new TournamentReadError('invalid_response');
-        return snapshot;
+        try { return parseTournamentSnapshot({ tournament: after, players, invites }); }
+        catch { throw new TournamentReadError('invalid_response'); }
       }
     }
     throw new TournamentReadError('changed_during_read');

@@ -180,6 +180,9 @@ async function main() {
     assert.equal(ownSnapshot?.tournament.revision, 7);
     assert.deepEqual(ownSnapshot?.players.map(player => player.id), [playerIds[0]]);
     assert.equal(ownSnapshot?.players[0].financial_activity_recorded, true);
+    await outbox.mergeTournamentSnapshots(users[0], [ownSnapshot!], signal);
+    assert.equal((await outbox.tournamentSnapshot(users[0], tableIds[0]))?.players[0].display_name, 'Ana QA');
+    assert.equal(await outbox.tournamentSnapshot(users[1], tableIds[0]), null);
     assert.equal(await createTournamentReader(b, users[1], tableIds[0])(signal), null);
     const reentry = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
       kind: 'player.entries.adjust', expectedRevision: 7,
@@ -448,6 +451,13 @@ async function main() {
     await outbox.mergeTournamentSummaries(users[1], otherCatalog, signal);
     assert.equal((await outbox.tournamentSummaries(users[0])).length, 3);
     assert.deepEqual((await outbox.tournamentSummaries(users[1])).map(table => table.id), [tableIds[3]]);
+    assert.equal(await outbox.tournamentSnapshot(users[0], tableIds[0]), null,
+      'catalogo mais novo impede apresentar detalhes antigos');
+    const freshDetail = await createTournamentReader(a, users[0], tableIds[0])(signal);
+    assert.ok(freshDetail);
+    await outbox.mergeTournamentSnapshots(users[0], [freshDetail], signal);
+    assert.equal((await outbox.tournamentSnapshot(users[0], tableIds[0]))?.tournament.revision,
+      ownCatalog.find(table => table.id === tableIds[0])?.revision);
     const tournamentSession = new TournamentSyncSession(users[0], outbox,
       createTournamentCatalogReader(a, users[0], 1), send);
     try {

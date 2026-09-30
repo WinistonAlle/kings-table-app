@@ -4,6 +4,7 @@ import { novaIdentidade } from './identidade';
 import { createOperation, operationContent, operationSchema, parseOperation, type SyncOperation } from './sync-operation';
 import { applyPresetOperation, preparePresetPayload, presetBaseSchema, projectPreset, type PresetBase } from './sync-preset-model';
 import { tournamentSummarySchema, type TournamentSummary } from './sync-tournament-catalog';
+import { parseTournamentSnapshot, type TournamentSnapshot } from './sync-tournament-reader';
 import { projectTournamentCatalog, type TournamentCatalogView } from './sync-tournament-model';
 
 const safeCount = z.number().int().nonnegative().safe();
@@ -55,6 +56,7 @@ interface OutboxDatabase extends DBSchema {
   counter: { key: string; value: number };
   presetBases: { key: Key; value: PresetBase };
   tournamentSummaries: { key: Key; value: TournamentSummary };
+  tournamentSnapshots: { key: Key; value: TournamentSnapshot };
 }
 type WriteTransaction = IDBPTransaction<OutboxDatabase, ['operations', 'counter', 'presetBases', 'tournamentSummaries'], 'readwrite'>;
 
@@ -64,16 +66,44 @@ function parseEntry(value: unknown): OutboxEntry {
   return entry;
 }
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
+  if (value !== null && typeof value === 'object') {
+    const object = value as Record<string, unknown>;
+    return `{${Object.keys(object).sort().map(key => `${JSON.stringify(key)}:${canonicalJson(object[key])}`).join(',')}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function summaryMatchesSnapshot(summary: TournamentSummary, snapshot: TournamentSnapshot): boolean {
+  const table = snapshot.tournament;
+  return summary.id === table.id && summary.ownerId === table.created_by
+    && summary.revision === table.revision && summary.name === table.name
+    && summary.format === table.format && summary.status === table.status
+    && summary.buyIn === table.buy_in && summary.startTime === table.start_time
+    && summary.updatedAt === table.updated_at && summary.deletedAt === table.deleted_at;
+}
+
+function summaryFromSnapshot(snapshot: TournamentSnapshot): TournamentSummary {
+  const table = snapshot.tournament;
+  return tournamentSummarySchema.parse({
+    id: table.id, ownerId: table.created_by, revision: table.revision,
+    name: table.name, format: table.format, status: table.status,
+    buyIn: table.buy_in, startTime: table.start_time,
+    updatedAt: table.updated_at, deletedAt: table.deleted_at,
+  });
+}
+
 export class SyncOutbox {
   private connection: Promise<IDBPDatabase<OutboxDatabase>>;
 
   constructor(name = 'kt-sync-outbox') {
-    // v4 adds account-scoped tournament summaries without touching pending commands.
+    // Upgrades add account-scoped table caches without touching pending commands.
     let rejectBlocked!: (reason: Error) => void;
     let blockedTimer: ReturnType<typeof setTimeout> | undefined;
     let timedOut = false;
     const blocked = new Promise<never>((_, reject) => { rejectBlocked = reject; });
-    const opening = openDB<OutboxDatabase>(name, 4, {
+    const opening = openDB<OutboxDatabase>(name, 5, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const store = db.createObjectStore('operations', { keyPath: ['operation.ownerId', 'operation.id'] });
@@ -86,6 +116,8 @@ export class SyncOutbox {
           tx.objectStore('operations').createIndex('entity', ['operation.ownerId', 'operation.entity', 'operation.entityId']);
         }
         if (oldVersion < 4) db.createObjectStore('tournamentSummaries', { keyPath: ['ownerId', 'id'] });
+        if (oldVersion < 5) db.createObjectStore('tournamentSnapshots',
+          { keyPath: ['tournament.created_by', 'tournament.id'] });
       },
       blocked: () => {
         blockedTimer ??= setTimeout(() => {
@@ -235,6 +267,78 @@ export class SyncOutbox {
     } catch (error) { await tx.done.catch(() => undefined); throw error; }
   }
 
+  async tournamentSnapshot(ownerId: string, tableId: string): Promise<TournamentSnapshot | null> {
+    z.uuid().parse(ownerId); z.uuid().parse(tableId);
+    const db = await this.connection;
+    const tx = db.transaction(['tournamentSnapshots', 'tournamentSummaries'], 'readonly');
+    try {
+      const stored = await tx.objectStore('tournamentSnapshots').get([ownerId, tableId]);
+      const summary = await tx.objectStore('tournamentSummaries').get([ownerId, tableId]);
+      await tx.done;
+      if (!stored) return null;
+      const snapshot = parseTournamentSnapshot(stored);
+      const current = summary ? tournamentSummarySchema.parse(summary) : null;
+      if (snapshot.tournament.deleted_at !== null || current?.deletedAt !== null
+        || (current && current.revision > snapshot.tournament.revision)) return null;
+      if (current && current.revision === snapshot.tournament.revision
+        && !summaryMatchesSnapshot(current, snapshot)) throw new Error('Catalogo e detalhes divergem.');
+      return snapshot;
+    } catch (error) { await tx.done.catch(() => undefined); throw error; }
+  }
+
+  async mergeTournamentSnapshots(ownerId: string, values: TournamentSnapshot[], signal: AbortSignal): Promise<void> {
+    z.uuid().parse(ownerId);
+    signal.throwIfAborted();
+    const incoming = values.map(parseTournamentSnapshot);
+    if (incoming.some(snapshot => snapshot.tournament.created_by !== ownerId)
+      || new Set(incoming.map(snapshot => snapshot.tournament.id)).size !== incoming.length) {
+      throw new Error('Detalhes possuem conta ou mesa inconsistente.');
+    }
+    const db = await this.connection;
+    const tx = db.transaction(['tournamentSnapshots', 'tournamentSummaries'], 'readwrite', { durability: 'strict' });
+    try {
+      for (const snapshot of incoming) {
+        signal.throwIfAborted();
+        const table = snapshot.tournament;
+        const key: Key = [ownerId, table.id];
+        const summary = await tx.objectStore('tournamentSummaries').get(key);
+        if (summary) {
+          const current = tournamentSummarySchema.parse(summary);
+          if (current.deletedAt !== null && table.deleted_at === null) {
+            throw new Error('Mesa removida nao pode ressurgir.');
+          }
+          if (current.revision > table.revision) continue;
+          if (current.revision === table.revision && !summaryMatchesSnapshot(current, snapshot)) {
+            throw new Error('Catalogo e detalhes divergem na mesma revisao.');
+          }
+        }
+        const previous = await tx.objectStore('tournamentSnapshots').get(key);
+        if (previous) {
+          const stored = parseTournamentSnapshot(previous);
+          if (stored.tournament.revision > table.revision) continue;
+          if (stored.tournament.deleted_at !== null && table.deleted_at === null) {
+            throw new Error('Mesa removida nao pode ressurgir.');
+          }
+          if (stored.tournament.revision === table.revision) {
+            if (canonicalJson(stored) !== canonicalJson(snapshot)) {
+              throw new Error('Mesma revisao com detalhes divergentes.');
+            }
+            if (!summary) await tx.objectStore('tournamentSummaries').put(summaryFromSnapshot(snapshot));
+            continue;
+          }
+        }
+        await tx.objectStore('tournamentSnapshots').put(snapshot);
+        await tx.objectStore('tournamentSummaries').put(summaryFromSnapshot(snapshot));
+      }
+      signal.throwIfAborted();
+      await tx.done;
+    } catch (error) {
+      try { tx.abort(); } catch { /* A transacao pode ja estar abortada. */ }
+      await tx.done.catch(() => undefined);
+      throw error;
+    }
+  }
+
   async tournamentView(ownerId: string): Promise<{ tables: TournamentSummary[]; pending: OutboxEntry[];
     views: TournamentCatalogView[] }> {
     z.uuid().parse(ownerId);
@@ -270,11 +374,11 @@ export class SyncOutbox {
       throw new Error('Catalogo possui conta ou mesa inconsistente.');
     }
     const db = await this.connection;
-    const tx = db.transaction('tournamentSummaries', 'readwrite', { durability: 'strict' });
+    const tx = db.transaction(['tournamentSummaries', 'tournamentSnapshots'], 'readwrite', { durability: 'strict' });
     try {
       for (const row of incoming) {
         signal.throwIfAborted();
-        const stored = await tx.store.get([ownerId, row.id]);
+        const stored = await tx.objectStore('tournamentSummaries').get([ownerId, row.id]);
         if (stored) {
           const current = tournamentSummarySchema.parse(stored);
           if (current.revision > row.revision) continue;
@@ -286,7 +390,17 @@ export class SyncOutbox {
             throw new Error('Mesa removida nao pode ressurgir.');
           }
         }
-        await tx.store.put(row);
+        const detail = await tx.objectStore('tournamentSnapshots').get([ownerId, row.id]);
+        if (detail) {
+          const snapshot = parseTournamentSnapshot(detail);
+          if (snapshot.tournament.deleted_at !== null && row.deletedAt === null) {
+            throw new Error('Mesa removida nao pode ressurgir.');
+          }
+          if (snapshot.tournament.revision === row.revision && !summaryMatchesSnapshot(row, snapshot)) {
+            throw new Error('Catalogo e detalhes divergem na mesma revisao.');
+          }
+        }
+        await tx.objectStore('tournamentSummaries').put(row);
       }
       signal.throwIfAborted();
       await tx.done;
