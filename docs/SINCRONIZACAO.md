@@ -3,6 +3,20 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Leitura de resultados em 29/09/2026
+
+- O leitor de mesa so devolve um snapshot depois de duas leituras da mesma
+  revisao. Agora tambem exige colocacoes sequenciais, quedas com horario,
+  ausencia de premios durante a noite e premios em centavos exatamente iguais
+  ao bolo e as faixas no encerramento. Uma resposta inconsistente falha sem
+  tocar no store local.
+- Testes HTTP simulados cobrem posicao duplicada, lacuna, premio ausente,
+  premio alterado, fracao de centavo e resultado antigo em mesa reaberta.
+  Auth/HTTP local com duas contas leu o resultado real; uma fixture isolada
+  teve premio adulterado via service role, o leitor recusou e voltou a aceitar
+  apos restaurar o valor. A fixture foi removida. Ainda faltam cache,
+  reconciliacao, UI online, Realtime e remoto.
+
 ## Eliminacao e resultado no Supabase local em 29/09/2026
 
 - `player.eliminate` registra a colocacao pelo numero de jogadores ainda em jogo.

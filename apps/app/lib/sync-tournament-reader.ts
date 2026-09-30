@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { Database } from '../types/supabase';
 import { presetPayloadSchema } from './sync-preset-model';
+import { distribuirPremios } from './payouts';
 
 const playerSchema = z.strictObject({
   id: z.uuid(), tournament_id: z.uuid(), user_id: z.uuid().nullable(),
@@ -30,6 +31,40 @@ const tournamentSchema = z.strictObject({
 });
 export type TournamentSnapshot = { tournament: z.infer<typeof tournamentSchema>;
   players: z.infer<typeof playerSchema>[] };
+
+function validResults({ tournament, players }: TournamentSnapshot): boolean {
+  const count = players.length;
+  const placed = players.filter(player => player.position !== null);
+  const active = count - placed.length;
+  const positions = placed.map(player => player.position!).sort((a, b) => a - b);
+  if (positions.some((position, index) => position !== active + index + 1)) return false;
+  if (placed.some(player => player.eliminated_at === null && player.position !== 1)) return false;
+  if (players.some(player => player.position === null && player.eliminated_at !== null)) return false;
+
+  if (tournament.status === 'finished') {
+    if (!count || active !== 0 || tournament.clock_ends_at !== null
+      || players.some(player => player.position === 1 && player.eliminated_at !== null)
+      || players.some(player => player.prize === null)) return false;
+    const poolCents = Math.round(tournament.buy_in * 100)
+      * players.reduce((total, player) => total + player.buy_ins + player.re_entries + player.add_ons, 0);
+    if (!Number.isSafeInteger(poolCents)) return false;
+    const payouts = distribuirPremios(poolCents / 100, count);
+    return players.every(player => {
+      const cents = player.prize! * 100;
+      return Math.abs(cents - Math.round(cents)) < 0.000001
+        && Math.round(cents) === Math.round((payouts.find(payout => payout.place === player.position)?.amount ?? 0) * 100);
+    });
+  }
+  if (tournament.status === 'running' || tournament.status === 'paused') {
+    return active > 0 && positions.every(position => position > 1)
+      && players.every(player => player.prize === null);
+  }
+  if (tournament.status === 'upcoming') {
+    return placed.length === 0 && tournament.clock_ends_at === null
+      && players.every(player => player.prize === null);
+  }
+  return true;
+}
 
 export class TournamentReadError extends Error {
   constructor(public readonly code: 'unavailable' | 'invalid_response' | 'changed_during_read') {
@@ -93,7 +128,9 @@ export function createTournamentReader(client: Pick<SupabaseClient<Database>, 'f
       }
       const after = await readTable();
       if (after && after.revision === tournament.revision && after.updated_at === tournament.updated_at) {
-        return { tournament: after, players };
+        const snapshot = { tournament: after, players };
+        if (!validResults(snapshot)) throw new TournamentReadError('invalid_response');
+        return snapshot;
       }
     }
     throw new TournamentReadError('changed_during_read');

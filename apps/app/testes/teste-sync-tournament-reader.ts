@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 import { novaIdentidade } from '../lib/identidade';
 import { createTournamentReader, createTournamentClockReader } from '../lib/sync-tournament-reader';
+import { distribuirPremios } from '../lib/payouts';
 
 async function main() {
   const owner = novaIdentidade(), tableId = novaIdentidade();
@@ -48,6 +49,37 @@ async function main() {
   assert.equal(snapshot?.tournament.revision, 1);
   assert.deepEqual(snapshot?.players.map(p => p.id), ids);
   assert.equal(calls, 5, 'Short pages must not truncate players');
+
+  const resultIds = [...ids, novaIdentidade()].sort();
+  const resultPlayers = resultIds.map((id, index) => ({ ...player(id), position: index + 1,
+    prize: distribuirPremios(37.5 * resultIds.length, resultIds.length).find(payout => payout.place === index + 1)?.amount ?? 0,
+    eliminated_at: index ? '2026-09-29T12:10:00+00:00' : null }));
+  const resultTable = { ...table(), status: 'finished' };
+  tables = [resultTable, resultTable]; pages = [resultPlayers, []];
+  assert.deepEqual((await read(signal))?.players.map(p => p.position), [1, 2, 3]);
+  for (const invalid of [
+    resultPlayers.map((row, i) => i === 1 ? { ...row, prize: null } : row),
+    resultPlayers.map((row, i) => i === 1 ? { ...row, position: 3 } : row),
+    resultPlayers.map((row, i) => i === 1 ? { ...row, prize: row.prize + 0.01 } : row),
+    resultPlayers.map((row, i) => i === 1 ? { ...row, prize: row.prize + 0.001 } : row),
+    resultPlayers.map((row, i) => i === 0 ? { ...row, eliminated_at: '2026-09-29T12:10:00+00:00' } : row),
+  ]) {
+    tables = [resultTable, resultTable]; pages = [invalid, []];
+    await assert.rejects(read(signal), { code: 'invalid_response' });
+  }
+  const runningTable = { ...table(), status: 'running' };
+  const runningPlayers = resultPlayers.map((row, i) => ({ ...row, position: i === 2 ? 3 : null,
+    prize: null, eliminated_at: i === 2 ? '2026-09-29T12:10:00+00:00' : null }));
+  tables = [runningTable, runningTable]; pages = [runningPlayers, []];
+  assert.equal((await read(signal))?.players[2].position, 3);
+  for (const invalid of [
+    runningPlayers.map((row, i) => i === 2 ? { ...row, position: 2 } : row),
+    runningPlayers.map((row, i) => i === 2 ? { ...row, eliminated_at: null } : row),
+    runningPlayers.map((row, i) => i === 0 ? { ...row, prize: 1 } : row),
+  ]) {
+    tables = [runningTable, runningTable]; pages = [invalid, []];
+    await assert.rejects(read(signal), { code: 'invalid_response' });
+  }
 
   tables = [null]; pages = []; calls = 0;
   assert.equal(await read(signal), null);

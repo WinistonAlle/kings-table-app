@@ -406,6 +406,17 @@ async function main() {
     for (const player of finishedSnapshot?.players ?? []) {
       assert.equal(player.prize, expectedPrizes.find(prize => prize.place === player.position)?.amount ?? 0);
     }
+    const champion = finishedSnapshot?.players.find(player => player.position === 1);
+    assert.ok(champion);
+    const corruptedPrize = await admin.from('tournament_players').update({ prize: champion.prize! + 0.01 })
+      .eq('id', champion.id).eq('tournament_id', tableIds[2]);
+    assert.equal(corruptedPrize.error, null);
+    await assert.rejects(createTournamentReader(a, users[0], tableIds[2])(signal), { code: 'invalid_response' });
+    const restoredPrize = await admin.from('tournament_players').update({ prize: champion.prize })
+      .eq('id', champion.id).eq('tournament_id', tableIds[2]);
+    assert.equal(restoredPrize.error, null);
+    assert.equal((await createTournamentReader(a, users[0], tableIds[2])(signal))?.players
+      .find(player => player.id === champion.id)?.prize, champion.prize);
     assert.equal((await send(createOperation({ ...finalFall, kind: 'player.eliminate',
       expectedRevision: 9, payload: { playerId: latePlayers[0] } }), signal)).status, 'rejected');
     const undoFinal = createOperation({ ...lateBase, kind: 'player.undoElimination', expectedRevision: 9,
