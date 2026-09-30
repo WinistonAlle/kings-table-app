@@ -242,8 +242,18 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   nao podem ultrapassar as reservas confirmadas.
 - Leitura paginada inclui convidados, tambem tombstones, entre duas leituras
   da revisao. Testes SQL e Auth/HTTP locais cobrem isolamento, acesso direto
-  negado, rollback, reenvio idempotente e check-in. Nao ha RSVP pelo jogador,
-  promocao automatica da espera, UI online, migracao local nem deploy remoto.
+  negado, rollback, reenvio idempotente e check-in.
+- A fila agora promove automaticamente o primeiro convite em espera quando uma
+  confirmacao sai, um convite e removido, um jogador sem reserva e retirado ou
+  o limite aumenta/deixa de existir. O mesmo fluxo funciona no store local.
+  O teste SQL cobre ordem, retorno voluntario a espera sem autopromocao,
+  retirada de jogador com reserva preservada e rollback conjunto de presenca
+  e promocao quando a auditoria falha. Auth/HTTP confirmou a leitura da nova
+  revisao. Chromium em modo local confirmou anuncio, recarga e layout em
+  390/1440 px. O site em localhost:3001 recebeu o novo export web.
+- A ordem usa o momento do convite, ainda nao a data de eventual reentrada na
+  espera. Nao ha RSVP pelo jogador, UI online sincronizada, migracao dos dados
+  locais nem deploy remoto.
 
 ## Primeiro comando de mesa em 24/09/2026
 

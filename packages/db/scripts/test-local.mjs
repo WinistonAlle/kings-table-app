@@ -55,6 +55,7 @@ await sql(await readFile(new URL('../supabase/tests/preset_operations.sql', impo
 await sql(await readFile(new URL('../supabase/tests/tournament_create.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_planning.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_invites.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/tournament_waitlist.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_add.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_late_entry.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_results.sql', import.meta.url), 'utf8'));

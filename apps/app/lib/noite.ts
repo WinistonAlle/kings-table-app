@@ -27,6 +27,24 @@ export function adicionarConvidado(t: Tournament, convidado: NightInvitee): Tour
   return { ...t, invitees: [...(t.invitees ?? []), { ...convidado, name: nome, status: statusPresenca(t, convidado.status) }] };
 }
 
+export function promoverListaEspera(t: Tournament, ignorarId?: string): Tournament {
+  if (t.status !== 'upcoming' || !t.invitees?.some(c => c.status === 'waiting')) return t;
+  const ocupados = new Set([
+    ...t.players.map(p => p.name.trim().toLocaleLowerCase('pt-BR')),
+    ...t.invitees.filter(c => c.status === 'confirmed').map(c => c.name.trim().toLocaleLowerCase('pt-BR')),
+  ]);
+  let mudou = false;
+  const invitees = t.invitees.map(c => {
+    if (c.status !== 'waiting' || c.id === ignorarId) return c;
+    const nome = c.name.trim().toLocaleLowerCase('pt-BR');
+    if (t.capacity && ocupados.size >= t.capacity && !ocupados.has(nome)) return c;
+    ocupados.add(nome);
+    mudou = true;
+    return { ...c, status: 'confirmed' as const };
+  });
+  return mudou ? { ...t, invitees } : t;
+}
+
 export function vagaParaJogador(t: Tournament, name: string): boolean {
   if (!t.capacity) return true;
   if (t.players.filter(p => !p.position).length >= t.capacity) return false;

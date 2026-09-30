@@ -80,9 +80,15 @@ export function NightPlanning({ tournament: t }: { tournament: Tournament }) {
     {[...guests].sort((a, b) => (a.status === 'waiting' ? 1 : 0) - (b.status === 'waiting' ? 1 : 0) || a.createdAt.localeCompare(b.createdAt)).map(g => <View key={g.id} style={styles.guest}>
       <View style={styles.heading}><KTText papel="corpoForte" style={{ flex: 1 }}>{g.name}</KTText>{!g.playerId && <Pressable accessibilityRole="button" accessibilityLabel={`Remover convite de ${g.name}`} onPress={() => confirm(`Remover ${g.name} dos convidados?`, () => removeInvite(t.id, g.id))} style={styles.icon}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable>}</View>
       {g.playerId ? <KTText color={Colors.ok}>Já entrou na mesa · buy-in registrado</KTText> : <>
-        <View style={styles.actions}>{ESTADOS.map(s => <Pressable key={s.value} accessibilityRole="radio" accessibilityLabel={`${g.name}: ${s.label}`} accessibilityState={{ checked: g.status === s.value }} onPress={() => { setAttendance(t.id, g.id, s.value); setMessage('Presença atualizada. Confirmações respeitam o limite de vagas.'); }} style={[styles.option, { borderColor: g.status === s.value ? s.color : Colors.border }]}><KTText papel="apoio" color={g.status === s.value ? s.color : Colors.text1}>{s.label}</KTText></Pressable>)}</View>
+        <View style={styles.actions}>{ESTADOS.map(s => <Pressable key={s.value} accessibilityRole="radio" accessibilityLabel={`${g.name}: ${s.label}`} accessibilityState={{ checked: g.status === s.value }} onPress={() => {
+          const waitingIds = new Set(guests.filter(c => c.status === 'waiting').map(c => c.id));
+          setAttendance(t.id, g.id, s.value);
+          const next = useTournamentStore.getState().tournaments.find(item => item.id === t.id);
+          const promoted = next?.invitees?.find(c => waitingIds.has(c.id) && c.status === 'confirmed' && c.id !== g.id);
+          setMessage(promoted ? `${promoted.name} foi confirmado pela lista de espera.` : 'Presença atualizada.');
+        }} style={[styles.option, { borderColor: g.status === s.value ? s.color : Colors.border }]}><KTText papel="apoio" color={g.status === s.value ? s.color : Colors.text1}>{s.label}</KTText></Pressable>)}</View>
         {g.status === 'confirmed' && <KTButton label={`Dar entrada: ${g.name}`} variant="fantasma" onPress={() => confirm(`Dar entrada em ${g.name}? Será registrado um buy-in com pagamento a receber.`, () => checkIn(t.id, g.id))} />}
-        {g.status === 'waiting' && <KTText papel="apoio" color={Colors.text2}>Espera #{guests.filter(c => c.status === 'waiting').findIndex(c => c.id === g.id) + 1} · confirme quando houver vaga.</KTText>}
+        {g.status === 'waiting' && <KTText papel="apoio" color={Colors.text2}>Espera #{guests.filter(c => c.status === 'waiting').findIndex(c => c.id === g.id) + 1} · promoção automática quando abrir vaga.</KTText>}
       </>}
     </View>)}
     {!!message && <KTText accessibilityLiveRegion="polite" color={Colors.gold200}>{message}</KTText>}

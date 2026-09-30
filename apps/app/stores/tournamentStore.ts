@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
 import { corrigirNomeJogador, desfazerEliminacao, eliminar, incluirJogador, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
-import { adicionarConvidado, statusPresenca, vagaParaJogador } from '@/lib/noite';
+import { adicionarConvidado, promoverListaEspera, statusPresenca, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
 import { sortearAssentos, moverAssento, desfazerAssentos } from '@/lib/assentos';
@@ -69,8 +69,13 @@ export const useTournamentStore = create<TournamentStore>()(
       undoSeats: (id) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id ? desfazerAssentos(t) : t) })),
 
       invite: (id, name, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? adicionarConvidado(t, { id: novaIdentidade(), name, status, createdAt: new Date().toISOString() }) : t) })),
-      setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).map(c => c.id === guestId && !c.playerId ? { ...c, status: statusPresenca(t, status, guestId) } : c) } : t) })),
-      removeInvite: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? { ...t, invitees: (t.invitees ?? []).filter(c => c.id !== guestId || c.playerId) } : t) })),
+      setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => {
+        if (t.id !== id || t.status !== 'upcoming') return t;
+        const invitees = (t.invitees ?? []).map(c => c.id === guestId && !c.playerId
+          ? { ...c, status: statusPresenca(t, status, guestId) } : c);
+        return promoverListaEspera({ ...t, invitees }, status === 'waiting' ? guestId : undefined);
+      }) })),
+      removeInvite: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? promoverListaEspera({ ...t, invitees: (t.invitees ?? []).filter(c => c.id !== guestId || c.playerId) }) : t) })),
       checkIn: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => {
         const c = t.invitees?.find(c => c.id === guestId);
         if (t.id !== id || t.status !== 'upcoming' || !c || c.status !== 'confirmed' || c.playerId) return t;
@@ -95,7 +100,7 @@ export const useTournamentStore = create<TournamentStore>()(
 
       updateTournament: (id, updates) =>
         set(s => ({
-          tournaments: s.tournaments.map(t => (t.id === id ? { ...t, ...updates } : t)),
+          tournaments: s.tournaments.map(t => (t.id === id ? promoverListaEspera({ ...t, ...updates }) : t)),
         })),
 
       deleteTournament: (id) =>
@@ -122,7 +127,7 @@ export const useTournamentStore = create<TournamentStore>()(
           tournaments: s.tournaments.map(t => {
             const player = t.players.find(p => p.id === playerId);
             return t.id === tournamentId && player && !motivoBloqueioRemocao(t, player)
-              ? { ...t, players: t.players.filter(p => p.id !== playerId), invitees: t.invitees?.map(c => c.playerId === playerId ? { ...c, playerId: undefined } : c) }
+              ? promoverListaEspera({ ...t, players: t.players.filter(p => p.id !== playerId), invitees: t.invitees?.map(c => c.playerId === playerId ? { ...c, playerId: undefined } : c) })
               : t;
           }),
         })),

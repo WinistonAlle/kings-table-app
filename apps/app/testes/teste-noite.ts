@@ -36,6 +36,8 @@ assert.equal(useTournamentStore.getState().tournaments[0].players[0].paymentStat
 store.eliminatePlayer(t.id, useTournamentStore.getState().tournaments[0].players[0].id);
 assert.equal(useTournamentStore.getState().tournaments[0].status, 'upcoming', 'não elimina antes do início');
 store.setAttendance(t.id, 'b', 'absent');
+assert.equal(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'c')?.status,
+  'confirmed', 'primeiro da espera assume a vaga automaticamente');
 store.setAttendance(t.id, 'c', 'confirmed');
 store.checkIn(t.id, 'c');
 assert.equal(useTournamentStore.getState().tournaments[0].players.length, 2);
@@ -51,6 +53,33 @@ assert.equal(useTournamentStore.getState().tournaments[0].invitees!.length, 3, '
 store.startTournament(t.id);
 store.invite(t.id, 'Novo', 'confirmed');
 assert.equal(useTournamentStore.getState().tournaments[0].invitees!.length, 3, 'RSVP encerrado após início');
+const queue: Tournament = { ...t, id: 'waitlist', players: [], invitees: [
+  guest('a', 'Ana'), guest('b', 'Bruno'),
+  { ...guest('c', 'Caio'), status: 'waiting' },
+  { ...guest('d', 'Dora'), status: 'waiting' },
+  { ...guest('e', 'Eva'), status: 'waiting' },
+] };
+useTournamentStore.setState({ tournaments: [queue], activeTournamentId: null });
+store.setAttendance(queue.id, 'b', 'absent');
+assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c => c.status),
+  ['confirmed', 'absent', 'confirmed', 'waiting', 'waiting'], 'desistencia promove a primeira pessoa');
+store.setAttendance(queue.id, 'c', 'waiting');
+assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c => c.status),
+  ['confirmed', 'absent', 'waiting', 'confirmed', 'waiting'], 'voltar a espera promove outra pessoa, nao a si mesma');
+store.removeInvite(queue.id, 'a');
+assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c => c.status),
+  ['absent', 'confirmed', 'confirmed', 'waiting'], 'remocao promove a pessoa seguinte');
+store.updateTournament(queue.id, { capacity: 3 });
+assert.equal(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'e')?.status,
+  'confirmed', 'aumento de capacidade libera a proxima vaga');
+const playerQueue: Tournament = { ...queue, id: 'player-waitlist', players: [{
+  id: 'manual', userId: 'guest', name: 'Manual', buyIns: 1, reEntries: 0, addOns: 0,
+  paymentStatus: 'pending', financialActivityRecorded: false,
+}], invitees: [guest('a', 'Ana'), { ...guest('c', 'Caio'), status: 'waiting' }] };
+useTournamentStore.setState({ tournaments: [playerQueue], activeTournamentId: null });
+store.removePlayer(playerQueue.id, 'manual');
+assert.equal(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'c')?.status,
+  'confirmed', 'retirar entrada libera uma vaga para a espera');
 const late: Tournament = { ...t, id: 'late-night', status: 'running', capacity: undefined,
   invitees: undefined, players: ['Ana', 'Bia', 'Caio'].map((name, i) => ({
     id: `late-${i}`, userId: `guest-${i}`, name, buyIns: 1, reEntries: 0, addOns: 0,
