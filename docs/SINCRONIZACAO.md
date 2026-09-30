@@ -772,6 +772,26 @@ e https://supabase.com/docs/reference/javascript/using-modifiers-limit
   Realtime, revisao de conflitos, migracao dos presets locais e protecao de
   restore continuam pendentes. Nenhuma ativacao remota/alteracao de producao.
 
+## Sessao De Catalogo De Mesas
+
+- `TournamentSyncSession` reune fila, envio e catalogo online para uma conta
+  fixa. Leitura local de mesas em cache e comandos pendentes usa uma transacao
+  IndexedDB; o sender so reserva comandos de torneio, deixando presets intactos.
+- `synchronize()` compartilha rodadas concorrentes e relê o catalogo apos o
+  envio. `ready` indica que a rodada terminou, nao que todos os comandos foram
+  aceitos: `pending` preserva retry, conflito e rejeicao para tratamento futuro.
+  Falha de rede mantem cache e intencoes, e `stop()` impede que uma resposta
+  atrasada da conta anterior apareca na sessao nova.
+- `teste-sync-tournament-session.ts` cobre reload, offline, conflitos,
+  coalescencia, isolamento e resposta tardia com IndexedDB/transporte simulados.
+  `teste-sync-tournament-http-local.ts` confirmou a sessao com Auth/JWT e HTTP
+  locais reais: atualizacao de mesa, recibo, nova revisao no catalogo e conta B
+  isolada. Nenhuma migracao foi aplicada no projeto remoto.
+- Ainda nao ha projecao dos comandos de torneio sobre o cache nem ligacao ao
+  store/UI ou ao ciclo de Auth. O modelo online nao representa todos os campos
+  locais; nao usar esta sessao para substituir mesas locais nem anunciar
+  sincronizacao entre dispositivos como pronta.
+
 ## Proximas Integracoes
 
 1. Consolidar historico local/remoto das migracoes e criar identidade global

@@ -208,6 +208,23 @@ export class SyncOutbox {
     } catch (error) { await tx.done.catch(() => undefined); throw error; }
   }
 
+  async tournamentView(ownerId: string): Promise<{ tables: TournamentSummary[]; pending: OutboxEntry[] }> {
+    z.uuid().parse(ownerId);
+    const db = await this.connection;
+    const tx = db.transaction(['tournamentSummaries', 'operations'], 'readonly');
+    try {
+      const tables = await tx.objectStore('tournamentSummaries')
+        .getAll(IDBKeyRange.bound([ownerId, ''], [ownerId, '\uffff']));
+      const operations = await tx.objectStore('operations').index('owner').getAll(ownerId);
+      await tx.done;
+      return {
+        tables: tables.map(row => tournamentSummarySchema.parse(row)),
+        pending: operations.map(parseEntry).filter(entry => entry.operation.entity === 'tournament'
+          && entry.status !== 'confirmed' && entry.status !== 'cancelled').sort((a, b) => a.sequence - b.sequence),
+      };
+    } catch (error) { await tx.done.catch(() => undefined); throw error; }
+  }
+
   async mergeTournamentSummaries(ownerId: string, values: TournamentSummary[], signal: AbortSignal): Promise<void> {
     z.uuid().parse(ownerId);
     signal.throwIfAborted();

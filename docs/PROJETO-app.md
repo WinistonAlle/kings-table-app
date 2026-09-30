@@ -399,8 +399,8 @@ quando fizer sentido, persistencia e comportamento offline bem definido.
   de espera.
 - Formatos de torneio com bounty, rebuy, reentrada, add-on, satelite e
   multiplas mesas.
-- Leitura de comprovante de pagamento por foto, com valor e destinatario
-  sugeridos para conferencia manual.
+- Analise de foto de comprovante de pagamento com IA para sugerir valor e
+  destinatario; o organizador confere e confirma antes de registrar.
 - Rainha IA conectada a um modelo, com memoria do jogador e analise das maos.
 - Trilhas de estudo e revisao das decisoes da noite.
 - Registro de maos, envio de cartas, rabbit hunt, analise de VPIP, win rate,

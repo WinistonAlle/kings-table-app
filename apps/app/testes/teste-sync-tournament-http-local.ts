@@ -12,6 +12,7 @@ import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 import { distribuirPremios } from '../lib/payouts';
 import { createTournamentCatalogReader } from '../lib/sync-tournament-catalog';
+import { TournamentSyncSession } from '../lib/sync-tournament-session';
 
 async function main() {
   // This runner accepts no project URL or credentials from arguments/env.
@@ -447,6 +448,28 @@ async function main() {
     await outbox.mergeTournamentSummaries(users[1], otherCatalog, signal);
     assert.equal((await outbox.tournamentSummaries(users[0])).length, 3);
     assert.deepEqual((await outbox.tournamentSummaries(users[1])).map(table => table.id), [tableIds[3]]);
+    const tournamentSession = new TournamentSyncSession(users[0], outbox,
+      createTournamentCatalogReader(a, users[0], 1), send);
+    try {
+      const current = ownCatalog.find(table => table.id === tableIds[0]);
+      assert.ok(current);
+      const update = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+        kind: 'tournament.update', expectedRevision: current.revision,
+        payload: { startTime: new Date(Date.now() + 86400000).toISOString(),
+          location: 'Sala sincronizada', capacity: 2 } });
+      await tournamentSession.enqueue(update);
+      assert.equal(tournamentSession.snapshot().pending[0].operation.id, update.id);
+      await tournamentSession.synchronize();
+      assert.equal(tournamentSession.snapshot().phase, 'ready');
+      assert.deepEqual(tournamentSession.snapshot().pending, []);
+      assert.equal(tournamentSession.snapshot().tables.find(table => table.id === tableIds[0])?.revision,
+        current.revision + 1);
+      assert.deepEqual((await outbox.tournamentSummaries(users[1])).map(table => table.id), [tableIds[3]]);
+      const changed = await a.from('tournaments').select('revision,details').eq('id', tableIds[0]).single();
+      assert.equal(changed.error, null);
+      assert.equal(changed.data?.revision, current.revision + 1);
+      assert.equal((changed.data?.details as { location: string }).location, 'Sala sincronizada');
+    } finally { tournamentSession.stop(); }
     const foreignCatalog = await b.from('tournaments').select('id').eq('created_by', users[0]);
     assert.deepEqual(foreignCatalog.data, []);
     sender.stop();
@@ -464,7 +487,7 @@ async function main() {
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
       add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock, catalog and scoped snapshots; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock, catalog and scoped session; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);
