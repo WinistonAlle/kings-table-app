@@ -11,6 +11,7 @@ import { createTournamentReader, createTournamentClockReader } from '../lib/sync
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
 import { distribuirPremios } from '../lib/payouts';
+import { createTournamentCatalogReader } from '../lib/sync-tournament-catalog';
 
 async function main() {
   // This runner accepts no project URL or credentials from arguments/env.
@@ -23,7 +24,7 @@ async function main() {
   const a = createClient<Database>(url, local.ANON_KEY, options);
   const b = createClient<Database>(url, local.ANON_KEY, options);
   const users: string[] = [];
-  const tableIds = [randomUUID(), randomUUID(), randomUUID()];
+  const tableIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
   const dbName = `qa-tournament-create-${randomUUID()}`;
   const outbox = new SyncOutbox(dbName);
   const password = `Qa-${randomUUID()}!`;
@@ -433,6 +434,21 @@ async function main() {
       payload: { playerId: latePlayers[0] },
     } });
     assert.equal(foreignResult.error?.code, '42501');
+    const otherSend = createTournamentTransport(b, users[1]);
+    const otherTable = createOperation({ ownerId: users[1], entityId: tableIds[3], entity: 'tournament',
+      kind: 'tournament.create', expectedRevision: 0,
+      payload: { ...payload, name: 'Mesa da conta B' } });
+    assert.equal((await otherSend(otherTable, signal)).status, 'confirmed');
+    const ownCatalog = await createTournamentCatalogReader(a, users[0], 1)(signal);
+    const otherCatalog = await createTournamentCatalogReader(b, users[1], 1)(signal);
+    assert.deepEqual(new Set(ownCatalog.map(table => table.id)), new Set(tableIds.slice(0, 3)));
+    assert.deepEqual(otherCatalog.map(table => table.id), [tableIds[3]]);
+    await outbox.mergeTournamentSummaries(users[0], ownCatalog, signal);
+    await outbox.mergeTournamentSummaries(users[1], otherCatalog, signal);
+    assert.equal((await outbox.tournamentSummaries(users[0])).length, 3);
+    assert.deepEqual((await outbox.tournamentSummaries(users[1])).map(table => table.id), [tableIds[3]]);
+    const foreignCatalog = await b.from('tournaments').select('id').eq('created_by', users[0]);
+    assert.deepEqual(foreignCatalog.data, []);
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
@@ -448,7 +464,7 @@ async function main() {
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
       add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock, catalog and scoped snapshots; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

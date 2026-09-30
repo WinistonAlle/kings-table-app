@@ -3,6 +3,21 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Catalogo de mesas da conta em 29/09/2026
+
+- `createTournamentCatalogReader` consulta somente `created_by` da conta fixa,
+  em paginas keyset por UUID, incluindo `deleted_at`. Valida escopo, ordem,
+  revisao e formato; pagina invalida posterior rejeita a lista inteira.
+  Pagina curta nao encerra a busca. Uma ausencia nao significa exclusao.
+- O IndexedDB v4 guarda resumos de mesas separado do store operacional e da
+  fila. Merge por revisao e atomico, preserva tombstones, recusa divergencia na
+  mesma revisao e nao ressuscita exclusao. Teste de upgrade a partir de v3
+  preservou um comando pendente; rollback e duas contas isoladas passaram.
+- Auth/HTTP local leu tres mesas da conta A em paginas de um item, uma mesa
+  da conta B e nenhuma mesa alheia. Os resumos foram mesclados em cache por
+  conta; fixtures removidas. Ainda nao ha descoberta na UI, projecao completa,
+  reconciliacao com o store local, remoto nem sincronizacao entre aparelhos.
+
 ## Leitura de resultados em 29/09/2026
 
 - O leitor de mesa so devolve um snapshot depois de duas leituras da mesma

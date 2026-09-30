@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { novaIdentidade } from './identidade';
 import { createOperation, operationContent, operationSchema, parseOperation, type SyncOperation } from './sync-operation';
 import { applyPresetOperation, preparePresetPayload, presetBaseSchema, projectPreset, type PresetBase } from './sync-preset-model';
+import { tournamentSummarySchema, type TournamentSummary } from './sync-tournament-catalog';
 
 const safeCount = z.number().int().nonnegative().safe();
 const leaseSchema = z.strictObject({ token: z.uuid(), until: safeCount });
@@ -52,6 +53,7 @@ interface OutboxDatabase extends DBSchema {
   operations: { key: Key; value: OutboxEntry; indexes: { owner: string; ownerStatus: [string, OutboxEntry['status']]; entity: [string, SyncOperation['entity'], string] } };
   counter: { key: string; value: number };
   presetBases: { key: Key; value: PresetBase };
+  tournamentSummaries: { key: Key; value: TournamentSummary };
 }
 type WriteTransaction = IDBPTransaction<OutboxDatabase, ['operations', 'counter', 'presetBases'], 'readwrite'>;
 
@@ -65,12 +67,12 @@ export class SyncOutbox {
   private connection: Promise<IDBPDatabase<OutboxDatabase>>;
 
   constructor(name = 'kt-sync-outbox') {
-    // v3 prevents older clients from reopening a queue containing resolution records.
+    // v4 adds account-scoped tournament summaries without touching pending commands.
     let rejectBlocked!: (reason: Error) => void;
     let blockedTimer: ReturnType<typeof setTimeout> | undefined;
     let timedOut = false;
     const blocked = new Promise<never>((_, reject) => { rejectBlocked = reject; });
-    const opening = openDB<OutboxDatabase>(name, 3, {
+    const opening = openDB<OutboxDatabase>(name, 4, {
       upgrade(db, oldVersion, _newVersion, tx) {
         if (oldVersion < 1) {
           const store = db.createObjectStore('operations', { keyPath: ['operation.ownerId', 'operation.id'] });
@@ -82,6 +84,7 @@ export class SyncOutbox {
           db.createObjectStore('presetBases', { keyPath: ['ownerId', 'id'] });
           tx.objectStore('operations').createIndex('entity', ['operation.ownerId', 'operation.entity', 'operation.entityId']);
         }
+        if (oldVersion < 4) db.createObjectStore('tournamentSummaries', { keyPath: ['ownerId', 'id'] });
       },
       blocked: () => {
         blockedTimer ??= setTimeout(() => {
@@ -192,6 +195,53 @@ export class SyncOutbox {
       }
       signal.throwIfAborted();
     });
+  }
+
+  async tournamentSummaries(ownerId: string): Promise<TournamentSummary[]> {
+    z.uuid().parse(ownerId);
+    const db = await this.connection;
+    const tx = db.transaction('tournamentSummaries', 'readonly');
+    try {
+      const rows = await tx.store.getAll(IDBKeyRange.bound([ownerId, ''], [ownerId, '\uffff']));
+      await tx.done;
+      return rows.map(row => tournamentSummarySchema.parse(row));
+    } catch (error) { await tx.done.catch(() => undefined); throw error; }
+  }
+
+  async mergeTournamentSummaries(ownerId: string, values: TournamentSummary[], signal: AbortSignal): Promise<void> {
+    z.uuid().parse(ownerId);
+    signal.throwIfAborted();
+    const incoming = values.map(value => tournamentSummarySchema.parse(value));
+    if (incoming.some(row => row.ownerId !== ownerId)
+      || new Set(incoming.map(row => row.id)).size !== incoming.length) {
+      throw new Error('Catalogo possui conta ou mesa inconsistente.');
+    }
+    const db = await this.connection;
+    const tx = db.transaction('tournamentSummaries', 'readwrite', { durability: 'strict' });
+    try {
+      for (const row of incoming) {
+        signal.throwIfAborted();
+        const stored = await tx.store.get([ownerId, row.id]);
+        if (stored) {
+          const current = tournamentSummarySchema.parse(stored);
+          if (current.revision > row.revision) continue;
+          if (current.revision === row.revision) {
+            if (JSON.stringify(current) !== JSON.stringify(row)) throw new Error('Mesma revisao com mesas divergentes.');
+            continue;
+          }
+          if (current.deletedAt !== null && row.deletedAt === null) {
+            throw new Error('Mesa removida nao pode ressurgir.');
+          }
+        }
+        await tx.store.put(row);
+      }
+      signal.throwIfAborted();
+      await tx.done;
+    } catch (error) {
+      try { tx.abort(); } catch { /* A transacao pode ja estar abortada. */ }
+      await tx.done.catch(() => undefined);
+      throw error;
+    }
   }
 
   private async mergeBase(tx: WriteTransaction, incoming: PresetBase): Promise<boolean> {
