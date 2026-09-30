@@ -3,11 +3,13 @@ import { SyncSender, type OperationTransport } from './sync-sender';
 import type { SyncOutbox, OutboxEntry } from './sync-outbox';
 import { parseOperation, type SyncOperation } from './sync-operation';
 import type { TournamentSummary } from './sync-tournament-catalog';
+import type { TournamentCatalogView } from './sync-tournament-model';
 
 export type TournamentSessionState = {
   phase: 'idle' | 'syncing' | 'ready' | 'error' | 'stopped';
   tables: TournamentSummary[];
   pending: OutboxEntry[];
+  views: TournamentCatalogView[];
   error: 'local_storage' | 'remote_read' | null;
 };
 
@@ -17,7 +19,7 @@ export class TournamentSyncSession {
   private sender: SyncSender;
   private inFlight: Promise<void> | null = null;
   private repeat = false;
-  private state: TournamentSessionState = { phase: 'idle', tables: [], pending: [], error: null };
+  private state: TournamentSessionState = { phase: 'idle', tables: [], pending: [], views: [], error: null };
 
   constructor(private ownerId: string, private outbox: SyncOutbox,
     private read: (signal: AbortSignal) => Promise<TournamentSummary[]>, transport: OperationTransport,
@@ -33,7 +35,7 @@ export class TournamentSyncSession {
   stop(): void {
     if (this.controller.signal.aborted) return;
     this.controller.abort(); this.sender.stop();
-    this.state = { phase: 'stopped', tables: [], pending: [], error: null };
+    this.state = { phase: 'stopped', tables: [], pending: [], views: [], error: null };
     this.onUpdate(this.snapshot());
   }
 

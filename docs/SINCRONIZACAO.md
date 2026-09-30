@@ -788,6 +788,13 @@ e https://supabase.com/docs/reference/javascript/using-modifiers-limit
   Conflito/rejeicao, lacuna de revisao ou mesa removida bloqueiam novas
   intencoes sem apagar as anteriores. Isto nao resolve conflitos remotos nem
   substitui a revisao autoritativa do servidor.
+- `tournamentView` agrupa resumo e fila por mesa na mesma leitura transacional.
+  A projecao mostra a revisao reservada, exclusao pendente, conflito que exige
+  revisao e recibo confirmado ainda nao refletido no catalogo (`awaitingCatalog`).
+  Nao inventa nome, jogadores ou dados financeiros a partir dos comandos.
+  A sessao publica esses estados sem apagar o cache quando a leitura falha.
+  Teste cobriu confirmacao seguida de leitura indisponivel e recuperacao na
+  proxima rodada; a UI ainda nao consome esse sinal.
 - `teste-sync-tournament-session.ts` cobre reload, offline, conflitos,
   coalescencia, isolamento e resposta tardia com IndexedDB/transporte simulados.
   `teste-sync-tournament-reservation.ts` cobre corrida entre duas conexoes,

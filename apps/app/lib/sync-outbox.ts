@@ -4,6 +4,7 @@ import { novaIdentidade } from './identidade';
 import { createOperation, operationContent, operationSchema, parseOperation, type SyncOperation } from './sync-operation';
 import { applyPresetOperation, preparePresetPayload, presetBaseSchema, projectPreset, type PresetBase } from './sync-preset-model';
 import { tournamentSummarySchema, type TournamentSummary } from './sync-tournament-catalog';
+import { projectTournamentCatalog, type TournamentCatalogView } from './sync-tournament-model';
 
 const safeCount = z.number().int().nonnegative().safe();
 const leaseSchema = z.strictObject({ token: z.uuid(), until: safeCount });
@@ -135,20 +136,10 @@ export class SyncOutbox {
         }
         return this.add(tx, operation);
       }
-      let exists = !!base, deleted = base?.deletedAt != null;
-      let revision = base?.revision ?? 0;
-      for (const entry of entries) {
-        const prior = entry.operation;
-        if (entry.status === 'confirmed' && entry.receipt!.revision <= revision) continue;
-        if (entry.status === 'conflict' || entry.status === 'rejected' || deleted
-          || prior.expectedRevision !== revision || (!exists && prior.kind !== 'tournament.create')) {
-          throw new Error('Revise as alteracoes pendentes antes de continuar.');
-        }
-        exists = true;
-        revision = prior.expectedRevision + 1;
-        if (prior.kind === 'tournament.delete') deleted = true;
-      }
-      if (!exists || deleted || operation.expectedRevision !== revision) {
+      const view = base || entries.length ? projectTournamentCatalog(base, entries) : null;
+      if (view?.reconciliationNeeded) throw new Error('Revise as alteracoes pendentes antes de continuar.');
+      if (!view?.projectedRevision || view.projectedDeleted
+        || operation.expectedRevision !== view.projectedRevision) {
         throw new Error('Atualize a mesa e revise a versao antes de continuar.');
       }
       return this.add(tx, operation);
@@ -244,7 +235,8 @@ export class SyncOutbox {
     } catch (error) { await tx.done.catch(() => undefined); throw error; }
   }
 
-  async tournamentView(ownerId: string): Promise<{ tables: TournamentSummary[]; pending: OutboxEntry[] }> {
+  async tournamentView(ownerId: string): Promise<{ tables: TournamentSummary[]; pending: OutboxEntry[];
+    views: TournamentCatalogView[] }> {
     z.uuid().parse(ownerId);
     const db = await this.connection;
     const tx = db.transaction(['tournamentSummaries', 'operations'], 'readonly');
@@ -253,11 +245,19 @@ export class SyncOutbox {
         .getAll(IDBKeyRange.bound([ownerId, ''], [ownerId, '\uffff']));
       const operations = await tx.objectStore('operations').index('owner').getAll(ownerId);
       await tx.done;
-      return {
-        tables: tables.map(row => tournamentSummarySchema.parse(row)),
-        pending: operations.map(parseEntry).filter(entry => entry.operation.entity === 'tournament'
-          && entry.status !== 'confirmed' && entry.status !== 'cancelled').sort((a, b) => a.sequence - b.sequence),
-      };
+      const confirmed = tables.map(row => tournamentSummarySchema.parse(row));
+      const entries = operations.map(parseEntry).filter(entry => entry.operation.entity === 'tournament');
+      const byId = new Map<string, OutboxEntry[]>();
+      for (const entry of entries) {
+        const id = entry.operation.entityId;
+        const group = byId.get(id);
+        if (group) group.push(entry);
+        else byId.set(id, [entry]);
+      }
+      const bySummary = new Map(confirmed.map(row => [row.id, row]));
+      const ids = new Set([...bySummary.keys(), ...byId.keys()]);
+      const views = [...ids].sort().map(id => projectTournamentCatalog(bySummary.get(id) ?? null, byId.get(id) ?? []));
+      return { tables: confirmed, pending: views.flatMap(view => view.pending).sort((a, b) => a.sequence - b.sequence), views };
     } catch (error) { await tx.done.catch(() => undefined); throw error; }
   }
 

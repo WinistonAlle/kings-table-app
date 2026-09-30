@@ -48,6 +48,8 @@ async function main() {
     assert.equal(session.snapshot().phase, 'ready');
     assert.equal(session.snapshot().tables[0].revision, 1);
     assert.deepEqual(session.snapshot().pending, []);
+    assert.equal(session.snapshot().views[0].awaitingCatalog, false);
+    assert.equal(session.snapshot().views[0].projectedRevision, 1);
     assert.equal((await outbox.list(owner)).find(entry => entry.operation.id === preset.id)?.status, 'queued');
     assert.equal((await outbox.list(other)).find(entry => entry.operation.id === foreign.id)?.status, 'queued');
     const copy = session.snapshot(); copy.tables.length = 0;
@@ -66,6 +68,8 @@ async function main() {
     assert.equal(offline.snapshot().tables[0].revision, 1);
     assert.equal(offline.snapshot().pending[0].operation.id, update.id);
     assert.equal(offline.snapshot().pending[0].status, 'queued');
+    assert.equal(offline.snapshot().views[0].projectedRevision, 2);
+    assert.equal(offline.snapshot().views[0].reconciliationNeeded, false);
     assert.ok(!JSON.stringify(offline.snapshot()).includes('Private'));
     offline.stop();
     await outbox.close();
@@ -91,6 +95,49 @@ async function main() {
       assert.equal(rejected.snapshot().phase, 'ready');
       assert.equal(rejected.snapshot().pending[0].status, 'conflict', 'A read can succeed while a command conflicts');
       assert.equal(rejected.snapshot().tables[0].revision, 2);
+      assert.equal(rejected.snapshot().views[0].reconciliationNeeded, true);
+
+      const staleName = `qa-tournament-stale-${novaIdentidade()}`;
+      const staleOutbox = new SyncOutbox(staleName);
+      try {
+        await staleOutbox.mergeTournamentSummaries(owner, [table(1)], new AbortController().signal);
+        const staleUpdate = createOperation({ ownerId: owner, entityId: tableId, entity: 'tournament',
+          kind: 'tournament.update', expectedRevision: 1, payload: { name: 'Atualizacao confirmada' } });
+        const staleTransport: OperationTransport = async operation => ({ status: 'confirmed',
+          receipt: { operationId: operation.id, revision: operation.expectedRevision + 1 } });
+        let stale = true;
+        const lagged = new TournamentSyncSession(owner, staleOutbox,
+          async () => [table(stale ? 1 : 2)], staleTransport);
+        sessions.push(lagged);
+        await lagged.enqueue(staleUpdate);
+        await lagged.synchronize();
+        assert.equal(lagged.snapshot().phase, 'ready');
+        assert.deepEqual(lagged.snapshot().pending, []);
+        assert.equal(lagged.snapshot().views[0].awaitingCatalog, true,
+          'A confirmed receipt is not proof the catalog has shown that revision');
+        assert.equal(lagged.snapshot().views[0].reconciliationNeeded, false);
+        stale = false;
+        await lagged.synchronize();
+        assert.equal(lagged.snapshot().views[0].awaitingCatalog, false);
+        assert.equal(lagged.snapshot().views[0].confirmed?.revision, 2);
+
+        const failedRead = new TournamentSyncSession(owner, staleOutbox,
+          async () => { throw new Error('Private network details'); }, staleTransport);
+        sessions.push(failedRead);
+        await failedRead.enqueue(createOperation({ ownerId: owner, entityId: tableId,
+          entity: 'tournament', kind: 'tournament.update', expectedRevision: 2, payload: { name: 'Outra edicao' } }));
+        await failedRead.synchronize();
+        assert.equal(failedRead.snapshot().phase, 'error');
+        assert.equal(failedRead.snapshot().error, 'remote_read');
+        assert.deepEqual(failedRead.snapshot().pending, []);
+        assert.equal(failedRead.snapshot().views[0].awaitingCatalog, true);
+        const recoveredRead = new TournamentSyncSession(owner, staleOutbox, async () => [table(3)], staleTransport);
+        sessions.push(recoveredRead);
+        await recoveredRead.synchronize();
+        assert.equal(recoveredRead.snapshot().phase, 'ready');
+        assert.equal(recoveredRead.snapshot().views[0].awaitingCatalog, false);
+        assert.equal(recoveredRead.snapshot().views[0].confirmed?.revision, 3);
+      } finally { await staleOutbox.close(); await deleteDB(staleName); }
 
       let releasePull!: (rows: TournamentSummary[]) => void, pullStarted!: () => void;
       const pulling = new Promise<void>(resolve => { pullStarted = resolve; });
@@ -119,7 +166,7 @@ async function main() {
       const count = lateUpdates.length;
       releaseLate([{ ...table(3), name: 'Resposta tardia' }]); await pending;
       assert.equal(lateUpdates.length, count);
-      assert.deepEqual(late.snapshot(), { phase: 'stopped', tables: [], pending: [], error: null });
+      assert.deepEqual(late.snapshot(), { phase: 'stopped', tables: [], pending: [], views: [], error: null });
       assert.equal((await reopened.tournamentSummaries(owner))[0].revision, 2);
       await assert.rejects(late.enqueue(create), { name: 'AbortError' });
 

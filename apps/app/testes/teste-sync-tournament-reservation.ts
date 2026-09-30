@@ -5,6 +5,7 @@ import { novaIdentidade } from '../lib/identidade';
 import { createOperation } from '../lib/sync-operation';
 import { SyncOutbox } from '../lib/sync-outbox';
 import type { TournamentSummary } from '../lib/sync-tournament-catalog';
+import { projectTournamentCatalog } from '../lib/sync-tournament-model';
 
 async function main() {
   const name = `qa-tournament-reservation-${novaIdentidade()}`;
@@ -44,8 +45,18 @@ async function main() {
       assert.equal(await two.confirm(owner, operation.id, claim!.lease!.token,
         { operationId: operation.id, revision: expected + 1 }), true);
     }
-    assert.deepEqual((await one.tournamentView(owner)).pending, []);
+    const beforeCatalog = await one.tournamentView(owner);
+    assert.deepEqual(beforeCatalog.pending, []);
+    assert.equal(beforeCatalog.views[0].confirmed, null);
+    assert.equal(beforeCatalog.views[0].projectedRevision, 3);
+    assert.equal(beforeCatalog.views[0].awaitingCatalog, true);
+    assert.equal(beforeCatalog.views[0].reconciliationNeeded, false);
+    assert.throws(() => projectTournamentCatalog(null, [
+      { ...saved, status: 'queued' },
+      { ...saved, operation: { ...saved.operation, ownerId: other } },
+    ]), /inconsistente/);
     await one.mergeTournamentSummaries(owner, [summary(1)], new AbortController().signal);
+    assert.equal((await one.tournamentView(owner)).views[0].awaitingCatalog, true);
     await one.close(); await two.close();
     one = new SyncOutbox(name); two = new SyncOutbox(name);
     const next = make('tournament.update', 3);
@@ -66,6 +77,14 @@ async function main() {
       new AbortController().signal);
     await assert.rejects(one.enqueueTournament(createOperation({ ...next, entityId: deletedId })),
       /Atualize a mesa/);
+    assert.equal((await one.tournamentView(owner)).views.find(view => view.id === deletedId)?.projectedDeleted, true);
+    const scheduledDelete = novaIdentidade();
+    await one.mergeTournamentSummaries(owner, [{ ...summary(1), id: scheduledDelete }], new AbortController().signal);
+    await one.enqueueTournament(createOperation({ ...next, entityId: scheduledDelete,
+      kind: 'tournament.delete', expectedRevision: 1, payload: {} }));
+    assert.equal((await one.tournamentView(owner)).views.find(view => view.id === scheduledDelete)?.projectedDeleted, true);
+    await assert.rejects(one.enqueueTournament(createOperation({ ...next, entityId: scheduledDelete,
+      expectedRevision: 2 })), /Atualize a mesa/);
     assert.equal((await one.list(owner)).filter(entry => entry.operation.entityId === tableId).length, 4);
   } finally { await one.close(); await two.close(); await deleteDB(name); }
   console.log('Tournament reservation: atomic cross-tab revisions, idempotence, reload, conflicts, isolation and tombstones passed.');
