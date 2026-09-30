@@ -17,6 +17,13 @@ const parsed = parseBackup(snapshot);
 assert.equal(parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true } }).blinds.handForHand, true);
 assert.throws(() => parseBackup({ ...snapshot, blinds: { ...snapshot.blinds, handForHand: true, isRunning: true, levelEndsAt: Date.now() + 60000 } }));
 assert.equal(parsed.tournaments[0].buyIn, 37.5);
+const waitingInvite = { id: 'convite-a', name: 'Bia', status: 'waiting',
+  createdAt: '2026-09-15T20:00:00.000Z', waitingSince: '2026-09-30T17:00:00.000Z' };
+assert.equal(parseBackup({ ...snapshot, tournaments: [{ ...mesa, invitees: [waitingInvite] }] })
+  .tournaments[0].invitees?.[0].waitingSince, waitingInvite.waitingSince);
+assert.equal(parseBackup({ ...snapshot, tournaments: [{ ...mesa,
+  invitees: [{ ...waitingInvite, waitingSince: undefined }] }] })
+  .tournaments[0].invitees?.[0].waitingSince, undefined, 'backup antigo permanece valido');
 const withFinancialHistory = { ...mesa, players: [{
   id: 'jogador-a', userId: 'guest', name: 'Ana', buyIns: 1, reEntries: 0,
   addOns: 0, paymentStatus: 'pending', financialActivityRecorded: true,

@@ -525,6 +525,8 @@ async function main() {
     assert.equal(promotedSnapshot?.tournament.revision, 6);
     assert.equal(promotedSnapshot?.invites.find(row => row.id === secondInviteId)?.status, 'waiting');
     assert.equal(promotedSnapshot?.invites.find(row => row.id === waitingInviteId)?.status, 'confirmed');
+    assert.ok(promotedSnapshot?.invites.find(row => row.id === secondInviteId)?.waiting_since);
+    assert.equal(promotedSnapshot?.invites.find(row => row.id === waitingInviteId)?.waiting_since, null);
     const foreignInvites = await b.from('tournament_invites').select('id').eq('tournament_id', inviteTableId);
     assert.equal(foreignInvites.error, null);
     assert.deepEqual(foreignInvites.data, []);

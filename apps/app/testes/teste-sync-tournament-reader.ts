@@ -25,7 +25,7 @@ async function main() {
   const inviteIds = [novaIdentidade(), novaIdentidade()].sort();
   const invite = (id: string, playerId: string | null = null) => ({ id, tournament_id: tableId,
     name: 'Bia QA', status: 'confirmed', player_id: playerId,
-    created_at: '2026-09-29T12:00:00+00:00', deleted_at: null });
+    created_at: '2026-09-29T12:00:00+00:00', waiting_since: null, deleted_at: null });
   let invitePages: unknown[] = [[invite(inviteIds[0], ids[0])], [invite(inviteIds[1])], []];
   let status = 200, networkFail = false, calls = 0;
   const client = createClient<Database>('http://localhost:59999', 'qa-public-key', {
@@ -80,6 +80,8 @@ async function main() {
     [invite(inviteIds[1]), invite(inviteIds[0])],
     [{ ...invite(inviteIds[0]), tournament_id: novaIdentidade() }],
     [{ ...invite(inviteIds[0]), status: 'invalid' }],
+    [{ ...invite(inviteIds[0]), status: 'waiting' }],
+    [{ ...invite(inviteIds[0]), waiting_since: '2026-09-29T12:01:00+00:00' }],
     [{ ...invite(inviteIds[0]), player_id: novaIdentidade() }],
     null,
   ]) {

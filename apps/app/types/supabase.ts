@@ -128,7 +128,7 @@ interface DatabaseSchema {
       tournament_invites: {
         Row: { id: string; tournament_id: string; name: string;
           status: 'confirmed' | 'maybe' | 'absent' | 'waiting'; player_id: string | null;
-          created_at: string; deleted_at: string | null };
+          created_at: string; waiting_since: string | null; deleted_at: string | null };
         Insert: never;
         Update: never;
         Relationships: [];

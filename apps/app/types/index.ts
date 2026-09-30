@@ -53,6 +53,7 @@ export interface NightInvitee {
   name: string;
   status: Attendance;
   createdAt: string;
+  waitingSince?: string;
   playerId?: string;
 }
 

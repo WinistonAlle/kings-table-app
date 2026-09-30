@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { adicionarConvidado, dataAgendada, statusPresenca, textoConvite, vagaParaJogador } from '../lib/noite';
+import { adicionarConvidado, compararEspera, dataAgendada, statusPresenca, textoConvite, vagaParaJogador } from '../lib/noite';
 import type { Tournament } from '../types';
 
 async function main() {
@@ -13,7 +13,8 @@ assert.equal(dataAgendada('16/09/2026', '24:00', agora), null);
 assert.equal(dataAgendada('14/09/2026', '20:00', agora), null);
 assert.equal(dataAgendada('16/09/2026', '20:00', agora), new Date(2026, 8, 16, 20).toISOString());
 let t: Tournament = { id: 'night', name: 'Quarta', format: 'regular', status: 'upcoming', buyIn: 19.9, reEntryAllowed: false, maxReEntries: 0, startTime: new Date(2026, 8, 16, 20).toISOString(), blindStructure: [], currentLevel: 0, players: [], createdBy: 'me', createdAt: '', capacity: 2 };
-const guest = (id: string, name: string) => ({ id, name, status: 'confirmed' as const, createdAt: id });
+const guest = (id: string, name: string) => ({ id, name, status: 'confirmed' as const,
+  createdAt: new Date(Date.UTC(2026, 8, 15, 12, 0, 0, id.charCodeAt(0))).toISOString() });
 t = adicionarConvidado(t, guest('a', 'Ana'));
 t = adicionarConvidado(t, guest('b', 'Bruno'));
 assert.equal(t.players.length, 0, 'RSVP não cobra buy-in');
@@ -66,11 +67,18 @@ assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c =>
 store.setAttendance(queue.id, 'c', 'waiting');
 assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c => c.status),
   ['confirmed', 'absent', 'waiting', 'confirmed', 'waiting'], 'voltar a espera promove outra pessoa, nao a si mesma');
+assert.ok(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'c')?.waitingSince,
+  'reentrada guarda a nova posicao na fila');
+assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.filter(c => c.status === 'waiting').sort(compararEspera).map(c => c.id),
+  ['e', 'c'], 'convite antigo que retorna fica atras de quem ja esperava');
+await useTournamentStore.persist.rehydrate();
+assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.filter(c => c.status === 'waiting').sort(compararEspera).map(c => c.id),
+  ['e', 'c'], 'ordem de reentrada sobrevive a recarga');
 store.removeInvite(queue.id, 'a');
 assert.deepEqual(useTournamentStore.getState().tournaments[0].invitees?.map(c => c.status),
-  ['absent', 'confirmed', 'confirmed', 'waiting'], 'remocao promove a pessoa seguinte');
+  ['absent', 'waiting', 'confirmed', 'confirmed'], 'remocao promove quem esperava antes da reentrada');
 store.updateTournament(queue.id, { capacity: 3 });
-assert.equal(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'e')?.status,
+assert.equal(useTournamentStore.getState().tournaments[0].invitees?.find(c => c.id === 'c')?.status,
   'confirmed', 'aumento de capacidade libera a proxima vaga');
 const playerQueue: Tournament = { ...queue, id: 'player-waitlist', players: [{
   id: 'manual', userId: 'guest', name: 'Manual', buyIns: 1, reEntries: 0, addOns: 0,

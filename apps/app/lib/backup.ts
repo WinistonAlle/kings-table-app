@@ -32,7 +32,7 @@ const tournament = z.object({
   suit: z.enum(['espada', 'copas', 'ouros', 'paus']).optional(),
   invitees: z.array(z.object({
     id, name: z.string(), status: z.enum(['confirmed', 'maybe', 'absent', 'waiting']),
-    createdAt: z.string(), playerId: id.optional(),
+    createdAt: z.string(), waitingSince: z.string().optional(), playerId: id.optional(),
   })).optional(),
   audit: z.array(z.object({
     id, at: z.string(), actor: z.string(), summary: z.string(),

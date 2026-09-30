@@ -24,7 +24,21 @@ export function statusPresenca(t: Tournament, status: Attendance, id?: string): 
 export function adicionarConvidado(t: Tournament, convidado: NightInvitee): Tournament {
   const nome = convidado.name.trim();
   if (!nome || (t.invitees ?? []).some(c => c.name.trim().toLocaleLowerCase('pt-BR') === nome.toLocaleLowerCase('pt-BR'))) return t;
-  return { ...t, invitees: [...(t.invitees ?? []), { ...convidado, name: nome, status: statusPresenca(t, convidado.status) }] };
+  const status = statusPresenca(t, convidado.status);
+  return { ...t, invitees: [...(t.invitees ?? []), { ...convidado, name: nome, status,
+    waitingSince: status === 'waiting' ? convidado.createdAt : undefined }] };
+}
+
+export function compararEspera(a: NightInvitee, b: NightInvitee): number {
+  return (a.waitingSince ?? a.createdAt).localeCompare(b.waitingSince ?? b.createdAt)
+    || a.id.localeCompare(b.id);
+}
+
+export function atualizarPresenca(t: Tournament, convidado: NightInvitee, status: Attendance): NightInvitee {
+  const nextStatus = statusPresenca(t, status, convidado.id);
+  return { ...convidado, status: nextStatus, waitingSince: nextStatus === 'waiting'
+    ? convidado.status === 'waiting' ? (convidado.waitingSince ?? convidado.createdAt) : new Date().toISOString()
+    : undefined };
 }
 
 export function promoverListaEspera(t: Tournament, ignorarId?: string): Tournament {
@@ -34,14 +48,16 @@ export function promoverListaEspera(t: Tournament, ignorarId?: string): Tourname
     ...t.invitees.filter(c => c.status === 'confirmed').map(c => c.name.trim().toLocaleLowerCase('pt-BR')),
   ]);
   let mudou = false;
-  const invitees = t.invitees.map(c => {
-    if (c.status !== 'waiting' || c.id === ignorarId) return c;
+  const promovidos = new Set<string>();
+  for (const c of t.invitees.filter(c => c.status === 'waiting' && c.id !== ignorarId).sort(compararEspera)) {
     const nome = c.name.trim().toLocaleLowerCase('pt-BR');
-    if (t.capacity && ocupados.size >= t.capacity && !ocupados.has(nome)) return c;
+    if (t.capacity && ocupados.size >= t.capacity && !ocupados.has(nome)) break;
     ocupados.add(nome);
     mudou = true;
-    return { ...c, status: 'confirmed' as const };
-  });
+    promovidos.add(c.id);
+  }
+  const invitees = t.invitees.map(c => promovidos.has(c.id)
+    ? { ...c, status: 'confirmed' as const, waitingSince: undefined } : c);
   return mudou ? { ...t, invitees } : t;
 }
 

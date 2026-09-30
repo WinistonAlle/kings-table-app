@@ -101,6 +101,7 @@ declare
   invite_ana uuid := 'ab62c39b-1234-4321-8c12-123456789202';
   invite_bia uuid := 'ab62c39b-1234-4321-8c12-123456789203';
   invite_caio uuid := 'ab62c39b-1234-4321-8c12-123456789204';
+  invite_dora uuid := 'ab62c39b-1234-4321-8c12-123456789206';
   player_ana uuid := 'ab62c39b-1234-4321-8c12-123456789205';
   future_time text;
 begin
@@ -130,20 +131,31 @@ begin
   end if;
   perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.add',5,
     pg_catalog.jsonb_build_object('inviteId',invite_caio,'name','Caio','status','confirmed')));
-  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.attendance',6,
+  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.add',6,
+    pg_catalog.jsonb_build_object('inviteId',invite_dora,'name','Dora','status','confirmed')));
+  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.attendance',7,
     pg_catalog.jsonb_build_object('inviteId',invite_bia,'status','waiting')));
   if (select status from public.tournament_invites where id=invite_bia) <> 'waiting'
-    or (select status from public.tournament_invites where id=invite_caio) <> 'confirmed' then
+    or (select status from public.tournament_invites where id=invite_caio) <> 'confirmed'
+    or (select waiting_since from public.tournament_invites where id=invite_bia)
+      <= (select waiting_since from public.tournament_invites where id=invite_dora) then
     raise exception 'Returning to waitlist promoted the same guest';
   end if;
-  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.checkIn',7,
+  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.checkIn',8,
     pg_catalog.jsonb_build_object('inviteId',invite_ana,'playerId',player_ana)));
-  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'player.remove',8,
+  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'player.remove',9,
     pg_catalog.jsonb_build_object('playerId',player_ana)));
   if (select status from public.tournament_invites where id=invite_bia) <> 'waiting'
     or (select status from public.tournament_invites where id=invite_ana) <> 'confirmed'
     or (select player_id from public.tournament_invites where id=invite_ana) is not null then
     raise exception 'Removing a checked-in player freed a reserved invite seat';
+  end if;
+  perform public.apply_tournament_operation(pg_temp.waitlist_op(second,'invite.attendance',10,
+    pg_catalog.jsonb_build_object('inviteId',invite_caio,'status','absent')));
+  if (select status from public.tournament_invites where id=invite_dora) <> 'confirmed'
+    or (select status from public.tournament_invites where id=invite_bia) <> 'waiting'
+    or (select waiting_since from public.tournament_invites where id=invite_dora) is not null then
+    raise exception 'A newly returned guest overtook the older waiting guest';
   end if;
 end $$;
 rollback;

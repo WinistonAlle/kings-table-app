@@ -6,7 +6,7 @@ import { KTButton } from '@/components/ui/Button';
 import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { useTournamentStore } from '@/stores/tournamentStore';
 import { useBlindsStore } from '@/stores/blindsStore';
-import { dataAgendada, textoConvite } from '@/lib/noite';
+import { compararEspera, dataAgendada, textoConvite } from '@/lib/noite';
 import type { Attendance, Tournament } from '@/types';
 import { confirmarAcao } from '@/lib/confirmar';
 
@@ -29,6 +29,7 @@ export function NightPlanning({ tournament: t }: { tournament: Tournament }) {
   const [location, setLocation] = useState(t.location ?? '');
   const [capacity, setCapacity] = useState(t.capacity ? String(t.capacity) : '');
   const guests = t.invitees ?? [];
+  const waiting = guests.filter(g => g.status === 'waiting').sort(compararEspera);
   const confirm = confirmarAcao;
   const share = async (whatsapp: boolean) => {
     try {
@@ -77,7 +78,8 @@ export function NightPlanning({ tournament: t }: { tournament: Tournament }) {
       invite(t.id, name, status); setName(''); setMessage('Convidado adicionado. Se as vagas acabarem, a confirmação entra na espera.');
     }} />
     {!guests.length && <KTText color={Colors.text2}>Nenhum convidado ainda. Adicione os nomes para acompanhar as respostas.</KTText>}
-    {[...guests].sort((a, b) => (a.status === 'waiting' ? 1 : 0) - (b.status === 'waiting' ? 1 : 0) || a.createdAt.localeCompare(b.createdAt)).map(g => <View key={g.id} style={styles.guest}>
+    {[...guests].sort((a, b) => (a.status === 'waiting' ? 1 : 0) - (b.status === 'waiting' ? 1 : 0)
+      || (a.status === 'waiting' && b.status === 'waiting' ? compararEspera(a, b) : a.createdAt.localeCompare(b.createdAt))).map(g => <View key={g.id} style={styles.guest}>
       <View style={styles.heading}><KTText papel="corpoForte" style={{ flex: 1 }}>{g.name}</KTText>{!g.playerId && <Pressable accessibilityRole="button" accessibilityLabel={`Remover convite de ${g.name}`} onPress={() => confirm(`Remover ${g.name} dos convidados?`, () => removeInvite(t.id, g.id))} style={styles.icon}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable>}</View>
       {g.playerId ? <KTText color={Colors.ok}>Já entrou na mesa · buy-in registrado</KTText> : <>
         <View style={styles.actions}>{ESTADOS.map(s => <Pressable key={s.value} accessibilityRole="radio" accessibilityLabel={`${g.name}: ${s.label}`} accessibilityState={{ checked: g.status === s.value }} onPress={() => {
@@ -88,7 +90,7 @@ export function NightPlanning({ tournament: t }: { tournament: Tournament }) {
           setMessage(promoted ? `${promoted.name} foi confirmado pela lista de espera.` : 'Presença atualizada.');
         }} style={[styles.option, { borderColor: g.status === s.value ? s.color : Colors.border }]}><KTText papel="apoio" color={g.status === s.value ? s.color : Colors.text1}>{s.label}</KTText></Pressable>)}</View>
         {g.status === 'confirmed' && <KTButton label={`Dar entrada: ${g.name}`} variant="fantasma" onPress={() => confirm(`Dar entrada em ${g.name}? Será registrado um buy-in com pagamento a receber.`, () => checkIn(t.id, g.id))} />}
-        {g.status === 'waiting' && <KTText papel="apoio" color={Colors.text2}>Espera #{guests.filter(c => c.status === 'waiting').findIndex(c => c.id === g.id) + 1} · promoção automática quando abrir vaga.</KTText>}
+        {g.status === 'waiting' && <KTText papel="apoio" color={Colors.text2}>Espera #{waiting.findIndex(c => c.id === g.id) + 1} · promoção automática quando abrir vaga.</KTText>}
       </>}
     </View>)}
     {!!message && <KTText accessibilityLiveRegion="polite" color={Colors.gold200}>{message}</KTText>}

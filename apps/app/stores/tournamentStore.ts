@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { Tournament, TournamentPlayer } from '@/types';
 import { armazenamento } from '@/lib/armazenamento';
 import { corrigirNomeJogador, desfazerEliminacao, eliminar, incluirJogador, motivoBloqueioRemocao, temHistoricoFinanceiro } from '@/lib/torneio';
-import { adicionarConvidado, promoverListaEspera, statusPresenca, vagaParaJogador } from '@/lib/noite';
+import { adicionarConvidado, atualizarPresenca, promoverListaEspera, vagaParaJogador } from '@/lib/noite';
 import type { Attendance } from '@/types';
 import { auditar } from '@/lib/auditoria';
 import { sortearAssentos, moverAssento, desfazerAssentos } from '@/lib/assentos';
@@ -72,7 +72,7 @@ export const useTournamentStore = create<TournamentStore>()(
       setAttendance: (id, guestId, status) => set(s => ({ tournaments: s.tournaments.map(t => {
         if (t.id !== id || t.status !== 'upcoming') return t;
         const invitees = (t.invitees ?? []).map(c => c.id === guestId && !c.playerId
-          ? { ...c, status: statusPresenca(t, status, guestId) } : c);
+          ? atualizarPresenca(t, c, status) : c);
         return promoverListaEspera({ ...t, invitees }, status === 'waiting' ? guestId : undefined);
       }) })),
       removeInvite: (id, guestId) => set(s => ({ tournaments: s.tournaments.map(t => t.id === id && t.status === 'upcoming' ? promoverListaEspera({ ...t, invitees: (t.invitees ?? []).filter(c => c.id !== guestId || c.playerId) }) : t) })),

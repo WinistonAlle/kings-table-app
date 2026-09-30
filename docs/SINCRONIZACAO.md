@@ -251,9 +251,13 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   e promocao quando a auditoria falha. Auth/HTTP confirmou a leitura da nova
   revisao. Chromium em modo local confirmou anuncio, recarga e layout em
   390/1440 px. O site em localhost:3001 recebeu o novo export web.
-- A ordem usa o momento do convite, ainda nao a data de eventual reentrada na
-  espera. Nao ha RSVP pelo jogador, UI online sincronizada, migracao dos dados
-  locais nem deploy remoto.
+- A ordem agora usa `waiting_since`, atualizado quando o convidado volta para
+  a espera; manter o mesmo status nao move sua posicao. A migracao preencheu
+  convites antigos em espera com a data do convite. No store, convites legados
+  sem o campo tambem usam essa data. O leitor Auth/HTTP devolve a posicao da
+  fila, e testes SQL verificam que uma reentrada nao ultrapassa quem aguardava.
+  Nao ha RSVP pelo jogador, UI online sincronizada, migracao dos dados locais
+  nem deploy remoto.
 
 ## Primeiro comando de mesa em 24/09/2026
 

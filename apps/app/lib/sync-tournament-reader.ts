@@ -17,8 +17,9 @@ const inviteSchema = z.strictObject({
   id: z.uuid(), tournament_id: z.uuid(), name: z.string().trim().min(1).max(60),
   status: z.enum(['confirmed', 'maybe', 'absent', 'waiting']),
   player_id: z.uuid().nullable(), created_at: z.iso.datetime({ offset: true }),
+  waiting_since: z.iso.datetime({ offset: true }).nullable(),
   deleted_at: z.iso.datetime({ offset: true }).nullable(),
-});
+}).refine(invite => (invite.status === 'waiting') === (invite.waiting_since !== null));
 const tournamentSchema = z.strictObject({
   id: z.uuid(), created_by: z.uuid(), name: z.string().trim().min(1),
   format: z.enum(['deep', 'regular', 'turbo', 'hyper', 'rebuy', 'bounty']),
@@ -137,7 +138,7 @@ export function createTournamentReader(client: Pick<SupabaseClient<Database>, 'f
       while (true) {
         signal.throwIfAborted();
         let query = client.from('tournament_invites')
-          .select('id,tournament_id,name,status,player_id,created_at,deleted_at')
+          .select('id,tournament_id,name,status,player_id,created_at,waiting_since,deleted_at')
           .eq('tournament_id', tableId).order('id', { ascending: true }).limit(pageSize);
         if (cursor) query = query.gt('id', cursor);
         let response;
