@@ -56,6 +56,7 @@ await sql(await readFile(new URL('../supabase/tests/tournament_create.sql', impo
 await sql(await readFile(new URL('../supabase/tests/tournament_planning.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_add.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_late_entry.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/player_results.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_rename.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_remove.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_payment.sql', import.meta.url), 'utf8'));
@@ -64,7 +65,7 @@ await sql(await readFile(new URL('../supabase/tests/tournament_clock.sql', impor
 
 const actor = randomUUID();
 const presetId = randomUUID();
-const tournamentIds = [randomUUID(), randomUUID()];
+const tournamentIds = [randomUUID(), randomUUID(), randomUUID()];
 const tag = `kt-race-${randomUUID()}`;
 let first;
 let second;
@@ -451,7 +452,50 @@ try {
   assert.equal(await sql(`select display_name from public.tournament_players where id='${removableIds[2]}';`), 'Renamed twice');
   assert.equal(await sql(`select count(*) from public.sync_operation_receipts where actor_id='${actor}';`), '21');
   assert.equal(await sql(`select count(*) from public.sync_operation_audit where actor_id='${actor}';`), '21');
-console.log('PASS: canonical migrations, RLS, rollback, late-entry checks and backup/preset/tournament/player/payment/entry/clock/rename races.');
+  const resultBase = { version: 1, id: randomUUID(), ownerId: actor, entity: 'tournament',
+    entityId: tournamentIds[2], kind: 'tournament.create', expectedRevision: 0,
+    createdAt: new Date().toISOString(), payload: tournamentPayload };
+  const resultPlayers = [randomUUID(), randomUUID(), randomUUID()];
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand(resultBase)}`);
+  for (const [i, playerId] of resultPlayers.entries()) {
+    await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+      ${tournamentCommand({ ...resultBase, id: randomUUID(), kind: 'player.add',
+        expectedRevision: i + 1, payload: { playerId, name: `Race player ${i + 1}` } })}`);
+  }
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand({ ...resultBase, id: randomUUID(), kind: 'tournament.start',
+      expectedRevision: 4, payload: {} })}`);
+  const eliminate = { ...resultBase, id: randomUUID(), kind: 'player.eliminate',
+    expectedRevision: 5, payload: { playerId: resultPlayers[2] } };
+  const latePlayerId = randomUUID();
+  const lateAdd = { ...resultBase, id: randomUUID(), kind: 'player.add',
+    expectedRevision: 5, payload: { playerId: latePlayerId, name: 'Late race player' } };
+  first = processSql(`${tag}-a`);
+  first.child.stdin.write(`begin; set local role authenticated;
+    select set_config('request.jwt.claim.sub','${actor}',true);
+    ${tournamentCommand(eliminate)} select 'FIRST_LOCKED';\n`);
+  await until(() => first.output().includes('FIRST_LOCKED'), 'Elimination did not acquire tournament lock');
+  second = processSql(`${tag}-b`);
+  second.child.stdin.end(`begin; set local role authenticated;
+    select set_config('request.jwt.claim.sub','${actor}',true);
+    ${tournamentCommand(lateAdd)} commit;`);
+  await until(async () => (await sql(`select count(*) from pg_stat_activity
+    where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+    'Late entry never waited for the competing elimination');
+  first.child.stdin.end('commit;\n');
+  const eliminationWinner = await first.completed;
+  const lateEntryLoser = await second.completed;
+  assert.equal(eliminationWinner.code, 0, eliminationWinner.stderr);
+  assert.notEqual(lateEntryLoser.code, 0, 'Stale late entry won after elimination');
+  assert.match(lateEntryLoser.stderr, /40001/);
+  assert.equal(await sql(`select position from public.tournament_players where id='${resultPlayers[2]}';`), '3');
+  assert.equal(await sql(`select count(*) from public.tournament_players where id='${latePlayerId}';`), '0');
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand({ ...lateAdd, id: randomUUID(), expectedRevision: 6 })}`);
+  assert.equal(await sql(`select position from public.tournament_players where id='${resultPlayers[2]}';`), '4');
+  assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[2]}';`), '7');
+console.log('PASS: canonical migrations, RLS, rollback, late-entry/result checks and backup/preset/tournament/player/payment/entry/clock/rename races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity
@@ -460,7 +504,7 @@ console.log('PASS: canonical migrations, RLS, rollback, late-entry checks and ba
   second?.child.stdin.end();
   if (first) await first.completed;
   if (second) await second.completed;
-  await sql(`delete from public.tournaments where id in ('${tournamentIds[0]}','${tournamentIds[1]}') and created_by='${actor}';
+  await sql(`delete from public.tournaments where id in ('${tournamentIds[0]}','${tournamentIds[1]}','${tournamentIds[2]}') and created_by='${actor}';
     delete from public.blind_structures where id='${presetId}' and owner_id='${actor}';
     delete from auth.users where id='${actor}';`);
   assert.equal(await sql(`select count(*) from public.profiles where id='${actor}';`), '0');

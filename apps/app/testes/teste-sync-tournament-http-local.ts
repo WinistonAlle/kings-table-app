@@ -10,6 +10,7 @@ import { createTournamentTransport } from '../lib/sync-tournament-transport';
 import { createTournamentReader, createTournamentClockReader } from '../lib/sync-tournament-reader';
 import { SyncOutbox } from '../lib/sync-outbox';
 import { SyncSender } from '../lib/sync-sender';
+import { distribuirPremios } from '../lib/payouts';
 
 async function main() {
   // This runner accepts no project URL or credentials from arguments/env.
@@ -368,26 +369,59 @@ async function main() {
     }
     assert.equal((await send(createOperation({ ...lateBase, kind: 'tournament.start',
       expectedRevision: 4, payload: {} }), signal)).status, 'confirmed');
-    const fixtureElimination = await admin.from('tournament_players')
-      .update({ position: 3, eliminated_at: new Date().toISOString() }).eq('id', latePlayers[2]);
-    assert.equal(fixtureElimination.error, null);
-    const lateEntry = createOperation({ ...lateBase, kind: 'player.add', expectedRevision: 5,
+    const firstFall = createOperation({ ...lateBase, kind: 'player.eliminate', expectedRevision: 5,
+      payload: { playerId: latePlayers[2] } });
+    assert.equal((await send(firstFall, signal)).status, 'confirmed');
+    const lateEntry = createOperation({ ...lateBase, kind: 'player.add', expectedRevision: 6,
       payload: { playerId: randomUUID(), name: 'Entrada tardia' } });
     const lateResult = await send(lateEntry, signal);
     assert.equal(lateResult.status, 'confirmed');
     assert.deepEqual(await send(lateEntry, signal), lateResult);
     const lateSnapshot = await createTournamentReader(a, users[0], tableIds[2])(signal);
-    assert.equal(lateSnapshot?.tournament.revision, 6);
+    assert.equal(lateSnapshot?.tournament.revision, 7);
     assert.equal(lateSnapshot?.players.find(player => player.id === latePlayers[2])?.position, 4);
     assert.equal(lateSnapshot?.players.find(player => player.id === lateEntry.payload.playerId)?.position, null);
     assert.equal((await send(createOperation({ ...lateEntry,
       payload: { playerId: randomUUID(), name: 'Revisao antiga' } }), signal)).status, 'conflict');
     const foreignLate = await b.rpc('apply_tournament_operation', { p_operation: {
-      ...lateEntry, id: randomUUID(), ownerId: users[1], expectedRevision: 6,
+      ...lateEntry, id: randomUUID(), ownerId: users[1], expectedRevision: 7,
       payload: { playerId: randomUUID(), name: 'Intruso' },
     } });
     assert.equal(foreignLate.error?.code, '42501');
     assert.equal((await createTournamentReader(b, users[1], tableIds[2])(signal)), null);
+    const lateFall = createOperation({ ...lateBase, kind: 'player.eliminate', expectedRevision: 7,
+      payload: { playerId: lateEntry.payload.playerId } });
+    assert.equal((await send(lateFall, signal)).status, 'confirmed');
+    assert.equal((await send(createOperation({ ...lateFall, kind: 'player.undoElimination',
+      expectedRevision: 8, payload: { playerId: latePlayers[2] } }), signal)).status, 'rejected');
+    const finalFall = createOperation({ ...lateBase, kind: 'player.eliminate', expectedRevision: 8,
+      payload: { playerId: latePlayers[1] } });
+    const finished = await send(finalFall, signal);
+    assert.equal(finished.status, 'confirmed');
+    assert.deepEqual(await send(finalFall, signal), finished);
+    const finishedSnapshot = await createTournamentReader(a, users[0], tableIds[2])(signal);
+    assert.equal(finishedSnapshot?.tournament.status, 'finished');
+    assert.deepEqual(finishedSnapshot?.players.map(player => player.position).sort((x, y) => (x ?? 0) - (y ?? 0)), [1, 2, 3, 4]);
+    const expectedPrizes = distribuirPremios(4 * payload.buyIn, 4);
+    for (const player of finishedSnapshot?.players ?? []) {
+      assert.equal(player.prize, expectedPrizes.find(prize => prize.place === player.position)?.amount ?? 0);
+    }
+    assert.equal((await send(createOperation({ ...finalFall, kind: 'player.eliminate',
+      expectedRevision: 9, payload: { playerId: latePlayers[0] } }), signal)).status, 'rejected');
+    const undoFinal = createOperation({ ...lateBase, kind: 'player.undoElimination', expectedRevision: 9,
+      payload: { playerId: latePlayers[1] } });
+    const reopened = await send(undoFinal, signal);
+    assert.equal(reopened.status, 'confirmed');
+    assert.deepEqual(await send(undoFinal, signal), reopened);
+    const reopenedSnapshot = await createTournamentReader(a, users[0], tableIds[2])(signal);
+    assert.equal(reopenedSnapshot?.tournament.status, 'running');
+    assert.equal(reopenedSnapshot?.players.filter(player => player.position === null).length, 2);
+    assert.equal(reopenedSnapshot?.players.filter(player => player.prize !== null).length, 0);
+    const foreignResult = await b.rpc('apply_tournament_operation', { p_operation: {
+      ...lateFall, id: randomUUID(), ownerId: users[1], expectedRevision: 10,
+      payload: { playerId: latePlayers[0] },
+    } });
+    assert.equal(foreignResult.error?.code, '42501');
     sender.stop();
     const rows = await a.from('tournaments').select('id').in('id', tableIds);
     assert.equal(rows.error, null);
@@ -403,7 +437,7 @@ async function main() {
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
       add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, late entry, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
+    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock and scoped snapshots; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

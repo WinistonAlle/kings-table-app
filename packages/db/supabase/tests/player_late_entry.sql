@@ -39,10 +39,16 @@ begin
   end if;
 end $$;
 
-set local role postgres;
-update public.tournament_players set position=3, eliminated_at=clock_timestamp()
-  where id='a9910000-0000-4000-8000-000000000013';
-set local role authenticated;
+do $$
+declare
+  op jsonb := jsonb_build_object('version',1,'id',gen_random_uuid(),
+    'ownerId','a9910000-0000-4000-8000-000000000001','entity','tournament',
+    'entityId','a9910000-0000-4000-8000-000000000010','kind','player.eliminate',
+    'expectedRevision',5,'createdAt','2026-09-29T19:04:00Z',
+    'payload',jsonb_build_object('playerId','a9910000-0000-4000-8000-000000000013'));
+begin
+  perform public.apply_tournament_operation(op);
+end $$;
 do $$
 declare
   table_id uuid := 'a9910000-0000-4000-8000-000000000010';
@@ -52,21 +58,21 @@ declare
 begin
   op := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','a9910000-0000-4000-8000-000000000001','entity','tournament',
-    'entityId',table_id,'kind','player.add','expectedRevision',5,
+    'entityId',table_id,'kind','player.add','expectedRevision',6,
     'createdAt','2026-09-29T19:05:00Z',
     'payload',jsonb_build_object('playerId',late_id,'name','Duda'));
   receipt := public.apply_tournament_operation(op);
-  if receipt <> jsonb_build_object('operationId',op->>'id','revision',6)
+  if receipt <> jsonb_build_object('operationId',op->>'id','revision',7)
     or public.apply_tournament_operation(op) <> receipt
     or (select position from public.tournament_players where id='a9910000-0000-4000-8000-000000000013') <> 4
     or (select position from public.tournament_players where id=late_id) is not null
     or (select count(*) from public.tournament_players where tournament_id=table_id) <> 4
-    or (select count(*) from public.sync_operation_audit where entity_id=table_id) <> 6 then
+    or (select count(*) from public.sync_operation_audit where entity_id=table_id) <> 7 then
     raise exception 'Late entry did not shift places exactly once';
   end if;
   begin
     perform public.apply_tournament_operation(op || jsonb_build_object('id',gen_random_uuid(),
-      'expectedRevision',6,'payload',jsonb_build_object('playerId',gen_random_uuid(),'name','Duda')));
+      'expectedRevision',7,'payload',jsonb_build_object('playerId',gen_random_uuid(),'name','Duda')));
     raise exception 'Duplicate name accepted';
   exception when invalid_parameter_value then null; end;
   begin
@@ -75,7 +81,7 @@ begin
     raise exception 'Stale late entry accepted';
   exception when serialization_failure then null; end;
   if (select position from public.tournament_players where id='a9910000-0000-4000-8000-000000000013') <> 4
-    or (select revision from public.tournaments where id=table_id) <> 6 then
+    or (select revision from public.tournaments where id=table_id) <> 7 then
     raise exception 'Rejected late entry changed places or revision';
   end if;
 end $$;
@@ -92,14 +98,14 @@ declare
   op jsonb := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','a9910000-0000-4000-8000-000000000001','entity','tournament',
     'entityId','a9910000-0000-4000-8000-000000000010','kind','player.add',
-    'expectedRevision',6,'createdAt','2026-09-29T19:06:00Z',
+    'expectedRevision',7,'createdAt','2026-09-29T19:06:00Z',
     'payload',jsonb_build_object('playerId','a9910000-0000-4000-8000-000000000015','name','Eva'));
 begin
   begin perform public.apply_tournament_operation(op); raise exception 'Audit failure accepted';
   exception when check_violation then null; end;
   if (select position from public.tournament_players where id='a9910000-0000-4000-8000-000000000013') <> 4
     or exists(select 1 from public.tournament_players where id='a9910000-0000-4000-8000-000000000015')
-    or (select revision from public.tournaments where id='a9910000-0000-4000-8000-000000000010') <> 6
+    or (select revision from public.tournaments where id='a9910000-0000-4000-8000-000000000010') <> 7
     or exists(select 1 from public.sync_operation_receipts where operation_id=(op->>'id')::uuid) then
     raise exception 'Late entry survived audit failure partially';
   end if;
@@ -113,7 +119,7 @@ declare
   op jsonb := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','a9910000-0000-4000-8000-000000000002','entity','tournament',
     'entityId','a9910000-0000-4000-8000-000000000010','kind','player.add',
-    'expectedRevision',6,'createdAt','2026-09-29T19:07:00Z',
+    'expectedRevision',7,'createdAt','2026-09-29T19:07:00Z',
     'payload',jsonb_build_object('playerId',gen_random_uuid(),'name','Foreign'));
 begin
   begin perform public.apply_tournament_operation(op); raise exception 'Foreign account added player';

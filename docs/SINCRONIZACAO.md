@@ -3,6 +3,25 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Eliminacao e resultado no Supabase local em 29/09/2026
+
+- `player.eliminate` registra a colocacao pelo numero de jogadores ainda em jogo.
+  Ao cair o penultimo, o servidor atribui o primeiro lugar, encerra a mesa,
+  congela o relogio e grava a premiacao em centavos: 65/35 para ate cinco,
+  50/30/20 para seis a nove, 40/30/20/10 acima disso. O residuo fica com o
+  campeao, como no calculo local. Entradas, reentradas e add-ons compoem o bolo.
+- `player.undoElimination` aceita apenas a queda mais recente. Desfazer o
+  encerramento reabre a mesa com relogio pausado, recoloca os dois jogadores
+  em jogo e limpa todos os premios ate o proximo fechamento. Ambos os comandos
+  usam lock, revisao, recibo idempotente e auditoria na mesma transacao.
+- Postgres local passou campos de 2/3/6/10 jogadores, bolo de centavos,
+  add-on, ordem de desfazer, revisao obsoleta, payload indevido, rollback
+  forcado da auditoria e corrida real entre eliminacao e entrada tardia.
+  Auth/HTTP com duas contas passou fechamento, reenvio, comparacao da
+  premiacao com a regra local, reabertura e isolamento. Fixtures removidas.
+  A migracao esta so no banco local; UI, reconciliacao, remoto e aprovacao
+  formal do resultado permanecem pendentes.
+
 ## Entrada tardia apos eliminacao em 29/09/2026
 
 - Ao adicionar jogador durante a noite, as colocacoes ja registradas avancam
@@ -14,10 +33,11 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   transacao de revisao, recibo e auditoria. SQL local passou reenvio,
   revisao obsoleta, rollback de auditoria e isolamento. Auth/HTTP local
   com duas contas confirmou leitura, reenvio e bloqueio de outra conta.
-  A queda anterior foi preparada diretamente na fixture porque ainda nao
-  existe comando online de eliminacao; as fixtures foram removidas.
+  A queda anterior agora e feita pelo comando online de eliminacao;
+  as fixtures foram removidas.
 - Migracao aplicada apenas no Supabase local. A UI continua usando o store
-  local; eliminacao online, reconciliacao, espera remota e producao pendentes.
+  local; ativacao da eliminacao online na UI, reconciliacao, espera remota
+  e producao pendentes.
 
 ## Premiação local em 29/09/2026
 
@@ -28,9 +48,9 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 - Testes cobrem bolos de R$ 0,01 a R$ 25,00, encerramento, desfazer e
   persistencia. Chromium exibiu R$ 0,72/R$ 0,38 para bolo de R$ 1,10 em
   desktop e 390 px, inclusive apos reload.
-- Ainda nao existe comando online de eliminacao/resultado. Ao implementa-lo,
-  o servidor deve reproduzir esta regra em centavos e ser testado contra o
-  calculo local antes de ativar sincronizacao de mesas.
+- O comando online local agora reproduz a regra em centavos; a comparacao
+  Auth/HTTP cobre um campo de quatro jogadores. A sincronizacao de mesas
+  segue desativada ate haver reconciliacao e validacao mais ampla.
 
 ## Correcao de nome de jogador em 29/09/2026
 
