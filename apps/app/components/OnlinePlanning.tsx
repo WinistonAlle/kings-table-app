@@ -21,7 +21,7 @@ function fields(snapshot: TournamentSnapshot) {
 function Attempt({ entry }: { entry: OutboxEntry }) {
   const parsed = entry.operation.kind === 'tournament.update' ? planningPayloadSchema.safeParse(entry.operation.payload) : null;
   return <View style={styles.attempt}>
-    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? clockOperationLabel(entry.operation) ?? inviteOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
+    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : entry.operation.kind === 'clock.structure' ? 'Estrutura de blinds e intervalos' : playerOperationLabel(entry.operation) ?? clockOperationLabel(entry.operation) ?? inviteOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
     {parsed?.success ? <KTText papel="apoio" color={Colors.text1}>
       {new Date(parsed.data.startTime).toLocaleString('pt-BR')} · {parsed.data.location || 'Local a combinar'} · {parsed.data.capacity ? `${parsed.data.capacity} vagas` : 'Sem limite de vagas'}
     </KTText> : null}

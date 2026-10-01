@@ -12,6 +12,7 @@ import { UnconfirmedCreations } from './OnlineCreation';
 import { OnlinePlayers } from './OnlinePlayers';
 import { OnlineClock } from './OnlineClock';
 import { OnlineInvites } from './OnlineInvites';
+import { OnlineStructure } from './OnlineStructure';
 
 const status = { upcoming: 'Agendada', running: 'Em andamento', paused: 'Pausada',
   finished: 'Encerrada', cancelled: 'Cancelada' };
@@ -27,6 +28,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   const [planningDirty, setPlanningDirty] = useState(false);
   const [playersDirty, setPlayersDirty] = useState(false);
   const [invitesDirty, setInvitesDirty] = useState(false);
+  const [structureDirty, setStructureDirty] = useState(false);
   const [clockBusy, setClockBusy] = useState(false);
   const [clockDirty, setClockDirty] = useState(false);
   const sequence = useRef(0);
@@ -61,7 +63,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   }
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
   const leaveDraft = (action: () => void) => {
-    if (planningDirty || playersDirty || invitesDirty || clockDirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
+    if (planningDirty || playersDirty || invitesDirty || structureDirty || clockDirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
     else action();
   };
   return <View style={styles.section}>
@@ -114,16 +116,19 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
         onPress={() => leaveDraft(() => { void open(summary.id); })}
         icone={<Ionicons name="refresh-outline" size={18} color={Colors.gold200} />} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlinePlanning
-        key={`planning-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlanningDirty} otherEditing={playersDirty || invitesDirty || clockBusy} /> : null}
+        key={`planning-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlanningDirty} otherEditing={playersDirty || invitesDirty || structureDirty || clockBusy} /> : null}
+      {details && details.tournament.id === selected && selectedView ? <OnlineStructure
+        key={`structure-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setStructureDirty}
+        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || playersDirty || invitesDirty || clockBusy} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlineInvites
         key={`invites-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setInvitesDirty}
-        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || playersDirty || clockBusy} /> : null}
+        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || playersDirty || structureDirty || clockBusy} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlineClock
-        key={`clock-${selected}`} snapshot={details} view={selectedView} sync={sync} otherEditing={planningDirty || playersDirty || invitesDirty}
+        key={`clock-${selected}`} snapshot={details} view={selectedView} sync={sync} otherEditing={planningDirty || playersDirty || invitesDirty || structureDirty}
         onBusyChange={setClockBusy} onDirtyChange={setClockDirty} onRefresh={() => open(details.tournament.id)} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlinePlayers
         key={`players-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlayersDirty}
-        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || invitesDirty || clockBusy} /> : null}
+        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || invitesDirty || structureDirty || clockBusy} /> : null}
       {detail ? <>
         <KTText papel="apoio" color={Colors.text1}>{count(detail.players.length, 'jogador', 'jogadores')} · {count(detail.invites.filter(invite => !invite.deleted_at).length, 'convidado', 'convidados')}</KTText>
         <KTText papel="apoio" color={Colors.text2}>Revisão {detail.tournament.revision} · {new Date(detail.tournament.updated_at).toLocaleString('pt-BR')}</KTText>

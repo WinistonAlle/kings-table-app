@@ -5,7 +5,7 @@ import { KTText } from './ui/Text';
 import { KTButton } from './ui/Button';
 import type { BlindLevel } from '@/types';
 
-export function StructureEditor({ levels, onChange }: { levels: BlindLevel[]; onChange: (levels: BlindLevel[]) => void }) {
+export function StructureEditor({ levels, onChange, disabled = false }: { levels: BlindLevel[]; onChange: (levels: BlindLevel[]) => void; disabled?: boolean }) {
   const compact = useWindowDimensions().width < 600;
   const update = (i: number, key: keyof BlindLevel, value: string) => onChange(levels.map((n, index) => index === i ? { ...n, [key]: value === '' ? NaN : Number(value.replace(/\D/g, '')) } : n));
   const add = (isBreak: boolean) => {
@@ -15,16 +15,16 @@ export function StructureEditor({ levels, onChange }: { levels: BlindLevel[]; on
   return <View style={{ gap: 12 }}>
     {levels.map((n, i) => <View key={i} style={styles.row}>
       <View style={styles.top}><KTText papel="corpoForte" color={n.isBreak ? Colors.ok : Colors.gold200}>{n.isBreak ? 'Intervalo' : `Nível ${levels.slice(0, i + 1).filter(l => !l.isBreak).length}`}</KTText><View style={{ flexDirection: 'row', gap: 8 }}>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Mover linha ${i + 1} para cima`} disabled={i === 0} onPress={() => { const copy = [...levels]; [copy[i - 1], copy[i]] = [copy[i], copy[i - 1]]; onChange(copy); }} style={styles.icon}><Ionicons name="arrow-up" size={18} color={i ? Colors.text1 : Colors.text3} /></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Remover linha ${i + 1}`} onPress={() => onChange(levels.filter((_, index) => index !== i))} style={styles.icon}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Mover linha ${i + 1} para cima`} disabled={disabled || i === 0} accessibilityState={{ disabled: disabled || i === 0 }} onPress={() => { const copy = [...levels]; [copy[i - 1], copy[i]] = [copy[i], copy[i - 1]]; onChange(copy); }} style={[styles.icon, disabled && { opacity: 0.5 }]}><Ionicons name="arrow-up" size={18} color={i ? Colors.text1 : Colors.text3} /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Remover linha ${i + 1}`} disabled={disabled} accessibilityState={{ disabled }} onPress={() => onChange(levels.filter((_, index) => index !== i))} style={[styles.icon, disabled && { opacity: 0.5 }]}><Ionicons name="trash-outline" size={18} color={Colors.danger} /></Pressable>
       </View></View>
       <View style={styles.fields}>{(n.isBreak ? ['durationMinutes'] : ['smallBlind', 'bigBlind', 'ante', 'durationMinutes']).map(key => {
         const campo = key as 'smallBlind' | 'bigBlind' | 'ante' | 'durationMinutes';
         const label = { smallBlind: 'Small', bigBlind: 'Big', ante: 'Ante', durationMinutes: 'Minutos' }[campo];
-        return <View key={key} style={[styles.field, compact && styles.fieldCompact]}><KTText papel="apoio" color={Colors.text1}>{label}</KTText><TextInput accessibilityLabel={`${label}, linha ${i + 1}`} keyboardType="number-pad" value={Number.isFinite(n[campo]) ? String(n[campo]) : ''} onChangeText={value => update(i, campo, value)} maxLength={8} style={styles.input} /></View>;
+        return <View key={key} style={[styles.field, compact && styles.fieldCompact]}><KTText papel="apoio" color={Colors.text1}>{label}</KTText><TextInput accessibilityLabel={`${label}, linha ${i + 1}`} editable={!disabled} accessibilityState={{ disabled }} keyboardType="number-pad" value={Number.isFinite(n[campo]) ? String(n[campo]) : ''} onChangeText={value => update(i, campo, value)} maxLength={8} style={[styles.input, disabled && { opacity: 0.5 }]} /></View>;
       })}</View>
     </View>)}
-    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}><KTButton label="Adicionar nível" variant="fantasma" onPress={() => add(false)} icone={<Ionicons name="add" size={18} color={Colors.gold200} />} /><KTButton label="Adicionar intervalo" variant="fantasma" onPress={() => add(true)} icone={<Ionicons name="cafe-outline" size={18} color={Colors.ok} />} /></View>
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 12 }}><KTButton label="Adicionar nível" variant="fantasma" disabled={disabled} onPress={() => add(false)} icone={<Ionicons name="add" size={18} color={Colors.gold200} />} /><KTButton label="Adicionar intervalo" variant="fantasma" disabled={disabled} onPress={() => add(true)} icone={<Ionicons name="cafe-outline" size={18} color={Colors.ok} />} /></View>
   </View>;
 }
 const styles = StyleSheet.create({

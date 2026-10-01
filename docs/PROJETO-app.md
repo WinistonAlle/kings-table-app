@@ -4,6 +4,20 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Editor da estrutura online em 01/10/2026
+
+- `OnlineStructure` conecta a estrutura da mesa existente ao editor de niveis
+  e intervalos, antes do inicio. Campos e comandos paralelos ficam protegidos
+  durante edicao/envio, revisao antiga ou reconciliacao pendente. Cancelar,
+  fechar e atualizar pedem confirmacao de descarte; retry preserva o comando.
+- Chromium com Auth/HTTP/IndexedDB locais reais conferiu edicao de blinds e
+  duracoes, confirmacoes recusadas preservando campos, envio com uma auditoria
+  e persistencia apos reload. Relogio confirmou 07:00 pausado e blinds 37/74.
+  Capturas 320/390/1440 inspecionadas sem overflow. V40 delimita cobertura.
+- Ainda faltam falha/retry de rede, conflito e arquivo na UI deste editor,
+  isolamento com troca de conta durante edicao, presets na edicao, mudanca
+  durante partida e validacao remota. Flag normal continua desligada.
+
 ## Base de edicao da estrutura online em 01/10/2026
 
 - Comando `clock.structure` substitui a estrutura de uma mesa em preparacao,
@@ -19,9 +33,8 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   rejeita estrutura inalterada e mesas fora da preparacao. Transporte aceitou
   comando em Auth/JWT/PostgREST reais locais, com resposta perdida apos commit,
   retry e leitura do novo tempo pausado. Falhas nao criam revisoes/recibos.
-- CHECKLIST V39 delimita cobertura. Esta etapa ainda NAO integra o editor
-  de estrutura na UI da mesa existente, nem alteracao ao vivo durante partida,
-  browser/IndexedDB para este comando, presets na edicao ou validacao remota.
+- CHECKLIST V39 delimita cobertura da base; editor e browser posteriores em
+  V40. Alteracao ao vivo durante partida, presets na edicao e remoto faltam.
   Flag permanece desligada. Nenhuma migracao foi enviada ao projeto remoto.
 
 ## Convidados da conta em 01/10/2026
