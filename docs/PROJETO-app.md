@@ -4,6 +4,18 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Recuperacao de conflitos online em 01/10/2026
+
+- Nucleo da fila permite manter explicitamente a versao da conta apos
+  conflito/rejeicao definitivo, arquivando tentativas e dependentes sem
+  apagar seu conteudo/historico. Timeout ou envio incerto continuam bloqueados
+  para evitar descartar uma alteracao que possa ter sido aceita.
+- Decisao valida apenas com base/fila revisadas ainda iguais; isolamento por
+  conta, transacao atomica, abort ao sair e espera antes de fechar armazenamento.
+- Testes simulados e Chromium com duas abas/IndexedDB real passaram para o
+  escopo descrito em CHECKLIST V30. UI de revisao/decisao e edicao sincronizada
+  ainda faltam; nenhuma funcao online nova foi ativada no preview normal.
+
 ## Consulta de mesas online em 01/10/2026
 
 - A tela Mesas pode consultar o catalogo da conta e abrir jogadores,

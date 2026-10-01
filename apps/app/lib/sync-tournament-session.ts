@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { SyncSender, type OperationTransport } from './sync-sender';
-import type { SyncOutbox, OutboxEntry } from './sync-outbox';
+import type { SyncOutbox, OutboxEntry, TournamentResolutionRequest } from './sync-outbox';
 import { parseOperation, type SyncOperation } from './sync-operation';
 import type { TournamentSummary } from './sync-tournament-catalog';
 import type { TournamentCatalogView } from './sync-tournament-model';
@@ -31,6 +31,7 @@ export class TournamentSyncSession {
   private inFlight: Promise<void> | null = null;
   private repeat = false;
   private detailReads = new Map<string, Promise<TournamentSnapshot | null>>();
+  private resolutions = new Set<Promise<void>>();
   private state: TournamentSessionState = { phase: 'idle', tables: [], pending: [], views: [], error: null };
 
   constructor(private ownerId: string, private outbox: SyncOutbox,
@@ -44,8 +45,8 @@ export class TournamentSyncSession {
 
   snapshot(): TournamentSessionState { return structuredClone(this.state); }
   waitForIdle(): Promise<void> {
-    if (!this.detailReads.size) return this.inFlight ?? Promise.resolve();
-    return Promise.allSettled([this.inFlight, ...this.detailReads.values()]).then(() => undefined);
+    if (!this.detailReads.size && !this.resolutions.size) return this.inFlight ?? Promise.resolve();
+    return Promise.allSettled([this.inFlight, ...this.detailReads.values(), ...this.resolutions]).then(() => undefined);
   }
 
   async cachedTournament(tableId: string): Promise<TournamentSnapshot | null> {
@@ -124,6 +125,20 @@ export class TournamentSyncSession {
     this.controller.signal.throwIfAborted();
     if (this.inFlight) this.repeat = true;
     await this.refreshLocal();
+  }
+
+  resolve(tableId: string, request: TournamentResolutionRequest): Promise<void> {
+    this.controller.signal.throwIfAborted();
+    if (this.inFlight || this.state.phase !== 'ready' || this.state.error) {
+      return Promise.reject(new Error('Atualize as mesas antes de resolver a pendencia.'));
+    }
+    const task = this.outbox.resolveTournament(this.ownerId, tableId, request, this.controller.signal)
+      .then(async () => {
+        this.controller.signal.throwIfAborted();
+        await this.refreshLocal();
+      }).finally(() => { this.resolutions.delete(task); });
+    this.resolutions.add(task);
+    return task;
   }
 
   synchronize(repeatIfBusy = false): Promise<void> {

@@ -3,6 +3,31 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Recuperacao da fila de mesas em 01/10/2026
+
+- `resolveTournament` aceita apenas a decisao explicita `keep_remote`. A base
+  confirmada e os IDs ordenados da fila revisada precisam continuar iguais
+  dentro da transacao. A primeira pendencia deve ter resposta definitiva de
+  conflito/rejeicao; envio em curso, lease expirado e timeout nao autorizam
+  descarte de comandos com resultado desconhecido.
+- Arquivamento e atomico: preserva comando, payload, tentativas e motivo, com
+  identificador/data compartilhados da decisao. Nao escreve no servidor, nao
+  copia snapshots incompletos e nao restaura mesas removidas. A fila pode
+  voltar a reservar revisoes depois da decisao; criacao rejeitada permanece
+  no historico, sem simular existencia de uma mesa.
+- `TournamentSyncSession.resolve` exige atualizacao bem-sucedida e nenhuma
+  sincronizacao em curso. Usa o sinal da conta e `waitForIdle` acompanha a
+  resolucao antes de fechar armazenamento. Sair durante gravação aborta a
+  transacao; falha de atualizacao posterior nao elimina o historico duravel.
+- Testes simulados cobrem concorrencia, guards, quota/abort com rollback,
+  criacao rejeitada, tombstone, retry, isolamento, reload e ciclo da sessao.
+  Chromium com IndexedDB real confirmou duas abas concorrentes (uma vence),
+  preservacao de historico, isolamento e recarga. Runner reproduzivel em
+  `testes/browser-tournament-resolution-code.js`, recebendo bundle da fila.
+- Esta etapa implementa o nucleo. Tela de revisao/decisao, integracao com
+  edicao online, corrida Auth/HTTP real, quota fisica e outros navegadores
+  ainda faltam. A consulta atual permanece somente leitura sob a flag.
+
 ## Consulta das mesas da conta em 01/10/2026
 
 - `TournamentSyncProvider` web coordena catalogo e detalhes pelo dono verificado

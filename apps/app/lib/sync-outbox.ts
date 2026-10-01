@@ -25,6 +25,12 @@ const resolutionRequestSchema = z.strictObject({
   ]),
 });
 export type PresetResolutionRequest = z.infer<typeof resolutionRequestSchema>;
+const tournamentResolutionRequestSchema = z.strictObject({
+  expectedBase: tournamentSummarySchema.nullable(),
+  pendingOperationIds: z.array(z.uuid()).min(1),
+  decision: z.strictObject({ kind: z.literal('keep_remote') }),
+});
+export type TournamentResolutionRequest = z.infer<typeof tournamentResolutionRequestSchema>;
 const entrySchema = z.strictObject({
   sequence: z.number().int().positive().safe(), operation: operationSchema,
   status: z.enum(['queued', 'sending', 'conflict', 'rejected', 'confirmed', 'cancelled']),
@@ -42,7 +48,7 @@ const entrySchema = z.strictObject({
     ctx.addIssue({ code: 'custom', message: 'Recibo da fila inconsistente' });
   }
   if ((entry.status === 'cancelled') !== !!entry.resolution
-    || (entry.resolution && entry.operation.entity !== 'preset')) {
+    || (entry.resolution && entry.operation.entity === 'tournament' && entry.resolution.kind !== 'keep_remote')) {
     ctx.addIssue({ code: 'custom', message: 'Decisao da fila inconsistente' });
   }
 });
@@ -497,6 +503,40 @@ export class SyncOutbox {
       }
       signal.throwIfAborted();
       return copy;
+    });
+  }
+
+  async resolveTournament(ownerId: string, id: string, value: TournamentResolutionRequest,
+    signal = new AbortController().signal): Promise<void> {
+    z.uuid().parse(ownerId); z.uuid().parse(id);
+    signal.throwIfAborted();
+    const request = tournamentResolutionRequestSchema.parse(value);
+    if (request.expectedBase && (request.expectedBase.ownerId !== ownerId || request.expectedBase.id !== id)) {
+      throw new Error('A mesa mudou. Atualize e revise novamente.');
+    }
+    await this.write(async tx => {
+      signal.throwIfAborted();
+      const stored = await tx.objectStore('tournamentSummaries').get([ownerId, id]);
+      const base = stored ? tournamentSummarySchema.parse(stored) : null;
+      const store = tx.objectStore('operations');
+      const entries = (await store.index('entity').getAll([ownerId, 'tournament', id])).map(parseEntry);
+      const view = projectTournamentCatalog(base, entries);
+      if (canonicalJson(base) !== canonicalJson(request.expectedBase)
+        || canonicalJson(view.pending.map(entry => entry.operation.id)) !== canonicalJson(request.pendingOperationIds)) {
+        throw new Error('A mesa mudou. Atualize e revise novamente.');
+      }
+      // Only a definitive rejection permits archiving dependent commands; uncertain sends must retry.
+      if (!view.pending.length || !['conflict', 'rejected'].includes(view.pending[0].status)
+        || view.pending.some(entry => !['queued', 'conflict', 'rejected'].includes(entry.status))) {
+        throw new Error('Aguarde uma resposta definitiva antes de resolver a pendencia.');
+      }
+      const resolution = resolutionSchema.parse({ id: novaIdentidade(), kind: 'keep_remote',
+        createdAt: new Date().toISOString() });
+      for (const entry of view.pending) {
+        signal.throwIfAborted();
+        await store.put(parseEntry({ ...entry, status: 'cancelled', resolution }));
+      }
+      signal.throwIfAborted();
     });
   }
 
