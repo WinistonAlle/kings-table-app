@@ -3,6 +3,26 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Contrato de inicio sem jogador em 01/10/2026
+
+- `20261001181551_require_player_before_tournament_start.sql` atualiza apenas
+  o handler privado do relogio, preservando assinatura, permissoes, recibo
+  anterior, validacao de dono e lock/revisao. `tournament.start` recusa mesa
+  sem jogador registrado com posicao nula, usando SQLSTATE 55000 antes de
+  qualquer atualizacao. Presenca/convite nao substitui registro do jogador.
+- Teste SQL dedicado prova repeticao da recusa sem efeito, retirada do ultimo
+  jogador, inicio com novo registro, retry confirmado e isolamento. Teste
+  de corrida usa duas conexoes: retirada vence e inicio recebe 40001; novo
+  inicio sobre mesa vazia recebe 55000. No sentido inverso, inicio vence e
+  retirada antiga recebe 40001. Mesa iniciada continua pausada com jogador.
+- Teste Auth/HTTP local verifica rejeicao pelo transporte e ausencia de
+  recibo/auditoria do comando recusado. Suite SQL completa preserva controles
+  de relogio, rollback, pagamentos, resultados e demais corridas existentes.
+  Advisor security local sem issues. Migracao registrada apenas localmente;
+  nenhuma alteracao remota, UI, dados de usuario ou enderecos de preview.
+- Fecha a pendencia do guard no SQL listada na etapa V34, nao as demais
+  pendencias de TV/audio, Realtime, sincronizacao remota e multimesa.
+
 ## Relogio e eliminacoes web em 01/10/2026
 
 - `OnlineClock` usa `read_tournament_clock` e comandos ja existentes, sob a

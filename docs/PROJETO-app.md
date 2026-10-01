@@ -4,6 +4,21 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Inicio protegido no servidor em 01/10/2026
+
+- Comando `tournament.start` agora exige ao menos um jogador registrado e
+  ainda ativo. Verificacao apos lock/revisao e consulta do recibo preserva
+  idempotencia e impede corrida com retirada do ultimo jogador. Nao inicia
+  automaticamente o relogio nem altera noites existentes.
+- Migracao `20261001181551` aplicada apenas no banco local. SQL transacional,
+  duas conexoes concorrentes e Auth/HTTP reais locais conferiram recusa sem
+  revisao/recibo/auditoria, retry, isolamento e disputa inicio/retirada nos
+  dois sentidos. Suite SQL completa e verificacao de seguranca passaram.
+- Suite completa do app, TypeScript e build do site passaram; tabela de
+  recibos tipada conforme o schema existente para verificar a recusa por HTTP.
+- V35 substitui a pendencia do guard SQL registrada em V34. Nao foi aplicado
+  no projeto remoto; a integracao online permanece sob flag desligada.
+
 ## Jogadores da conta em 01/10/2026
 
 Atualizacao posterior: V34 integra relogio, inicio e eliminacoes na consulta

@@ -80,6 +80,11 @@ interface DatabaseSchema {
         Insert: Omit<Database['public']['Tables']['tournaments']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['tournaments']['Insert']>;
       };
+      sync_operation_receipts: {
+        Row: { actor_id: string; operation_id: string; envelope: Json; receipt: Json; committed_at: string };
+        Insert: never;
+        Update: never;
+      };
       sync_operation_audit: {
         Row: { actor_id: string; operation_id: string; entity_id: string; entity: string;
           kind: string; before_revision: number; after_revision: number; committed_at: string };

@@ -31,21 +31,23 @@ begin
       'kind','clock.start','expectedRevision',1,'payload','{}'::jsonb));
     raise exception 'Clock started before tournament';
   exception when object_not_in_prerequisite_state then null; end;
+  perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
+    'kind','player.add','expectedRevision',1,'payload',jsonb_build_object('playerId',gen_random_uuid(),'name','Clock player')));
   cmd := base || jsonb_build_object('id',gen_random_uuid(),'kind','tournament.start',
-    'expectedRevision',1,'payload','{}'::jsonb);
+    'expectedRevision',2,'payload','{}'::jsonb);
   receipt := public.apply_tournament_operation(cmd);
-  if public.apply_tournament_operation(cmd) <> receipt or receipt->>'revision' <> '2'
+  if public.apply_tournament_operation(cmd) <> receipt or receipt->>'revision' <> '3'
     or (select status from public.tournaments where id=table_id) <> 'running'
     or public.read_tournament_clock(table_id)->>'isRunning' <> 'false' then
     raise exception 'Tournament start is not idempotent or starts clock';
   end if;
   begin
     perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-      'kind','tournament.start','expectedRevision',2,'payload','{}'::jsonb));
+      'kind','tournament.start','expectedRevision',3,'payload','{}'::jsonb));
     raise exception 'Second start accepted';
   exception when object_not_in_prerequisite_state then null; end;
   cmd := base || jsonb_build_object('id',gen_random_uuid(),'kind','clock.start',
-    'expectedRevision',2,'payload','{}'::jsonb);
+    'expectedRevision',3,'payload','{}'::jsonb);
   receipt := public.apply_tournament_operation(cmd);
   if public.apply_tournament_operation(cmd) <> receipt
     or public.read_tournament_clock(table_id)->>'isRunning' <> 'true' then
@@ -53,7 +55,7 @@ begin
   end if;
   begin
     perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-      'kind','clock.pause','expectedRevision',2,'payload','{}'::jsonb));
+      'kind','clock.pause','expectedRevision',3,'payload','{}'::jsonb));
     raise exception 'Stale clock revision accepted';
   exception when serialization_failure then null; end;
   begin
@@ -61,35 +63,35 @@ begin
     raise exception 'Changed clock ID accepted';
   exception when invalid_parameter_value then null; end;
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.pause','expectedRevision',3,'payload','{}'::jsonb));
+    'kind','clock.pause','expectedRevision',4,'payload','{}'::jsonb));
   view_state := public.read_tournament_clock(table_id);
   if view_state->>'isRunning' <> 'false' or (view_state->>'secondsRemaining')::integer not between 1 and 60
     or (select clock_ends_at from public.tournaments where id=table_id) is not null then
     raise exception 'Pause did not freeze remaining time';
   end if;
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.level','expectedRevision',4,'payload','{"level":2}'::jsonb));
+    'kind','clock.level','expectedRevision',5,'payload','{"level":2}'::jsonb));
   if public.read_tournament_clock(table_id)->>'currentLevel' <> '2'
     or public.read_tournament_clock(table_id)->>'secondsRemaining' <> '60' then
     raise exception 'Manual level did not reset its duration';
   end if;
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.start','expectedRevision',5,'payload','{}'::jsonb));
+    'kind','clock.start','expectedRevision',6,'payload','{}'::jsonb));
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.handForHand','expectedRevision',6,'payload','{"enabled":true}'::jsonb));
+    'kind','clock.handForHand','expectedRevision',7,'payload','{"enabled":true}'::jsonb));
   view_state := public.read_tournament_clock(table_id);
   if view_state->>'handForHand' <> 'true' or view_state->>'isRunning' <> 'false' then
     raise exception 'Hand-for-hand did not pause';
   end if;
   begin
     perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-      'kind','clock.start','expectedRevision',7,'payload','{}'::jsonb));
+      'kind','clock.start','expectedRevision',8,'payload','{}'::jsonb));
     raise exception 'Hand-for-hand clock started';
   exception when object_not_in_prerequisite_state then null; end;
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.handForHand','expectedRevision',7,'payload','{"enabled":false}'::jsonb));
+    'kind','clock.handForHand','expectedRevision',8,'payload','{"enabled":false}'::jsonb));
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.reset','expectedRevision',8,'payload','{}'::jsonb));
+    'kind','clock.reset','expectedRevision',9,'payload','{}'::jsonb));
   view_state := public.read_tournament_clock(table_id);
   if view_state->>'currentLevel' <> '0' or view_state->>'secondsRemaining' <> '60'
     or view_state->>'handForHand' <> 'false' or view_state->>'isRunning' <> 'false' then
@@ -97,20 +99,20 @@ begin
   end if;
   for cmd in select v from (values
     (base || jsonb_build_object('id',gen_random_uuid(),'kind','clock.level',
-      'expectedRevision',9,'payload','{"level":3}'::jsonb)),
+      'expectedRevision',10,'payload','{"level":3}'::jsonb)),
     (base || jsonb_build_object('id',gen_random_uuid(),'kind','clock.level',
-      'expectedRevision',9,'payload','{"level":0.5}'::jsonb)),
+      'expectedRevision',10,'payload','{"level":0.5}'::jsonb)),
     (base || jsonb_build_object('id',gen_random_uuid(),'kind','clock.start',
-      'expectedRevision',9,'payload','{"extra":1}'::jsonb)),
+      'expectedRevision',10,'payload','{"extra":1}'::jsonb)),
     (base || jsonb_build_object('id',gen_random_uuid(),'kind','clock.handForHand',
-      'expectedRevision',9,'payload','{"enabled":"true"}'::jsonb))
+      'expectedRevision',10,'payload','{"enabled":"true"}'::jsonb))
   ) bad(v) loop
     begin perform public.apply_tournament_operation(cmd); raise exception 'Invalid clock command accepted';
     exception when invalid_parameter_value then null; end;
   end loop;
   perform public.apply_tournament_operation(base || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.start','expectedRevision',9,'payload','{}'::jsonb));
-  if (select count(*) from public.sync_operation_audit where entity_id=table_id) <> 10 then
+    'kind','clock.start','expectedRevision',10,'payload','{}'::jsonb));
+  if (select count(*) from public.sync_operation_audit where entity_id=table_id) <> 11 then
     raise exception 'Clock audit count differs';
   end if;
 end $$;
@@ -142,7 +144,7 @@ begin
     or state->>'isRunning' <> 'false' then raise exception 'Offline clock did not reach final level'; end if;
   op := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','cc62c39b-1234-4321-8c12-123456789001','entity','tournament',
-    'entityId',table_id,'kind','clock.pause','expectedRevision',10,
+    'entityId',table_id,'kind','clock.pause','expectedRevision',11,
     'createdAt','2026-09-29T13:01:00Z','payload','{}'::jsonb);
   perform public.apply_tournament_operation(op);
   if (select current_level from public.tournaments where id=table_id) <> 2
@@ -152,13 +154,13 @@ begin
   end if;
   begin
     perform public.apply_tournament_operation(op || jsonb_build_object('id',gen_random_uuid(),
-      'kind','clock.start','expectedRevision',11));
+      'kind','clock.start','expectedRevision',12));
     raise exception 'Expired clock restarted';
   exception when object_not_in_prerequisite_state then null; end;
   perform public.apply_tournament_operation(op || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.level','expectedRevision',11,'payload','{"level":1}'::jsonb));
+    'kind','clock.level','expectedRevision',12,'payload','{"level":1}'::jsonb));
   perform public.apply_tournament_operation(op || jsonb_build_object('id',gen_random_uuid(),
-    'kind','clock.start','expectedRevision',12));
+    'kind','clock.start','expectedRevision',13));
 end $$;
 
 set local role postgres;
@@ -174,11 +176,11 @@ begin
   op := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','cc62c39b-1234-4321-8c12-123456789001','entity','tournament',
     'entityId','cc62c39b-1234-4321-8c12-123456789100',
-    'kind','clock.pause','expectedRevision',13,
+    'kind','clock.pause','expectedRevision',14,
     'createdAt','2026-09-29T13:02:00Z','payload','{}'::jsonb);
   begin perform public.apply_tournament_operation(op); raise exception 'Audit failure accepted';
   exception when check_violation then null; end;
-  if (select revision from public.tournaments where id=(op->>'entityId')::uuid) <> 13
+  if (select revision from public.tournaments where id=(op->>'entityId')::uuid) <> 14
     or (select clock_ends_at from public.tournaments where id=(op->>'entityId')::uuid) is null
     or exists(select 1 from public.sync_operation_receipts where operation_id=(op->>'id')::uuid) then
     raise exception 'Clock update survived audit failure';
@@ -197,7 +199,7 @@ begin
   op := jsonb_build_object('version',1,'id',gen_random_uuid(),
     'ownerId','cc62c39b-1234-4321-8c12-123456789002','entity','tournament',
     'entityId','cc62c39b-1234-4321-8c12-123456789100',
-    'kind','clock.pause','expectedRevision',13,
+    'kind','clock.pause','expectedRevision',14,
     'createdAt','2026-09-29T13:03:00Z','payload','{}'::jsonb);
   begin perform public.apply_tournament_operation(op); raise exception 'Foreign clock changed';
   exception when insufficient_privilege then null; end;

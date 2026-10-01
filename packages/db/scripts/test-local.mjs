@@ -64,6 +64,7 @@ await sql(await readFile(new URL('../supabase/tests/player_remove.sql', import.m
 await sql(await readFile(new URL('../supabase/tests/player_payment.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/player_entries.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_clock.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/tournament_start.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
 const presetId = randomUUID();
@@ -497,7 +498,53 @@ try {
     ${tournamentCommand({ ...lateAdd, id: randomUUID(), expectedRevision: 6 })}`);
   assert.equal(await sql(`select position from public.tournament_players where id='${resultPlayers[2]}';`), '4');
   assert.equal(await sql(`select revision from public.tournaments where id='${tournamentIds[2]}';`), '7');
-console.log('PASS: canonical migrations, RLS, rollback, late-entry/result checks and backup/preset/tournament/player/payment/entry/clock/rename races.');
+  const startPlayerId = randomUUID();
+  const startBase = { ...resultBase, entityId: tournamentIds[0] };
+  await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+    ${tournamentCommand({ ...startBase, id: randomUUID(), kind: 'player.add', expectedRevision: 3,
+      payload: { playerId: startPlayerId, name: 'Start race player' } })}`);
+  for (const removalFirst of [true, false]) {
+    const revision = removalFirst ? 4 : 6;
+    const remove = { ...startBase, id: randomUUID(), kind: 'player.remove', expectedRevision: revision,
+      payload: { playerId: startPlayerId } };
+    const start = { ...startBase, id: randomUUID(), kind: 'tournament.start', expectedRevision: revision, payload: {} };
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(removalFirst ? remove : start)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Start/removal did not acquire tournament lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(removalFirst ? start : remove)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1',
+      'Start/removal loser did not wait for the table');
+    first.child.stdin.end('commit;\n');
+    const winner = await first.completed, loser = await second.completed;
+    assert.equal(winner.code, 0, winner.stderr);
+    assert.notEqual(loser.code, 0);
+    assert.match(loser.stderr, /40001/);
+    if (removalFirst) {
+      const rejected = processSql();
+      rejected.child.stdin.end(`set role authenticated;
+        select set_config('request.jwt.claim.sub','${actor}',false);
+        ${tournamentCommand({ ...start, expectedRevision: 5 })}`);
+      const result = await rejected.completed;
+      assert.notEqual(result.code, 0); assert.match(result.stderr, /55000/);
+      assert.equal(await sql(`select status || ':' || revision from public.tournaments where id='${tournamentIds[0]}';`), 'upcoming:5');
+      assert.equal(await sql(`select count(*) from public.sync_operation_receipts where operation_id='${start.id}';`), '0');
+      assert.equal(await sql(`select count(*) from public.sync_operation_audit where operation_id='${start.id}';`), '0');
+      await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+        ${tournamentCommand({ ...startBase, id: randomUUID(), kind: 'player.add', expectedRevision: 5,
+          payload: { playerId: startPlayerId, name: 'Start race player' } })}`);
+    } else {
+      assert.equal(await sql(`select status || ':' || revision from public.tournaments where id='${tournamentIds[0]}';`), 'running:7');
+      assert.equal(await sql(`select count(*) from public.tournament_players where tournament_id='${tournamentIds[0]}' and position is null;`), '1');
+      assert.equal(await sql(`select clock_ends_at is null from public.tournaments where id='${tournamentIds[0]}';`), 't');
+    }
+  }
+console.log('PASS: canonical migrations, RLS, rollback, late-entry/results and backup/preset/tournament/player/payment/entry/clock/rename/start-removal races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity

@@ -57,6 +57,18 @@ async function main() {
     assert.equal(own.data?.name, 'Mesa HTTP QA');
     assert.equal((own.data?.details as { capacity: number }).capacity, 9);
     assert.equal((own.data?.blind_levels as unknown[]).length, 1);
+    const emptyStart = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
+      kind: 'tournament.start', expectedRevision: 1, payload: {} });
+    assert.equal((await send(emptyStart, signal)).status, 'rejected');
+    assert.equal((await send(emptyStart, signal)).status, 'rejected');
+    const afterRejectedStart = await a.from('tournaments').select('status,revision,clock_ends_at')
+      .eq('id', tableIds[0]).single();
+    assert.equal(afterRejectedStart.error, null);
+    assert.deepEqual(afterRejectedStart.data, { status: 'upcoming', revision: 1, clock_ends_at: null });
+    const rejectedReceipt = await a.from('sync_operation_receipts').select('operation_id').eq('operation_id', emptyStart.id);
+    const rejectedAudit = await a.from('sync_operation_audit').select('operation_id').eq('operation_id', emptyStart.id);
+    assert.equal(rejectedReceipt.error, null); assert.equal(rejectedAudit.error, null);
+    assert.deepEqual(rejectedReceipt.data, []); assert.deepEqual(rejectedAudit.data, []);
     const edit = createOperation({ ownerId: users[0], entityId: tableIds[0], entity: 'tournament',
       kind: 'tournament.update', expectedRevision: 1,
       payload: { startTime: new Date(Date.now() + 86400000).toISOString(), location: 'Sala nova', capacity: 2 } });
