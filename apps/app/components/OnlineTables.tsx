@@ -10,6 +10,7 @@ import { OnlinePlanning } from './OnlinePlanning';
 import { confirmarAcao } from '@/lib/confirmar';
 import { UnconfirmedCreations } from './OnlineCreation';
 import { OnlinePlayers } from './OnlinePlayers';
+import { OnlineClock } from './OnlineClock';
 
 const status = { upcoming: 'Agendada', running: 'Em andamento', paused: 'Pausada',
   finished: 'Encerrada', cancelled: 'Cancelada' };
@@ -24,6 +25,8 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   const [error, setError] = useState<string | null>(null);
   const [planningDirty, setPlanningDirty] = useState(false);
   const [playersDirty, setPlayersDirty] = useState(false);
+  const [clockBusy, setClockBusy] = useState(false);
+  const [clockDirty, setClockDirty] = useState(false);
   const sequence = useRef(0);
   useEffect(() => () => { sequence.current++; }, []);
   if (!sync) return null;
@@ -56,7 +59,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   }
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
   const leaveDraft = (action: () => void) => {
-    if (planningDirty || playersDirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
+    if (planningDirty || playersDirty || clockDirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
     else action();
   };
   return <View style={styles.section}>
@@ -101,7 +104,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
           <Ionicons name="close-outline" size={24} color={Colors.text1} />
         </Pressable>
       </View>
-      <KTText papel="apoio" color={Colors.gold200}>Mesa da conta · Resultados somente leitura</KTText>
+      <KTText papel="apoio" color={Colors.gold200}>Mesa da conta</KTText>
       {loading ? <ActivityIndicator accessibilityLabel="Carregando mesa" color={Colors.gold300} /> : null}
       {error ? <KTText papel="apoio" color={Colors.danger}>{error}</KTText> : null}
       {!loading && !detail && !error ? <KTText papel="apoio" color={Colors.text1}>A mesa mudou. Atualize os detalhes.</KTText> : null}
@@ -109,10 +112,13 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
         onPress={() => leaveDraft(() => { void open(summary.id); })}
         icone={<Ionicons name="refresh-outline" size={18} color={Colors.gold200} />} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlinePlanning
-        key={`planning-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlanningDirty} otherEditing={playersDirty} /> : null}
+        key={`planning-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlanningDirty} otherEditing={playersDirty || clockBusy} /> : null}
+      {details && details.tournament.id === selected && selectedView ? <OnlineClock
+        key={`clock-${selected}`} snapshot={details} view={selectedView} sync={sync} otherEditing={planningDirty || playersDirty}
+        onBusyChange={setClockBusy} onDirtyChange={setClockDirty} onRefresh={() => open(details.tournament.id)} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlinePlayers
         key={`players-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlayersDirty}
-        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty} /> : null}
+        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty || clockBusy} /> : null}
       {detail ? <>
         <KTText papel="apoio" color={Colors.text1}>{count(detail.players.length, 'jogador', 'jogadores')} · {count(detail.invites.filter(invite => !invite.deleted_at).length, 'convidado', 'convidados')}</KTText>
         <KTText papel="apoio" color={Colors.text2}>Revisão {detail.tournament.revision} · {new Date(detail.tournament.updated_at).toLocaleString('pt-BR')}</KTText>

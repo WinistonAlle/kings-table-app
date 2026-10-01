@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { SyncOutbox } from '@/lib/sync-outbox';
 import { TournamentSyncSession, type TournamentSessionState } from '@/lib/sync-tournament-session';
 import { createTournamentCatalogReader } from '@/lib/sync-tournament-catalog';
-import { createTournamentReader, type TournamentSnapshot } from '@/lib/sync-tournament-reader';
+import { createTournamentReader, createTournamentClockReader, type TournamentSnapshot, type TournamentClockSnapshot } from '@/lib/sync-tournament-reader';
 import { createTournamentTransport } from '@/lib/sync-tournament-transport';
 import type { SyncOperation } from '@/lib/sync-operation';
 import type { TournamentResolutionRequest } from '@/lib/sync-outbox';
@@ -14,6 +14,7 @@ export type TournamentSyncValue = {
   refresh: () => Promise<void>;
   read: (id: string) => Promise<TournamentSnapshot | null>;
   cached: (id: string) => Promise<TournamentSnapshot | null>;
+  clock: (id: string) => Promise<TournamentClockSnapshot>;
   send: (operation: SyncOperation) => Promise<void>;
   resolve: (id: string, request: TournamentResolutionRequest) => Promise<void>;
 };
@@ -38,7 +39,8 @@ export function TournamentSyncProvider({ children, ownerId, stopRef }: {
     const controller = new TournamentSyncSession(ownerId, outbox,
       createTournamentCatalogReader(supabase, ownerId), createTournamentTransport(supabase, ownerId),
       next => { if (alive) setState(next); }, Date.now,
-      (id, signal) => createTournamentReader(supabase, ownerId, id)(signal));
+      (id, signal) => createTournamentReader(supabase, ownerId, id)(signal),
+      (id, signal) => createTournamentClockReader(supabase, id)(signal));
     session.current = controller;
     const stop = () => {
       controller.stop();
@@ -70,6 +72,7 @@ export function TournamentSyncProvider({ children, ownerId, stopRef }: {
     },
     read: id => active().refreshTournament(id),
     cached: id => active().cachedTournament(id),
+    clock: id => active().refreshClock(id),
     send: async operation => {
       const controller = active();
       await controller.enqueue(operation);

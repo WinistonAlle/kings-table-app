@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { confirmarAcao } from '@/lib/confirmar';
 import { playerOperationLabel } from '@/lib/sync-tournament-players';
+import { clockOperationLabel } from '@/lib/sync-tournament-clock';
 import { planningFields, planningPayloadSchema, preparePlanningOperation, type PlanningDraft } from '@/lib/sync-tournament-planning';
 import type { SyncOperation } from '@/lib/sync-operation';
 import type { OutboxEntry } from '@/lib/sync-outbox';
@@ -19,7 +20,7 @@ function fields(snapshot: TournamentSnapshot) {
 function Attempt({ entry }: { entry: OutboxEntry }) {
   const parsed = entry.operation.kind === 'tournament.update' ? planningPayloadSchema.safeParse(entry.operation.payload) : null;
   return <View style={styles.attempt}>
-    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
+    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? clockOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
     {parsed?.success ? <KTText papel="apoio" color={Colors.text1}>
       {new Date(parsed.data.startTime).toLocaleString('pt-BR')} · {parsed.data.location || 'Local a combinar'} · {parsed.data.capacity ? `${parsed.data.capacity} vagas` : 'Sem limite de vagas'}
     </KTText> : null}
@@ -55,7 +56,7 @@ export function OnlinePlanning({ snapshot, view, sync, onDirtyChange, otherEditi
   }, [snapshot, editing]);
   const current = snapshot.tournament.revision === view.confirmed?.revision;
   const ready = current && !view.pending.length && !view.awaitingCatalog && !view.reconciliationNeeded
-    && snapshot.tournament.status === 'upcoming' && !snapshot.tournament.deleted_at && !!initial && !otherEditing;
+    && snapshot.tournament.status === 'upcoming' && !snapshot.tournament.deleted_at && !!initial;
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
   const definitive = ['conflict', 'rejected'].includes(view.pending[0]?.status)
     && view.pending.every(entry => ['queued', 'conflict', 'rejected'].includes(entry.status));
@@ -63,7 +64,7 @@ export function OnlinePlanning({ snapshot, view, sync, onDirtyChange, otherEditi
   const change = (key: keyof PlanningDraft, value: string) => setDraft(previous => ({ ...previous, [key]: value }));
 
   async function save() {
-    if (saving || (!operation.current && !ready)) return;
+    if (saving || (!operation.current && (!ready || otherEditing))) return;
     setSaving(true); setMessage('');
     try {
       // Preserve the same command identity after a failed or uncertain local acknowledgement.
@@ -116,12 +117,12 @@ export function OnlinePlanning({ snapshot, view, sync, onDirtyChange, otherEditi
         placeholder="Sem limite" placeholderTextColor={Colors.text2} maxLength={4} keyboardType="number-pad" editable={!saving && !retry} style={styles.input} />
       <View style={styles.heading}>
         <KTButton label={saving ? 'Registrando…' : retry ? 'Tentar registrar novamente' : 'Salvar agendamento na conta'}
-          disabled={saving || (!retry && !ready)} onPress={() => { void save(); }}
+          disabled={saving || (!retry && (!ready || otherEditing))} onPress={() => { void save(); }}
           icone={<Ionicons name="save-outline" size={18} color={Colors.bg0} />} />
         {!retry ? <KTButton label="Cancelar edição" variant="fantasma" disabled={saving}
           onPress={() => { setEditing(false); setMessage(''); }} /> : null}
       </View>
-    </View> : ready ? <KTButton label="Editar agendamento online" variant="fantasma" size="sm" disabled={saving || busy}
+    </View> : ready ? <KTButton label="Editar agendamento online" variant="fantasma" size="sm" disabled={saving || busy || otherEditing}
       icone={<Ionicons name="create-outline" size={18} color={Colors.gold200} />}
       onPress={() => { onDirtyChange(true); setEditing(true); setMessage(''); }} /> : null}
     {view.awaitingCatalog ? <KTText papel="apoio" color={Colors.gold200}>Envio confirmado. Aguardando atualização dos dados da conta.</KTText> : null}

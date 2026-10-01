@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { novaIdentidade } from '../lib/identidade';
-import { preparePlayerOperation, playerTotalCents, canRemoveAccountPlayer } from '../lib/sync-tournament-players';
+import { preparePlayerOperation, playerTotalCents, canRemoveAccountPlayer, canUndoAccountElimination } from '../lib/sync-tournament-players';
 import type { TournamentSnapshot } from '../lib/sync-tournament-reader';
 
 const owner = novaIdentidade(), id = novaIdentidade(), playerId = novaIdentidade();
@@ -50,4 +50,22 @@ assert.throws(() => preparePlayerOperation({ ...snapshot, tournament: { ...snaps
 assert.throws(() => playerTotalCents({ ...snapshot, tournament: { ...snapshot.tournament, buy_in: 73.291 } }, snapshot.players[0]), /inconsistente/);
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'add', name: 'Bia', extra: true } as never));
 assert.equal(JSON.stringify(snapshot), before);
+const secondId = novaIdentidade(), thirdId = novaIdentidade();
+const running = { ...snapshot, tournament: { ...snapshot.tournament, status: 'running' as const },
+  players: [...snapshot.players, { ...snapshot.players[0], id: secondId, display_name: 'Bia' }] };
+assert.equal(preparePlayerOperation(running, { kind: 'eliminate', playerId }).kind, 'player.eliminate');
+assert.throws(() => preparePlayerOperation(snapshot, { kind: 'eliminate', playerId }));
+assert.throws(() => preparePlayerOperation({ ...running, players: snapshot.players }, { kind: 'eliminate', playerId }));
+const finished = { ...running, tournament: { ...running.tournament, status: 'finished' as const }, players: [
+  { ...running.players[0], position: 1, prize: 100 },
+  { ...running.players[1], position: 2, prize: 46.58 },
+  { ...running.players[1], id: thirdId, position: 3, prize: 0 },
+] };
+assert.ok(canUndoAccountElimination(finished, finished.players[1]));
+assert.equal(canUndoAccountElimination(finished, finished.players[0]), false);
+assert.equal(canUndoAccountElimination(finished, finished.players[2]), false);
+assert.equal(preparePlayerOperation(finished, { kind: 'undoElimination', playerId: secondId }).kind, 'player.undoElimination');
+assert.throws(() => preparePlayerOperation(finished, { kind: 'undoElimination', playerId: thirdId }));
+assert.throws(() => preparePlayerOperation(finished, { kind: 'eliminate', playerId }));
+assert.throws(() => preparePlayerOperation(finished, { kind: 'payment', playerId, status: 'confirmed' }));
 console.log('Online players: identities, revision/scope, names, capacity/reservations, cents, entries, payment and removal guards passed.');

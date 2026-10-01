@@ -4,7 +4,7 @@ import type { SyncOutbox, OutboxEntry, TournamentResolutionRequest } from './syn
 import { parseOperation, type SyncOperation } from './sync-operation';
 import type { TournamentSummary } from './sync-tournament-catalog';
 import type { TournamentCatalogView } from './sync-tournament-model';
-import { parseTournamentSnapshot, type TournamentSnapshot } from './sync-tournament-reader';
+import { parseTournamentSnapshot, parseTournamentClockSnapshot, type TournamentSnapshot, type TournamentClockSnapshot } from './sync-tournament-reader';
 
 export type TournamentDetailReader = (tableId: string, signal: AbortSignal) => Promise<TournamentSnapshot | null>;
 
@@ -31,6 +31,7 @@ export class TournamentSyncSession {
   private inFlight: Promise<void> | null = null;
   private repeat = false;
   private detailReads = new Map<string, Promise<TournamentSnapshot | null>>();
+  private clockReads = new Map<string, Promise<TournamentClockSnapshot>>();
   private resolutions = new Set<Promise<void>>();
   private state: TournamentSessionState = { phase: 'idle', tables: [], pending: [], views: [], error: null };
 
@@ -38,15 +39,45 @@ export class TournamentSyncSession {
     private read: (signal: AbortSignal) => Promise<TournamentSummary[]>, transport: OperationTransport,
     private onUpdate: (state: TournamentSessionState) => void = () => undefined,
     now: () => number = Date.now,
-    private readDetail?: TournamentDetailReader) {
+    private readDetail?: TournamentDetailReader,
+    private readClock?: (tableId: string, signal: AbortSignal) => Promise<TournamentClockSnapshot>) {
     z.uuid().parse(ownerId);
     this.sender = new SyncSender(ownerId, outbox, transport, now, 'tournament');
   }
 
   snapshot(): TournamentSessionState { return structuredClone(this.state); }
   waitForIdle(): Promise<void> {
-    if (!this.detailReads.size && !this.resolutions.size) return this.inFlight ?? Promise.resolve();
-    return Promise.allSettled([this.inFlight, ...this.detailReads.values(), ...this.resolutions]).then(() => undefined);
+    if (!this.detailReads.size && !this.clockReads.size && !this.resolutions.size) return this.inFlight ?? Promise.resolve();
+    return Promise.allSettled([this.inFlight, ...this.detailReads.values(), ...this.clockReads.values(), ...this.resolutions]).then(() => undefined);
+  }
+
+  refreshClock(tableId: string): Promise<TournamentClockSnapshot> {
+    z.uuid().parse(tableId);
+    this.controller.signal.throwIfAborted();
+    if (!this.readClock) throw new Error('A leitura do relogio nao esta configurada.');
+    const existing = this.clockReads.get(tableId);
+    if (existing) return existing;
+    const task = this.fetchClock(tableId).finally(() => { this.clockReads.delete(tableId); });
+    this.clockReads.set(tableId, task);
+    return task;
+  }
+
+  private async fetchClock(tableId: string): Promise<TournamentClockSnapshot> {
+    const parent = this.controller.signal;
+    const request = new AbortController();
+    const abort = () => request.abort(parent.reason);
+    parent.addEventListener('abort', abort, { once: true });
+    const timeout = setTimeout(() => request.abort(), 12000);
+    let stage: TournamentDetailError['code'] = 'remote_read';
+    try {
+      const result = await this.readClock!(tableId, request.signal);
+      parent.throwIfAborted(); request.signal.throwIfAborted();
+      stage = 'invalid_response';
+      return parseTournamentClockSnapshot(result);
+    } catch {
+      parent.throwIfAborted();
+      throw new TournamentDetailError(stage);
+    } finally { clearTimeout(timeout); parent.removeEventListener('abort', abort); }
   }
 
   async cachedTournament(tableId: string): Promise<TournamentSnapshot | null> {

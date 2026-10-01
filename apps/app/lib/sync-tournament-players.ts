@@ -9,6 +9,8 @@ export const playerActionSchema = z.discriminatedUnion('kind', [
   z.strictObject({ kind: z.literal('add'), name }),
   z.strictObject({ kind: z.literal('rename'), playerId, name }),
   z.strictObject({ kind: z.literal('remove'), playerId }),
+  z.strictObject({ kind: z.literal('eliminate'), playerId }),
+  z.strictObject({ kind: z.literal('undoElimination'), playerId }),
   z.strictObject({ kind: z.literal('entry'), playerId, entryKind: z.enum(['reEntry', 'addOn']), delta: z.union([z.literal(-1), z.literal(1)]) }),
   z.strictObject({ kind: z.literal('payment'), playerId, status: z.enum(['pending', 'confirmed', 'disputed']) }),
 ]);
@@ -34,11 +36,18 @@ export function canRemoveAccountPlayer(snapshot: TournamentSnapshot, player: Acc
     && !player.financial_activity_recorded;
 }
 
+export function canUndoAccountElimination(snapshot: TournamentSnapshot, player: AccountPlayer) {
+  const places = snapshot.players.flatMap(row => row.position !== null && row.position > 1 ? [row.position] : []);
+  return !snapshot.tournament.deleted_at && ['running', 'finished'].includes(snapshot.tournament.status)
+    && player.tournament_id === snapshot.tournament.id && player.position !== null && player.position > 1
+    && player.position === Math.min(...places);
+}
+
 export function preparePlayerOperation(snapshot: TournamentSnapshot, input: PlayerAction): SyncOperation {
   const action = playerActionSchema.parse(input);
   const table = snapshot.tournament;
   if (table.deleted_at || table.status === 'cancelled') throw new Error('Esta mesa não aceita alterações.');
-  if (action.kind !== 'rename' && !['upcoming', 'running'].includes(table.status)) {
+  if (!['rename', 'undoElimination'].includes(action.kind) && !['upcoming', 'running'].includes(table.status)) {
     throw new Error('Esta ação exige uma mesa em preparação ou em andamento.');
   }
   const command = (kind: SyncOperation['kind'], payload: SyncOperation['payload']) => createOperation({
@@ -56,6 +65,16 @@ export function preparePlayerOperation(snapshot: TournamentSnapshot, input: Play
   }
   const player = snapshot.players.find(row => row.id === action.playerId);
   if (!player) throw new Error('Jogador não encontrado nesta mesa. Atualize os detalhes.');
+  if (action.kind === 'eliminate') {
+    if (table.status !== 'running' || player.position !== null || snapshot.players.filter(row => row.position === null).length <= 1) {
+      throw new Error('Este jogador não pode ser eliminado agora.');
+    }
+    return command('player.eliminate', { playerId: player.id });
+  }
+  if (action.kind === 'undoElimination') {
+    if (!canUndoAccountElimination(snapshot, player)) throw new Error('Somente a última eliminação pode ser desfeita.');
+    return command('player.undoElimination', { playerId: player.id });
+  }
   if (action.kind === 'rename') {
     if (action.name === player.display_name) throw new Error('O nome não foi alterado.');
     if (usedName(action.name, player.id)) throw new Error('Já existe um jogador com este nome na mesa.');
@@ -91,6 +110,8 @@ export function playerOperationLabel(operation: SyncOperation): string | null {
     case 'player.add': return `Adicionar jogador: ${typeof payload.name === 'string' ? payload.name : 'nome indisponível'}`;
     case 'player.update': return `Alterar nome: ${typeof payload.name === 'string' ? payload.name : 'nome indisponível'}`;
     case 'player.remove': return 'Retirar entrada do jogador';
+    case 'player.eliminate': return 'Registrar eliminação';
+    case 'player.undoElimination': return 'Desfazer última eliminação';
     case 'player.entries.adjust': return `${payload.delta === -1 ? 'Corrigir' : 'Registrar'} ${payload.entryKind === 'reEntry' ? 'reentrada' : 'add-on'}`;
     case 'player.payment.set': return `Pagamento: ${payload.status === 'confirmed' ? 'confirmado' : payload.status === 'disputed' ? 'em revisão' : 'pendente'}`;
     default: return null;

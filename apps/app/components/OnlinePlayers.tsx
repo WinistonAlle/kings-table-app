@@ -3,7 +3,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { confirmarAcao } from '@/lib/confirmar';
-import { canRemoveAccountPlayer, playerTotalCents, preparePlayerOperation, type PlayerAction } from '@/lib/sync-tournament-players';
+import { canRemoveAccountPlayer, canUndoAccountElimination, playerTotalCents, preparePlayerOperation, type PlayerAction } from '@/lib/sync-tournament-players';
 import type { SyncOperation } from '@/lib/sync-operation';
 import type { TournamentSnapshot } from '@/lib/sync-tournament-reader';
 import type { TournamentCatalogView } from '@/lib/sync-tournament-model';
@@ -133,6 +133,13 @@ export function OnlinePlayers({ snapshot, view, sync, onDirtyChange, onRefresh, 
           {canRemoveAccountPlayer(snapshot, player) ? <KTButton label="Retirar entrada" accessibilityLabel={`Retirar entrada de ${player.display_name}`} variant="perigo" size="sm" disabled={locked}
             icone={<Ionicons name="trash-outline" size={18} color={Colors.danger} />}
             onPress={() => confirm({ kind: 'remove', playerId: player.id }, `Retirar a entrada de ${player.display_name} desta mesa? A conta verificará se não há comprovantes ou histórico que impeçam a retirada.`)} /> : null}
+          {snapshot.tournament.status === 'running' && player.position === null && snapshot.players.filter(row => row.position === null).length > 1 ?
+            <KTButton label="Registrar eliminação" accessibilityLabel={`Eliminar ${player.display_name}`} variant="perigo" size="sm" disabled={locked}
+              icone={<Ionicons name="exit-outline" size={18} color={Colors.danger} />}
+              onPress={() => confirm({ kind: 'eliminate', playerId: player.id }, `Registrar a eliminação de ${player.display_name}?${snapshot.players.filter(row => row.position === null).length === 2 ? ' A noite será encerrada e os prêmios serão calculados.' : ''}`)} /> : null}
+          {canUndoAccountElimination(snapshot, player) ? <KTButton label="Desfazer eliminação" accessibilityLabel={`Desfazer eliminação de ${player.display_name}`} variant="fantasma" size="sm" disabled={locked}
+            icone={<Ionicons name="arrow-undo-outline" size={18} color={Colors.gold200} />}
+            onPress={() => confirm({ kind: 'undoElimination', playerId: player.id }, `Desfazer a eliminação de ${player.display_name}?${snapshot.tournament.status === 'finished' ? ' A noite será reaberta, os prêmios calculados serão limpos e o relógio ficará pausado.' : ''}`)} /> : null}
         </View> : null}
       </View>;
     })}

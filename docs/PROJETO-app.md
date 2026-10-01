@@ -6,6 +6,33 @@ atualizadas para nao contradizer as implementacoes mais recentes.
 
 ## Jogadores da conta em 01/10/2026
 
+Atualizacao posterior: V34 integra relogio, inicio e eliminacoes na consulta
+web sob flag. Os limites anteriores abaixo preservam o registro da etapa V33.
+
+## Relogio e resultados da conta em 01/10/2026
+
+- Consulta web integra inicio da noite, pausa/retomada, salto de nivel,
+  intervalos, reinicio e hand-for-hand aos comandos transacionais existentes.
+  Tempo usa referencia do servidor e elapsed monotonic; leitura a cada 15 s,
+  foco/reconexao e limite do nivel, sem avancar localmente a estrutura.
+  Falha/atraso/revisao divergente bloqueiam alteracoes ate atualizacao.
+- Gerenciamento permite eliminar e desfazer somente a ultima eliminacao.
+  Ultima queda encerra a noite e calcula premios no servidor; desfazer reabre
+  pausada, sem premios. Confirmacao explica esses efeitos antes do comando.
+- Testes de regras/lifecycle e Chromium com Auth/HTTP/IndexedDB locais reais
+  passaram para controles, interrupcao de RPC com reload/retry, pausa por
+  cliente concorrente, resultados/undo, isolamento e stores locais intactos.
+  Capturas 1440/390 inspecionadas. CHECKLIST V34 delimita a verificacao.
+- Suite completa, TypeScript, export web normal e build do site passaram.
+  Export normal conferido sem backend de QA; previews 3001/8081 preservados.
+  Contas/mesas temporarias e runner com credenciais removidos.
+- Flag continua desligada. Faltam virada automatica/fim visual no navegador,
+  timeout real de leitura, comprovantes, TV/audio online, Realtime, remoto,
+  outros browsers e coordenacao multimesa. UI recusa iniciar mesa vazia;
+  falta aplicar a mesma regra no comando SQL, que ainda permite esse caso.
+
+## Registro da etapa de jogadores V33
+
 - Consulta web agora permite adicionar/renomear jogadores, retirar entrada
   sem historico antes do inicio, registrar/corrigir reentradas e add-ons e
   marcar pagamento pendente, confirmado ou em revisao. Acoes financeiras

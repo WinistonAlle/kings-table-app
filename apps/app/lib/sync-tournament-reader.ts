@@ -198,6 +198,7 @@ const clockSchema = z.strictObject({
 }).refine(clock => clock.isRunning === (clock.levelEndsAt !== null)
   && !(clock.isRunning && clock.handForHand), 'Clock anchor is inconsistent');
 export type TournamentClockSnapshot = z.infer<typeof clockSchema>;
+export const parseTournamentClockSnapshot = (value: unknown): TournamentClockSnapshot => clockSchema.parse(value);
 
 export function createTournamentClockReader(client: Pick<SupabaseClient<Database>, 'rpc'>,
   tableId: string): (signal: AbortSignal) => Promise<TournamentClockSnapshot> {

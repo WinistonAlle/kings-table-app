@@ -3,6 +3,38 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Relogio e eliminacoes web em 01/10/2026
+
+- `OnlineClock` usa `read_tournament_clock` e comandos ja existentes, sob a
+  flag online desativada por padrao. Observacao efemera por sessao, sem gravar
+  ticks no IndexedDB nem alterar o store local. Tempo monotonic, RTT/2,
+  consultas periodicas de 15 s e nova leitura ao chegar a zero; falha no
+  limite volta ao periodo normal, evitando loop agressivo. Ao retornar ao
+  foco/rede, consulta novamente. Observacao de mais de 30 s nao autoriza comando.
+- Leitura coalescida por mesa, abort ligado a conta e timeout de 12 s;
+  `waitForIdle` espera leituras antes de fechar o armazenamento. Snapshot
+  estrito valida ancoras; controles exigem revisao igual aos detalhes/catalogo,
+  sessao pronta e fila sem pendencias. Rascunho de outro painel bloqueia comando.
+- Inicio exige jogador na UI e deixa o relogio pausado. Troca de nivel,
+  reinicio e hand-for-hand explicam os efeitos na confirmacao. Tentativas
+  preservam identidade para retry e possuem nome no historico da fila.
+- `OnlinePlayers` integra eliminar/undo. Servidor atribui posicoes e premios;
+  finalizacao para o relogio, undo reabre pausado e remove premios. Apenas a
+  ultima eliminacao, nunca o campeao, pode ser desfeita. Nao se confunde com
+  registrar uma compra de reentrada.
+- Chromium com duas contas locais reais confirmou revisoes 2..16: inicio,
+  contagem, pausa, intervalo manual, congelamento, reset, RPC interrompido e
+  reload/retry, revisao alterada por cliente concorrente, encerramento com
+  premios somando 14700 centavos e undo. Stores locais ficaram identicos apos
+  hidratar a conta; comparar antes da hidratacao nao e evidencia de mutacao.
+  Capturas 1440/390 inspecionadas sem overflow. Confirmacoes tem respostas
+  controladas pelo runner; dialogo nativo em si nao foi validado.
+- Faltam TV/audio online, Realtime, virada automatica/fim visual na UI,
+  leitura realmente travada/timeout no navegador, remoto, outros navegadores
+  e multimesa. SQL ainda permite iniciar mesa vazia, apesar do guard da UI;
+  reforco do contrato no servidor continua pendente. Nenhuma migracao remota
+  aplicada. Esta etapa nao habilita nem conclui a sincronizacao completa.
+
 ## Gestao web de jogadores em 01/10/2026
 
 - `OnlinePlayers` integra `player.add/update/remove/payment.set/entries.adjust`
