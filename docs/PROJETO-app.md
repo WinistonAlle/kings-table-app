@@ -14,9 +14,15 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   duracoes, confirmacoes recusadas preservando campos, envio com uma auditoria
   e persistencia apos reload. Relogio confirmou 07:00 pausado e blinds 37/74.
   Capturas 320/390/1440 inspecionadas sem overflow. V40 delimita cobertura.
-- Ainda faltam falha/retry de rede, conflito e arquivo na UI deste editor,
-  isolamento com troca de conta durante edicao, presets na edicao, mudanca
-  durante partida e validacao remota. Flag normal continua desligada.
+- V41 amplia o teste real local: RPC interrompido, fila apos reload e retry,
+  conflito com alteracao concorrente real, recusa/aceite de manter conta e
+  arquivo identificado como estrutura. Novo envio apos decisao e commit com
+  resposta perdida recuperado apos lease real de 30 s, sem duplicar.
+  Revisao/auditoria final 6; stores locais identicos apos hidratacao.
+  Troca para conta B seguida de reload nao levou mesa nem rascunho A.
+- Ainda faltam troca de conta sem recarga/resposta tardia durante logout,
+  presets na edicao, mudanca durante partida, quota fisica, outros browsers
+  e validacao remota. Flag normal continua desligada.
 
 ## Base de edicao da estrutura online em 01/10/2026
 
