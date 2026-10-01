@@ -40,15 +40,17 @@ assert.throws(() => preparePlanningOperation({ ...snapshot, tournament: { ...sna
   deleted_at: '2026-10-01T13:00:00Z' } }, draft, now), /agendadas/);
 const playerId = novaIdentidade();
 const occupied: TournamentSnapshot = { ...snapshot,
-  players: [{ id: playerId } as TournamentSnapshot['players'][number]],
+  players: [{ id: playerId, display_name: 'Ana' } as TournamentSnapshot['players'][number]],
   invites: [
-    { deleted_at: null, player_id: null, status: 'confirmed' },
-    { deleted_at: null, player_id: null, status: 'confirmed' },
-    { deleted_at: null, player_id: playerId, status: 'confirmed' },
+    { name: 'Bia', deleted_at: null, player_id: null, status: 'confirmed' },
+    { name: 'Carla', deleted_at: null, player_id: null, status: 'confirmed' },
+    { name: 'Ana', deleted_at: null, player_id: playerId, status: 'confirmed' },
     { deleted_at: '2026-10-01T13:00:00Z', player_id: null, status: 'confirmed' },
     { deleted_at: null, player_id: null, status: 'waiting' },
   ] as TournamentSnapshot['invites'],
 };
 assert.throws(() => preparePlanningOperation(occupied, { ...draft, capacity: '2' }, now), /entre 3/);
 assert.equal(preparePlanningOperation(occupied, { ...draft, capacity: '3' }, now).payload.capacity, 3);
+assert.equal(preparePlanningOperation({ ...occupied, invites: occupied.invites.map(invite => ({ ...invite, player_id: null })) },
+  { ...draft, capacity: '3' }, now).payload.capacity, 3);
 console.log('Online planning: strict date/time, capacity/reservations, exact payload, ownership/revision, status and no snapshot mutation passed.');

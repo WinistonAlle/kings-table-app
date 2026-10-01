@@ -21,10 +21,11 @@ assert.notEqual(command.payload.playerId, playerId); assert.notEqual(command.pay
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'add', name: ' ana ' }), /Já existe/);
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'add', name: ' ' }));
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'add', name: 'x'.repeat(61) }));
-const reserved = { ...snapshot, invites: [{ deleted_at: null, player_id: null, status: 'confirmed' }] as TournamentSnapshot['invites'] };
+const reserved = { ...snapshot, invites: [{ name: 'Carla', deleted_at: null, player_id: null, status: 'confirmed' }] as TournamentSnapshot['invites'] };
 assert.throws(() => preparePlayerOperation(reserved, { kind: 'add', name: 'Bia' }), /reservadas/);
-const checkedIn = { ...snapshot, invites: [{ deleted_at: null, player_id: playerId, status: 'confirmed' }] as TournamentSnapshot['invites'] };
+const checkedIn = { ...snapshot, invites: [{ name: 'Ana', deleted_at: null, player_id: playerId, status: 'confirmed' }] as TournamentSnapshot['invites'] };
 assert.equal(preparePlayerOperation(checkedIn, { kind: 'add', name: 'Bia' }).kind, 'player.add');
+assert.equal(preparePlayerOperation({ ...checkedIn, invites: [{ ...checkedIn.invites[0], player_id: null }] }, { kind: 'add', name: 'Bia' }).kind, 'player.add');
 assert.equal(preparePlayerOperation(snapshot, { kind: 'rename', playerId, name: ' Ana Maria ' }).payload.name, 'Ana Maria');
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'rename', playerId, name: 'Ana' }), /não foi alterado/);
 assert.throws(() => preparePlayerOperation(snapshot, { kind: 'rename', playerId: novaIdentidade(), name: 'Bia' }), /não encontrado/);

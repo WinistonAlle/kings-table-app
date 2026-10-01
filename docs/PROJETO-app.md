@@ -4,6 +4,32 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Convidados da conta em 01/10/2026
+
+- `OnlineInvites` integra convidados, presenca, espera, retirada e check-in
+  aos comandos transacionais existentes, sob a flag de mesas online.
+  Alteracoes exigem revisao atual e mesa em preparacao; ficam na mesma fila
+  duravel e no historico de tentativas. Identidade original e preservada em retry.
+- Confirmacao com mesa cheia pode virar espera, conforme resposta do servidor.
+  Posicao usa `waiting_since`, incluindo microssegundos, e UUID como desempate;
+  sair e voltar a espera entra no fim. Nenhuma promocao e inventada na UI.
+- Check-in cria uma entrada pendente ou vincula jogador homonimo existente,
+  sem duplicar buy-in. Convidado vinculado nao aceita presenca/retirada.
+  Vagas ocupadas/reservadas deduplicam nomes conforme SQL; essa contagem
+  tambem corrige validacao de cadastro e limite no agendamento.
+- Formularios de agendamento, jogador e convidado bloqueiam edicoes paralelas
+  e protegem rascunhos ao sair. Lista usa linhas, status e controles de 44 px.
+- Chromium com Auth/HTTP/IndexedDB locais reais: capacidade de duas vagas,
+  espera/promocao/reentrada na fila, retirada, duas chegadas (uma aproveitando
+  jogador), duplicidade, conflito externo real e arquivo da tentativa.
+  Resposta perdida apos commit/reload foi recuperada pelo botao de atualizacao
+  depois do lease real de 30 s, sem duplicar. Revisao e auditoria final: 15.
+  Conta B isolada e localStorage igual apos hidratacao. Capturas 320/390/1440
+  inspecionadas; testes unitarios incluem ordem submilissegundo e desempate.
+- CHECKLIST V38 delimita cobertura. Flag padrao desligada, sem alteracoes no
+  remoto. Ainda faltam RSVP pelo convidado, link/codigo, Realtime, co-host,
+  outros browsers e entrada tardia de convidados durante a partida.
+
 ## Espera limitada no acesso web em 01/10/2026
 
 - Verificacao de identidade e hidratacao da conta tem limite de espera de

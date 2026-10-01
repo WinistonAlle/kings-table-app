@@ -5,6 +5,7 @@ import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { confirmarAcao } from '@/lib/confirmar';
 import { playerOperationLabel } from '@/lib/sync-tournament-players';
 import { clockOperationLabel } from '@/lib/sync-tournament-clock';
+import { inviteOperationLabel } from '@/lib/sync-tournament-invites';
 import { planningFields, planningPayloadSchema, preparePlanningOperation, type PlanningDraft } from '@/lib/sync-tournament-planning';
 import type { SyncOperation } from '@/lib/sync-operation';
 import type { OutboxEntry } from '@/lib/sync-outbox';
@@ -20,7 +21,7 @@ function fields(snapshot: TournamentSnapshot) {
 function Attempt({ entry }: { entry: OutboxEntry }) {
   const parsed = entry.operation.kind === 'tournament.update' ? planningPayloadSchema.safeParse(entry.operation.payload) : null;
   return <View style={styles.attempt}>
-    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? clockOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
+    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? clockOperationLabel(entry.operation) ?? inviteOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
     {parsed?.success ? <KTText papel="apoio" color={Colors.text1}>
       {new Date(parsed.data.startTime).toLocaleString('pt-BR')} · {parsed.data.location || 'Local a combinar'} · {parsed.data.capacity ? `${parsed.data.capacity} vagas` : 'Sem limite de vagas'}
     </KTText> : null}

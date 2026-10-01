@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { novaIdentidade } from './identidade';
 import { createOperation, type SyncOperation } from './sync-operation';
 import type { TournamentSnapshot } from './sync-tournament-reader';
+import { accountReservedPlaces } from './sync-tournament-invites';
 
 const name = z.string().trim().min(1, 'Informe o nome do jogador.').max(60, 'Use até 60 caracteres no nome.');
 const playerId = z.uuid();
@@ -58,8 +59,9 @@ export function preparePlayerOperation(snapshot: TournamentSnapshot, input: Play
   if (action.kind === 'add') {
     if (usedName(action.name)) throw new Error('Já existe um jogador com este nome na mesa.');
     const capacity = z.object({ capacity: z.number().int().min(2).max(1000).optional() }).parse(table.details).capacity;
-    const occupied = snapshot.players.filter(player => table.status === 'upcoming' || player.position === null).length
-      + snapshot.invites.filter(invite => !invite.deleted_at && !invite.player_id && invite.status === 'confirmed').length;
+    const occupied = table.status === 'upcoming' ? accountReservedPlaces(snapshot)
+      : snapshot.players.filter(player => player.position === null).length
+        + snapshot.invites.filter(invite => !invite.deleted_at && !invite.player_id && invite.status === 'confirmed').length;
     if (capacity !== undefined && occupied >= capacity) throw new Error('As vagas estão ocupadas ou reservadas para convidados.');
     return command('player.add', { playerId: novaIdentidade(), name: action.name });
   }
