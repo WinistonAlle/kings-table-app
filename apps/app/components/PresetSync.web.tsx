@@ -6,10 +6,12 @@ import { PresetSyncSession, type PresetSessionState } from '@/lib/sync-preset-se
 import { createPresetReader } from '@/lib/sync-preset-reader';
 import { createPresetTransport } from '@/lib/sync-preset-transport';
 import { novaIdentidade } from '@/lib/identidade';
+import type { SyncOperation } from '@/lib/sync-operation';
 
 export type PresetSyncValue = {
   state: PresetSessionState; available: boolean;
   save: (name: string, levels: BlindLevel[]) => Promise<void>;
+  enqueue: (operation: SyncOperation) => Promise<void>;
   remove: (id: string) => Promise<void>; refresh: () => Promise<void>;
   resolve: (id: string, request: PresetResolutionRequest) => Promise<void>;
 };
@@ -58,6 +60,7 @@ export function PresetSyncProvider({children,ownerId,stopRef}:{children:ReactNod
   };
   return <Context.Provider value={{state,available,
     save:async(name,levels)=>{const current=active();await current.mutate(novaIdentidade(),{kind:'preset.save',payload:{name,levels}});void current.synchronize(true);},
+    enqueue:async operation=>{const current=active();await current.enqueue(operation);void current.synchronize(true);},
     remove:async(id)=>{const current=active();await current.mutate(id,{kind:'preset.remove'});void current.synchronize(true);},
     resolve:async(id,request)=>{const current=active();await current.resolve(id,request);void current.synchronize(true);},
     refresh:async()=>{

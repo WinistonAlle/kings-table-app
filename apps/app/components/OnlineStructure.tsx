@@ -12,6 +12,7 @@ import type { BlindLevel } from '@/types';
 import type { TournamentSyncValue } from './TournamentSync.web';
 import { StructureEditor } from './StructureEditor';
 import { PresetAccountLibrary } from './PresetAccountLibrary';
+import { SaveAccountStructure } from './SaveAccountStructure';
 import { KTButton } from './ui/Button';
 import { KTText } from './ui/Text';
 
@@ -22,6 +23,7 @@ export function OnlineStructure({ snapshot, view, sync, otherEditing, onDirtyCha
   const [draft, setDraft] = useState<BlindLevel[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [retry, setRetry] = useState(false);
+  const [presetBusy, setPresetBusy] = useState(false);
   const [message, setMessage] = useState('');
   const operation = useRef<SyncOperation | null>(null);
   const alive = useRef(true), busy = useRef(false);
@@ -37,7 +39,7 @@ export function OnlineStructure({ snapshot, view, sync, otherEditing, onDirtyCha
   const breakCount = levels.filter(level => level.isBreak).length;
 
   async function send() {
-    if (busy.current || (!operation.current && (!ready || !draft))) return;
+    if (busy.current || presetBusy || (!operation.current && (!ready || !draft))) return;
     busy.current = true; setSaving(true); setMessage('');
     try {
       operation.current ??= prepareStructureOperation(snapshot, draft);
@@ -64,19 +66,21 @@ export function OnlineStructure({ snapshot, view, sync, otherEditing, onDirtyCha
     {!structure.success ? <KTText papel="apoio" color={Colors.danger}>Estrutura indisponível. Atualize os detalhes.</KTText> : null}
     {!upcoming ? <KTText papel="apoio" color={Colors.text2}>Estrutura protegida após o início da noite.</KTText> : null}
     {draft ? <>
-      <PresetAccountLibrary confirmedOnly selectionDisabled={saving || retry || !ready} onError={setMessage}
+      <PresetAccountLibrary confirmedOnly selectionDisabled={saving || retry || presetBusy || !ready} onError={setMessage}
         onSelect={selected => {
-          if (!ready || saving || retry) return;
+          if (!ready || saving || retry || presetBusy) return;
           confirmarAcao('Substituir os níveis desta edição pela estrutura salva? A mesa só será alterada quando você salvar.',
             () => { setDraft(selected.map(level => ({ ...level }))); setMessage(''); });
         }} />
-      <StructureEditor levels={draft} onChange={setDraft} disabled={saving || retry || !ready} />
+      <StructureEditor levels={draft} onChange={setDraft} disabled={saving || retry || presetBusy || !ready} />
+      <SaveAccountStructure ownerId={snapshot.tournament.created_by} levels={draft}
+        disabled={saving || retry || !ready} onBusyChange={setPresetBusy} />
       <View style={styles.heading}>
         <KTButton label={saving ? 'Registrando estrutura…' : retry ? 'Tentar registrar estrutura novamente' : 'Salvar estrutura na conta'}
-          disabled={saving || (!retry && !ready)}
+          disabled={saving || presetBusy || (!retry && !ready)}
           onPress={() => retry ? void send() : confirmarAcao('Salvar esta estrutura? O relógio de preparação voltará à duração da primeira linha e permanecerá pausado.', () => { void send(); })}
           icone={<Ionicons name="save-outline" size={18} color={Colors.bg0} />} />
-        {!retry ? <KTButton label="Cancelar edição da estrutura" variant="fantasma" disabled={saving}
+        {!retry ? <KTButton label="Cancelar edição da estrutura" variant="fantasma" disabled={saving || presetBusy}
           onPress={() => confirmarAcao('Descartar as alterações ainda não registradas da estrutura?', () => { setDraft(null); setMessage(''); })} /> : null}
       </View>
     </> : upcoming ? <KTButton label="Editar blinds e intervalos online" variant="fantasma" size="sm" disabled={!ready || saving}

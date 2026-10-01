@@ -4,6 +4,21 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Salvar a estrutura da mesa na biblioteca em 01/10/2026
+
+- `SaveAccountStructure` permite nomear e guardar o rascunho como uma nova
+  estrutura da conta, separadamente de aplicar a estrutura na mesa.
+  `PresetSyncProvider.enqueue` usa o comando preparado uma unica vez;
+  campos e acoes da mesa ficam protegidos durante registro/retry local.
+- V44: Chromium com Auth/HTTP/IndexedDB locais reais conferiu interrupcao
+  da RPC, pendencia persistida no reload, retry com um unico preset rev1,
+  reutilizacao e cancelamento sem alterar a mesa rev2. Outra conta apos
+  reload nao ve o preset. Capturas 390/1440 inspecionadas sem overflow.
+- Ainda faltam falha de confirmacao IndexedDB na UI, resposta perdida deste
+  salvamento, saida durante envio e troca sem reload. Testes da base V43 nao
+  substituem esses cenarios de interface. Fixtures removidas; flags normais
+  desligadas e nenhuma mudanca aplicada ao remoto.
+
 ## Base de retry estavel para salvar presets em 01/10/2026
 
 - `SyncOutbox.enqueuePreset` aceita um comando preparado uma unica vez e
@@ -16,8 +31,8 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   retry, escopo e reload. Banco de QA separado removido ao terminar.
 - Prova separada com Auth/JWT/HTTP locais reais e IndexedDB simulado conferiu
   sessao enfileirando/repetindo comando confirmado sem aumentar revisao.
-  V43 delimita cobertura. Ainda falta conectar esta API ao salvamento pelo
-  editor e testar esse fluxo de interface; nao substitui `save` existente.
+  V43 delimita cobertura. Integracao posterior no editor em V44;
+  nao substitui `save` existente.
 
 ## Estruturas salvas no editor online em 01/10/2026
 
@@ -30,7 +45,7 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   independencia entre mesa e preset, pendencia de preset bloqueada/retry,
   cancelamento sem alterar mesa e isolamento A/B apos reload. Capturas
   390/1440 inspecionadas sem overflow; suite completa e tipos passaram.
-- Salvar o rascunho como nova estrutura diretamente deste editor ainda falta;
+- Salvar o rascunho como nova estrutura deste editor foi integrado em V44;
   esse salvamento ja existe na criacao de mesa. Flags normais desligadas.
 
 ## Editor da estrutura online em 01/10/2026
@@ -50,7 +65,7 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   Revisao/auditoria final 6; stores locais identicos apos hidratacao.
   Troca para conta B seguida de reload nao levou mesa nem rascunho A.
 - Ainda faltam troca de conta sem recarga/resposta tardia durante logout,
-  salvar novo preset nesta edicao, mudanca durante partida, quota fisica, outros browsers
+  recuperacao local da UI de novo preset, mudanca durante partida, quota fisica, outros browsers
   e validacao remota. Flag normal continua desligada.
 
 ## Base de edicao da estrutura online em 01/10/2026
