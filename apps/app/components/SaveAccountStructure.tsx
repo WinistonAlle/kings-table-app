@@ -10,11 +10,12 @@ import { usePresetSync } from './PresetSync';
 import { KTButton } from './ui/Button';
 import { KTText } from './ui/Text';
 
-export function SaveAccountStructure({ ownerId, levels, disabled, onBusyChange }: {
+export function SaveAccountStructure({ ownerId, levels, disabled, onBusyChange, initialName = '', title = 'Salvar para outras mesas' }: {
   ownerId: string; levels: BlindLevel[]; disabled: boolean; onBusyChange: (busy: boolean) => void;
+  initialName?: string; title?: string;
 }) {
   const sync = usePresetSync();
-  const [name, setName] = useState('');
+  const [name, setName] = useState(initialName);
   const [saving, setSaving] = useState(false);
   const [retry, setRetry] = useState(false);
   const [message, setMessage] = useState('');
@@ -46,7 +47,7 @@ export function SaveAccountStructure({ ownerId, levels, disabled, onBusyChange }
   }
 
   return <View style={styles.section}>
-    <KTText papel="corpoForte">Salvar para outras mesas</KTText>
+    <KTText papel="corpoForte">{title}</KTText>
     <TextInput accessibilityLabel="Nome da nova estrutura na biblioteca" placeholder="Nome da estrutura"
       placeholderTextColor={Colors.text2} value={name} onChangeText={setName} maxLength={240}
       editable={!disabled && !saving && !retry} style={styles.input} />

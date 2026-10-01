@@ -4,6 +4,24 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Duplicacao explicita de estruturas da conta em 01/10/2026
+
+- Biblioteca oferece duplicar uma estrutura confirmada, ativa e sem pendencia.
+  O formulario mostra origem/revisao, sugere nome com sufixo de copia dentro
+  de 120 caracteres e reutiliza o salvamento com identidade estavel.
+  Niveis, ante, duracoes e intervalos sao copiados sem compartilhar objetos.
+  Fechar pede confirmacao; durante registro/retry local a saida e protegida.
+- `preparePresetCopyDraft` confere identidade/versao, preserva original e
+  trata nomes Unicode sem cortar pares substitutos. Teste faz parte da suite.
+- V46: Chromium/Auth/HTTP/IndexedDB locais reais conferiu nome vazio bloqueado,
+  fechamento recusado preservando o rascunho, RPC interrompida/reload/reenvio,
+  dois IDs independentes rev1 e uso da copia em mesa rev3 sem alterar os dois
+  presets. Conta B apos reload nao ve original/copia. Capturas 390/1440
+  inspecionadas sem overflow. Fixtures e launcher privados removidos.
+- Falta editar a estrutura diretamente na biblioteca, compartilhar por codigo,
+  fichas/premios, saida durante gravação local, outras abas e rollout remoto.
+  F005 continua em andamento; flags normais desligadas.
+
 ## Recuperacao do salvamento de presets no editor em 01/10/2026
 
 - V45 amplia V44 com Chromium/Auth/HTTP/IndexedDB locais reais. O runner

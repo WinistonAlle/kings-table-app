@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius } from '@/constants/tokens';
 import type { BlindLevel } from '@/types';
 import { confirmarAcao } from '@/lib/confirmar';
+import { preparePresetCopyDraft } from '@/lib/sync-preset-copy';
 import { presetPayloadSchema, type PresetPayload } from '@/lib/sync-preset-model';
 import type { PresetLibrary } from '@/lib/sync-preset-session';
 import type { PresetResolutionRequest } from '@/lib/sync-outbox';
@@ -11,6 +12,7 @@ import type { PresetSyncValue } from './PresetSync.web';
 import { usePresetSync } from './PresetSync';
 import { KTText } from './ui/Text';
 import { KTButton } from './ui/Button';
+import { SaveAccountStructure } from './SaveAccountStructure';
 
 export function PresetAccountLibrary({onSelect,onError,selectionDisabled=false,confirmedOnly=false}:{onSelect:(levels:BlindLevel[])=>void;onError:(message:string)=>void;selectionDisabled?:boolean;confirmedOnly?:boolean}) {
   const sync=usePresetSync();
@@ -39,6 +41,10 @@ function PresetAccountRow({row,sync,onSelect,onError,selectionDisabled,confirmed
       const [busy,setBusy]=useState(false);
       const [error,setError]=useState<string|null>(null);
       const [notice,setNotice]=useState<string|null>(null);
+      const [copyDraft,setCopyDraft]=useState<ReturnType<typeof preparePresetCopyDraft>|null>(null);
+      const [copyBusy,setCopyBusy]=useState(false);
+      const canCopy=!!row.confirmed&&!row.confirmed.deleted&&!row.pending.length&&!row.reconciliationNeeded
+        &&sync.available&&sync.state.phase==='ready'&&!busy&&!selectionDisabled&&!copyDraft;
       const revisionKey=`${row.confirmed?.revision??'none'}:${row.pending.map(entry=>`${entry.operation.id}/${entry.status}`).join(',')}`;
       useEffect(()=>{
         setError(null);
@@ -79,10 +85,10 @@ function PresetAccountRow({row,sync,onSelect,onError,selectionDisabled,confirmed
         <View style={{flexDirection:'row',alignItems:'center',gap:12}}>
           <View style={{flex:1,minWidth:0,gap:4}}><KTText papel="corpoForte">{name}</KTText><KTText papel="apoio" color={row.reconciliationNeeded?Colors.danger:Colors.text1}>{status}</KTText></View>
           {showRemove?<Pressable accessibilityRole="button" accessibilityLabel={`Excluir da conta: ${name}`}
-            disabled={!sync.available||busy}
+            disabled={!sync.available||busy||!!copyDraft}
             onPress={()=>confirmarAcao(`Excluir ${name} da conta? Mesas que já usam esta estrutura não serão alteradas.`,()=>{
               void sync.remove(row.id).catch(()=>onError('Não foi possível registrar a exclusão. A estrutura foi preservada.'));
-            })} style={{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',opacity:sync.available&&!busy?1:0.4}}>
+            })} style={{minWidth:44,minHeight:44,alignItems:'center',justifyContent:'center',opacity:sync.available&&!busy&&!copyDraft?1:0.4}}>
             <Ionicons name="trash-outline" size={18} color={Colors.danger}/>
           </Pressable>:null}
         </View>
@@ -90,6 +96,21 @@ function PresetAccountRow({row,sync,onSelect,onError,selectionDisabled,confirmed
         {!removed&&payload&&(row.confirmed||row.pending.length)?<KTButton label={`Usar ${name}`} variant="fantasma" disabled={selectionDisabled||row.reconciliationNeeded||busy
           ||confirmedOnly&&(!row.confirmed||row.confirmed.deleted||!!row.pending.length||!sync.available||sync.state.phase!=='ready')}
           onPress={()=>onSelect(payload.levels.map(level=>({...level})))} />:null}
+        {row.confirmed&&!row.confirmed.deleted?<KTButton label={`Duplicar ${name}`} variant="fantasma" disabled={!canCopy}
+          icone={<Ionicons name="copy-outline" size={18} color={Colors.gold200}/>}
+          onPress={()=>{
+            try { setCopyDraft(preparePresetCopyDraft(row)); }
+            catch { onError('Atualize e confirme a estrutura antes de criar uma cópia.'); }
+          }}/>:null}
+        {copyDraft?<View style={{gap:8}}>
+          <KTText papel="apoio" color={Colors.text1}>Origem: {copyDraft.sourceName} · Revisão {copyDraft.sourceRevision}</KTText>
+          <KTText papel="apoio" color={Colors.text1}>{copyDraft.levels.filter(level=>!level.isBreak).length} {copyDraft.levels.filter(level=>!level.isBreak).length===1?'nível':'níveis'} · {copyDraft.levels.filter(level=>level.isBreak).length} {copyDraft.levels.filter(level=>level.isBreak).length===1?'intervalo':'intervalos'}</KTText>
+          <SaveAccountStructure ownerId={copyDraft.ownerId} levels={copyDraft.levels} initialName={copyDraft.name}
+            title="Criar uma cópia" disabled={!sync.available||sync.state.phase!=='ready'||busy}
+            onBusyChange={setCopyBusy}/>
+          <KTButton label={`Fechar cópia de ${copyDraft.sourceName}`} variant="fantasma" disabled={copyBusy}
+            onPress={()=>confirmarAcao('Fechar esta cópia? Estruturas já registradas na biblioteca serão preservadas.',()=>setCopyDraft(null))}/>
+        </View>:null}
         {row.reconciliationNeeded?<KTButton label={review?'Fechar revisão':'Revisar alteração'} variant="fantasma" disabled={busy}
           onPress={()=>{setReview(!review);if(!review){setCopyName(`${copySource?.name??'Estrutura'} (cópia)`);setError(null);}}} />:null}
         {review&&row.reconciliationNeeded?<View style={{gap:12,paddingVertical:8}}>
