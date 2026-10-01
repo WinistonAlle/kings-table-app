@@ -3,6 +3,29 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Leitura de detalhes pela sessao em 01/10/2026
+
+- `TournamentSyncSession.refreshTournament` recebe um leitor vinculado a conta,
+  valida mesa e dono, grava o snapshot e atualiza o catalogo da sessao. Pedidos
+  simultaneos da mesma mesa compartilham a requisicao. Erros de rede, resposta
+  invalida e armazenamento possuem mensagens separadas sem detalhes internos.
+- Uma resposta ausente retorna null e preserva os detalhes salvos. O caller
+  pode consultar `cachedTournament` explicitamente. Um detalhe ultrapassado
+  pelo catalogo nao e devolvido como atual; o relogio usa leitura propria.
+- `stop` aborta leituras e impede gravacao/publicacao tardia. `waitForIdle`
+  aguarda tambem leituras de detalhes antes de fechar o IndexedDB. Testes
+  simulados cobrem coalescencia, conta/alvo incorretos, ausencia, falha de rede
+  e armazenamento, mensagens sem diagnosticos internos, retry
+  e saida durante a leitura. Auth/HTTP local confirmou leitura coordenada e
+  cache apos comando de planejamento real. Suite completa e TypeScript
+  passaram. O IndexedDB no teste HTTP e simulado; isto nao valida o fluxo
+  de detalhes no navegador. A UI ainda nao usa esta API.
+- Apos restabelecer o acesso a pasta, o preview em localhost:3001/app?teste=1
+  saiu de "Verificando acesso" e apresentou o Inicio no Chrome. Capturas
+  1440x900 e 390x844 inspecionadas; controles visiveis sem cortes aparentes.
+  TypeScript, build do site e teste de detalhes foram repetidos e passaram.
+  Esta e uma verificacao de abertura em modo teste, nao de sincronizacao na UI.
+
 ## Cache de detalhes de mesa em 30/09/2026
 
 - O IndexedDB v5 guarda snapshots completos por conta e mesa, separado do

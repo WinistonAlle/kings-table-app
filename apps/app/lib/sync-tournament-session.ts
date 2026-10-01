@@ -4,6 +4,17 @@ import type { SyncOutbox, OutboxEntry } from './sync-outbox';
 import { parseOperation, type SyncOperation } from './sync-operation';
 import type { TournamentSummary } from './sync-tournament-catalog';
 import type { TournamentCatalogView } from './sync-tournament-model';
+import { parseTournamentSnapshot, type TournamentSnapshot } from './sync-tournament-reader';
+
+export type TournamentDetailReader = (tableId: string, signal: AbortSignal) => Promise<TournamentSnapshot | null>;
+
+export class TournamentDetailError extends Error {
+  constructor(public readonly code: 'remote_read' | 'invalid_response' | 'local_storage') {
+    super(code === 'remote_read' ? 'Nao foi possivel atualizar os detalhes da mesa. Tente novamente.'
+      : code === 'invalid_response' ? 'Os detalhes recebidos sao inconsistentes. Tente atualizar a mesa.'
+      : 'Nao foi possivel acessar os detalhes salvos neste aparelho. Tente novamente.');
+  }
+}
 
 export type TournamentSessionState = {
   phase: 'idle' | 'syncing' | 'ready' | 'error' | 'stopped';
@@ -19,18 +30,70 @@ export class TournamentSyncSession {
   private sender: SyncSender;
   private inFlight: Promise<void> | null = null;
   private repeat = false;
+  private detailReads = new Map<string, Promise<TournamentSnapshot | null>>();
   private state: TournamentSessionState = { phase: 'idle', tables: [], pending: [], views: [], error: null };
 
   constructor(private ownerId: string, private outbox: SyncOutbox,
     private read: (signal: AbortSignal) => Promise<TournamentSummary[]>, transport: OperationTransport,
     private onUpdate: (state: TournamentSessionState) => void = () => undefined,
-    now: () => number = Date.now) {
+    now: () => number = Date.now,
+    private readDetail?: TournamentDetailReader) {
     z.uuid().parse(ownerId);
     this.sender = new SyncSender(ownerId, outbox, transport, now, 'tournament');
   }
 
   snapshot(): TournamentSessionState { return structuredClone(this.state); }
-  waitForIdle(): Promise<void> { return this.inFlight ?? Promise.resolve(); }
+  waitForIdle(): Promise<void> {
+    if (!this.detailReads.size) return this.inFlight ?? Promise.resolve();
+    return Promise.allSettled([this.inFlight, ...this.detailReads.values()]).then(() => undefined);
+  }
+
+  async cachedTournament(tableId: string): Promise<TournamentSnapshot | null> {
+    z.uuid().parse(tableId);
+    this.controller.signal.throwIfAborted();
+    try {
+      const cached = await this.outbox.tournamentSnapshot(this.ownerId, tableId);
+      this.controller.signal.throwIfAborted();
+      return cached;
+    } catch {
+      this.controller.signal.throwIfAborted();
+      throw new TournamentDetailError('local_storage');
+    }
+  }
+
+  refreshTournament(tableId: string): Promise<TournamentSnapshot | null> {
+    z.uuid().parse(tableId);
+    this.controller.signal.throwIfAborted();
+    if (!this.readDetail) throw new Error('A leitura dos detalhes da mesa nao esta configurada.');
+    const existing = this.detailReads.get(tableId);
+    if (existing) return existing;
+    const task = this.readTournament(tableId).finally(() => { this.detailReads.delete(tableId); });
+    this.detailReads.set(tableId, task);
+    return task;
+  }
+
+  private async readTournament(tableId: string): Promise<TournamentSnapshot | null> {
+    const signal = this.controller.signal;
+    let stage: TournamentDetailError['code'] = 'remote_read';
+    try {
+      const value = await this.readDetail!(tableId, signal);
+      signal.throwIfAborted();
+      if (value === null) return null;
+      stage = 'invalid_response';
+      const snapshot = parseTournamentSnapshot(value);
+      if (snapshot.tournament.id !== tableId || snapshot.tournament.created_by !== this.ownerId) {
+        throw new Error('Wrong tournament scope');
+      }
+      stage = 'local_storage';
+      await this.outbox.mergeTournamentSnapshots(this.ownerId, [snapshot], signal);
+      signal.throwIfAborted();
+      await this.refreshLocal();
+      return await this.cachedTournament(tableId);
+    } catch {
+      signal.throwIfAborted();
+      throw new TournamentDetailError(stage);
+    }
+  }
 
   stop(): void {
     if (this.controller.signal.aborted) return;

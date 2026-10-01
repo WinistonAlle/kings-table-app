@@ -459,7 +459,8 @@ async function main() {
     assert.equal((await outbox.tournamentSnapshot(users[0], tableIds[0]))?.tournament.revision,
       ownCatalog.find(table => table.id === tableIds[0])?.revision);
     const tournamentSession = new TournamentSyncSession(users[0], outbox,
-      createTournamentCatalogReader(a, users[0], 1), send);
+      createTournamentCatalogReader(a, users[0], 1), send, undefined, Date.now,
+      (id, detailSignal) => createTournamentReader(a, users[0], id)(detailSignal));
     try {
       const current = ownCatalog.find(table => table.id === tableIds[0]);
       assert.ok(current);
@@ -479,6 +480,11 @@ async function main() {
       assert.equal(changed.error, null);
       assert.equal(changed.data?.revision, current.revision + 1);
       assert.equal((changed.data?.details as { location: string }).location, 'Sala sincronizada');
+      const coordinatedDetail = await tournamentSession.refreshTournament(tableIds[0]);
+      assert.equal(coordinatedDetail?.tournament.revision, current.revision + 1);
+      assert.equal(coordinatedDetail?.tournament.details.location, 'Sala sincronizada');
+      assert.equal((await tournamentSession.cachedTournament(tableIds[0]))?.tournament.revision,
+        current.revision + 1);
     } finally { tournamentSession.stop(); }
     const foreignCatalog = await b.from('tournaments').select('id').eq('created_by', users[0]);
     assert.deepEqual(foreignCatalog.data, []);
