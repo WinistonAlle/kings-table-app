@@ -57,6 +57,7 @@ async function main() {
     { kind: 'tournament.start', payload: {} }, { kind: 'player.update', payload: { playerId: novaIdentidade(), name: 'Novo nome' } }, { kind: 'clock.start', payload: {} },
     { kind: 'clock.pause', payload: {} }, { kind: 'clock.level', payload: { level: 0 } },
     { kind: 'clock.handForHand', payload: { enabled: true } }, { kind: 'clock.reset', payload: {} },
+    { kind: 'clock.structure', payload: { levels: [{ level: 1, smallBlind: 25, bigBlind: 50, ante: 0, durationMinutes: 20 }] } },
   ];
   for (const [index, { kind, payload }] of clockCommands.entries()) {
     const command = createOperation({ ownerId: actor, entityId: op.entityId, entity: 'tournament',

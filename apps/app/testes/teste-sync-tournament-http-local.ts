@@ -13,6 +13,7 @@ import { SyncSender } from '../lib/sync-sender';
 import { distribuirPremios } from '../lib/payouts';
 import { createTournamentCatalogReader } from '../lib/sync-tournament-catalog';
 import { TournamentSyncSession } from '../lib/sync-tournament-session';
+import { prepareStructureOperation } from '../lib/sync-tournament-structure';
 
 async function main() {
   // This runner accepts no project URL or credentials from arguments/env.
@@ -25,7 +26,7 @@ async function main() {
   const a = createClient<Database>(url, local.ANON_KEY, options);
   const b = createClient<Database>(url, local.ANON_KEY, options);
   const users: string[] = [];
-  const tableIds = [randomUUID(), randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+  const tableIds = Array.from({ length: 6 }, () => randomUUID());
   const dbName = `qa-tournament-create-${randomUUID()}`;
   const outbox = new SyncOutbox(dbName);
   const password = `Qa-${randomUUID()}!`;
@@ -572,7 +573,44 @@ async function main() {
     assert.equal(finalPlayers.error, null);
     assert.deepEqual(finalPlayers.data, [{ id: paidPlayer.payload.playerId, display_name: 'Nome corrigido',
       add_ons: 1, payment_status: 'pending' }]);
-    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock, catalog and scoped session; isolation, revisions and lost-response retry.');
+    const structureId = tableIds[5];
+    assert.equal((await send(createOperation({ ownerId: users[0], entityId: structureId, entity: 'tournament',
+      kind: 'tournament.create', expectedRevision: 0, payload }), signal)).status, 'confirmed');
+    const structureSnapshot = await createTournamentReader(a, users[0], structureId)(signal);
+    assert.ok(structureSnapshot);
+    const structure = prepareStructureOperation(structureSnapshot, [
+      { level: 0, smallBlind: 40, bigBlind: 80, ante: 10, durationMinutes: 2 },
+      { level: 0, smallBlind: 0, bigBlind: 0, ante: 0, durationMinutes: 3, isBreak: true },
+      { level: 0, smallBlind: 75, bigBlind: 150, ante: 15, durationMinutes: 9 },
+    ]);
+    loseResponse = true;
+    assert.equal((await createTournamentTransport(uncertainClient, users[0])(structure, signal)).status, 'retry');
+    const structureReply = await send(structure, signal);
+    assert.equal(structureReply.status, 'confirmed');
+    assert.deepEqual(await send(structure, signal), structureReply);
+    const structureRead = await createTournamentReader(a, users[0], structureId)(signal);
+    assert.equal(structureRead?.tournament.revision, 2);
+    assert.deepEqual(structureRead?.tournament.blind_levels, structure.payload.levels);
+    const clockAfterStructure = await createTournamentClockReader(a, structureId)(signal);
+    assert.equal(clockAfterStructure.secondsRemaining, 120); assert.equal(clockAfterStructure.currentLevel, 0);
+    assert.equal(clockAfterStructure.isRunning, false);
+    const structureAudit = await a.from('sync_operation_audit').select('operation_id').eq('operation_id', structure.id);
+    assert.equal(structureAudit.error, null); assert.equal(structureAudit.data?.length, 1);
+    const staleStructure = createOperation({ ...structure, payload: { levels: payload.levels } });
+    assert.equal((await send(staleStructure, signal)).status, 'conflict');
+    const invalidStructure = createOperation({ ...structure, expectedRevision: 2, payload: { levels: [] } });
+    assert.equal((await send(invalidStructure, signal)).status, 'rejected');
+    const foreignStructure = createOperation({ ...structure, ownerId: users[1], expectedRevision: 2 });
+    assert.equal((await otherSend(foreignStructure, signal)).status, 'rejected');
+    assert.equal(await createTournamentReader(b, users[1], structureId)(signal), null);
+    assert.equal((await send(createOperation({ ownerId: users[0], entityId: structureId, entity: 'tournament',
+      kind: 'player.add', expectedRevision: 2, payload: { playerId: randomUUID(), name: 'Structure player' } }), signal)).status, 'confirmed');
+    assert.equal((await send(createOperation({ ownerId: users[0], entityId: structureId, entity: 'tournament',
+      kind: 'tournament.start', expectedRevision: 3, payload: {} }), signal)).status, 'confirmed');
+    assert.equal((await send(createOperation({ ...staleStructure, expectedRevision: 4 }), signal)).status, 'rejected');
+    assert.deepEqual(await send(structure, signal), structureReply);
+    assert.equal((await createTournamentReader(a, users[0], structureId)(signal))?.tournament.revision, 4);
+    console.log('PASS: local Auth/HTTP tournament, players, late entry, results, rename, payment, entries, clock/structure, catalog and scoped session; isolation, revisions and lost-response retry.');
   } finally {
     await outbox.close();
     await deleteDB(dbName);

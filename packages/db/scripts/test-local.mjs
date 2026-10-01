@@ -65,10 +65,11 @@ await sql(await readFile(new URL('../supabase/tests/player_payment.sql', import.
 await sql(await readFile(new URL('../supabase/tests/player_entries.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_clock.sql', import.meta.url), 'utf8'));
 await sql(await readFile(new URL('../supabase/tests/tournament_start.sql', import.meta.url), 'utf8'));
+await sql(await readFile(new URL('../supabase/tests/tournament_structure.sql', import.meta.url), 'utf8'));
 
 const actor = randomUUID();
 const presetId = randomUUID();
-const tournamentIds = [randomUUID(), randomUUID(), randomUUID()];
+const tournamentIds = Array.from({ length: 6 }, () => randomUUID());
 const tag = `kt-race-${randomUUID()}`;
 let first;
 let second;
@@ -544,7 +545,55 @@ try {
       assert.equal(await sql(`select clock_ends_at is null from public.tournaments where id='${tournamentIds[0]}';`), 't');
     }
   }
-console.log('PASS: canonical migrations, RLS, rollback, late-entry/results and backup/preset/tournament/player/payment/entry/clock/rename/start-removal races.');
+  for (const [index, mode] of ['structure-first', 'start-first', 'duplicate'].entries()) {
+    const entityId = tournamentIds[index + 3];
+    const base = { ...resultBase, id: randomUUID(), entityId, expectedRevision: 0, kind: 'tournament.create' };
+    await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+      ${tournamentCommand(base)}
+      ${tournamentCommand({ ...base, id: randomUUID(), expectedRevision: 1, kind: 'player.add',
+        payload: { playerId: randomUUID(), name: 'Structure race player' } })}`);
+    const structure = { ...base, id: randomUUID(), expectedRevision: 2, kind: 'clock.structure', payload: {
+      levels: [{ level: 1, smallBlind: 125, bigBlind: 250, ante: 25, durationMinutes: 2 }],
+    } };
+    const start = { ...base, id: randomUUID(), expectedRevision: 2, kind: 'tournament.start', payload: {} };
+    const winnerOp = mode === 'start-first' ? start : structure;
+    const otherOp = mode === 'structure-first' ? start : structure;
+    first = processSql(`${tag}-a`);
+    first.child.stdin.write(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(winnerOp)} select 'FIRST_LOCKED';\n`);
+    await until(() => first.output().includes('FIRST_LOCKED'), 'Structure race did not acquire lock');
+    second = processSql(`${tag}-b`);
+    second.child.stdin.end(`begin; set local role authenticated;
+      select set_config('request.jwt.claim.sub','${actor}',true);
+      ${tournamentCommand(otherOp)} commit;`);
+    await until(async () => (await sql(`select count(*) from pg_stat_activity
+      where application_name='${tag}-b' and wait_event_type='Lock';`)) === '1', 'Structure loser did not wait');
+    first.child.stdin.end('commit;\n');
+    const winner = await first.completed, loser = await second.completed;
+    assert.equal(winner.code, 0, winner.stderr);
+    if (mode === 'duplicate') assert.equal(loser.code, 0, loser.stderr);
+    else { assert.notEqual(loser.code, 0); assert.match(loser.stderr, /40001/); }
+    assert.equal(await sql(`select revision from public.tournaments where id='${entityId}';`), '3');
+    assert.equal(await sql(`select count(*) from public.sync_operation_audit where entity_id='${entityId}';`), '3');
+    if (mode === 'start-first') {
+      const rejected = processSql();
+      rejected.child.stdin.end(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+        ${tournamentCommand({ ...structure, expectedRevision: 3 })}`);
+      const failure = await rejected.completed;
+      assert.notEqual(failure.code, 0); assert.match(failure.stderr, /55000/);
+      assert.equal(await sql(`select count(*) from public.sync_operation_receipts where operation_id='${structure.id}';`), '0');
+    } else {
+      assert.equal(await sql(`select seconds_remaining from public.tournaments where id='${entityId}';`), '120');
+      if (mode === 'structure-first') {
+        await sql(`set role authenticated; select set_config('request.jwt.claim.sub','${actor}',false);
+          ${tournamentCommand({ ...start, expectedRevision: 3 })}`);
+        assert.equal(await sql(`select status || ':' || revision from public.tournaments where id='${entityId}';`), 'running:4');
+        assert.equal(await sql(`select clock_ends_at is null from public.tournaments where id='${entityId}';`), 't');
+      }
+    }
+  }
+console.log('PASS: canonical migrations, RLS, rollback, late-entry/results and backup/preset/tournament/player/payment/entry/clock/rename/start-removal/structure races.');
 } finally {
   // Terminate only the two fixture sessions, then remove only our random actor.
   await sql(`select pg_terminate_backend(pid) from pg_stat_activity
@@ -553,7 +602,7 @@ console.log('PASS: canonical migrations, RLS, rollback, late-entry/results and b
   second?.child.stdin.end();
   if (first) await first.completed;
   if (second) await second.completed;
-  await sql(`delete from public.tournaments where id in ('${tournamentIds[0]}','${tournamentIds[1]}','${tournamentIds[2]}') and created_by='${actor}';
+  await sql(`delete from public.tournaments where id in (${tournamentIds.map(id => `'${id}'`).join(',')}) and created_by='${actor}';
     delete from public.blind_structures where id='${presetId}' and owner_id='${actor}';
     delete from auth.users where id='${actor}';`);
   assert.equal(await sql(`select count(*) from public.profiles where id='${actor}';`), '0');

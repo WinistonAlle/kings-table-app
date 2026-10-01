@@ -4,6 +4,26 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Base de edicao da estrutura online em 01/10/2026
+
+- Comando `clock.structure` substitui a estrutura de uma mesa em preparacao,
+  com autoria/revisao, recibo idempotente e auditoria atomicos. Usa a validacao
+  compartilhada de niveis/intervalos; redefine nivel inicial e tempo da primeira
+  linha, pausado. Nao muda jogadores, valores, reservas ou resultados.
+- Migracao `20261001191608` aplicada somente localmente. SQL cobre dados
+  invalidos/inalterados, revisao antiga, identidade reutilizada, rollback se a
+  auditoria falhar, acesso de outra conta/anonimo e retry depois de iniciar.
+  Duas conexoes reais conferem edicao/inicio nas duas ordens e mesmo comando
+  concorrente, com um unico efeito. Checagem de seguranca local sem issues.
+- Helper `prepareStructureOperation` normaliza o editor sem mutar entrada,
+  rejeita estrutura inalterada e mesas fora da preparacao. Transporte aceitou
+  comando em Auth/JWT/PostgREST reais locais, com resposta perdida apos commit,
+  retry e leitura do novo tempo pausado. Falhas nao criam revisoes/recibos.
+- CHECKLIST V39 delimita cobertura. Esta etapa ainda NAO integra o editor
+  de estrutura na UI da mesa existente, nem alteracao ao vivo durante partida,
+  browser/IndexedDB para este comando, presets na edicao ou validacao remota.
+  Flag permanece desligada. Nenhuma migracao foi enviada ao projeto remoto.
+
 ## Convidados da conta em 01/10/2026
 
 - `OnlineInvites` integra convidados, presenca, espera, retirada e check-in
