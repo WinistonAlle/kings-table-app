@@ -4,6 +4,22 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Criacao de mesas na conta em 01/10/2026
+
+- Criacao web permite escolher aparelho ou conta quando a integracao online
+  esta habilitada. Preserva buy-in livre, naipe/cor, estrutura personalizada,
+  intervalos, local, vagas e agendamento. Limite de reentradas agora editavel
+  entre 0 e 100 tambem no fluxo local.
+- Criacao na conta prepara a mesa, sem iniciar automaticamente o relogio.
+  Uma identidade/comando fica retida para retry; fila sobrevive a recarga.
+  Tentativa definitivamente recusada pode ser arquivada com confirmacao,
+  mantendo os dados originais neste navegador.
+- Chromium com Auth/HTTP local e IndexedDB real validou interrupcao de RPC,
+  recarga, confirmacao perdida apos gravacao real, retry sem duplicacao,
+  configuracao e isolamento A/B. CHECKLIST V32 registra o escopo e limites.
+- Flag permanece desligada. Jogadores/relogio online ainda precisam ser
+  integrados; remoto, outros navegadores e quota fisica nao foram validados.
+
 ## Agendamento online em 01/10/2026
 
 - Consulta da conta agora permite editar data, horario, local e limite de vagas

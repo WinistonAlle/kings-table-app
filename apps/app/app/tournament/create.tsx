@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ScrollView, View, TextInput, Pressable, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,6 +20,10 @@ import { dataAgendada } from '@/lib/noite';
 import { usePresetSync } from '@/components/PresetSync';
 import { PresetAccountLibrary } from '@/components/PresetAccountLibrary';
 import { confirmarAcao } from '@/lib/confirmar';
+import { useTournamentSync } from '@/components/TournamentSync';
+import { OnlineCreationResult } from '@/components/OnlineCreation';
+import { prepareCreationOperation } from '@/lib/sync-tournament-create';
+import type { SyncOperation } from '@/lib/sync-operation';
 
 /* Abrir a mesa.
  *
@@ -56,6 +60,15 @@ export default function AbrirMesa() {
   const [buyIn, setBuyIn] = useState('');
   const [formato, setFormato] = useState<TournamentFormat>('regular');
   const [reentrada, setReentrada] = useState(true);
+  const [limiteReentradas, setLimiteReentradas] = useState('2');
+  const tableSync = useTournamentSync();
+  const [destino, setDestino] = useState<'local' | 'conta'>('local');
+  const [onlineOperation, setOnlineOperation] = useState<SyncOperation | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [creationError, setCreationError] = useState('');
+  const creatingRef = useRef(false);
+  const alive = useRef(true);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const [naipe, setNaipe] = useState<(typeof NAIPES)[number]>('espada');
   const [cor, setCor] = useState<string>(Colors.gold300);
   const [levels, setLevels] = useState<BlindLevel[]>(BLIND_PRESETS.regular.map(n => ({ ...n })));
@@ -87,11 +100,35 @@ export default function AbrirMesa() {
   const inicio = agendar ? dataAgendada(data, hora) : new Date().toISOString();
   const capacidade = vagas.trim() ? Number(vagas) : undefined;
   const erroAgenda = agendar && !inicio ? 'Informe uma data futura (DD/MM/AAAA) e horário (HH:MM).' : capacidade !== undefined && (!Number.isInteger(capacidade) || capacidade < 2 || capacidade > 1000) ? 'Escolha entre 2 e 1.000 vagas, ou deixe sem limite.' : '';
-  const podeAbrir = nome.trim().length > 0 && valor > 0 && !erroEstrutura && !erroAgenda;
+  const maxReEntries = reentrada ? Number(limiteReentradas) : 0;
+  const erroReentrada = reentrada && (!/^\d+$/.test(limiteReentradas.trim()) || !Number.isInteger(maxReEntries)
+    || maxReEntries < 0 || maxReEntries > 100) ? 'Escolha um limite de reentradas entre 0 e 100.' : '';
+  const podeAbrir = nome.trim().length > 0 && valor > 0 && !erroEstrutura && !erroAgenda && !erroReentrada;
+
+  const sendCreation = async (operation: SyncOperation) => {
+    if (!tableSync || creatingRef.current) return;
+    creatingRef.current = true; setCreating(true); setCreationError('');
+    try { await tableSync.send(operation); }
+    catch { if (alive.current) setCreationError('Não foi possível confirmar o registro. Tente novamente com esta mesma criação ou confira a fila em Mesas.'); }
+    finally { creatingRef.current = false; if (alive.current) setCreating(false); }
+  };
 
   const abrir = () => {
     if (!podeAbrir) return;
     const estrutura = normalizarEstrutura(levels);
+    if (destino === 'conta' && tableSync) {
+      if (onlineOperation || creatingRef.current) return;
+      try {
+        const operation = prepareCreationOperation(tableSync.ownerId, {
+          name: nome.trim(), suit: naipe, color: cor, format: formato, buyIn: valor,
+          reEntryAllowed: reentrada, maxReEntries, startTime: inicio!,
+          location: local.trim(), capacity: capacidade, levels: estrutura,
+        });
+        setOnlineOperation(operation);
+        void sendCreation(operation);
+      } catch { setCreationError('Confira o nome, valores, agendamento e estrutura antes de criar na conta.'); }
+      return;
+    }
     const t = createTournament({
       name: nome.trim(),
       suit: naipe,
@@ -99,7 +136,7 @@ export default function AbrirMesa() {
       format: formato,
       buyIn: valor,
       reEntryAllowed: reentrada,
-      maxReEntries: reentrada ? 2 : 0,
+      maxReEntries,
       startTime: inicio!,
       location: local.trim(),
       capacity: capacidade,
@@ -113,6 +150,9 @@ export default function AbrirMesa() {
     router.replace(`/tournament/${t.id}` as never);
   };
 
+  if (onlineOperation && tableSync) return <OnlineCreationResult operation={onlineOperation} sync={tableSync}
+    sending={creating} error={creationError} retry={() => { void sendCreation(onlineOperation); }} />;
+
   return (
     <KTScreen edges={['top', 'bottom']}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
@@ -125,6 +165,20 @@ export default function AbrirMesa() {
         </View>
 
         <ScrollView contentContainerStyle={styles.conteudo} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {tableSync ? <View style={{ gap: Space.md }}>
+            <KTText papel="rotulo" color={Colors.text1}>Salvar mesa em</KTText>
+            <View style={{ flexDirection: 'row', gap: Space.sm }}>
+              {(['local', 'conta'] as const).map(value => <Pressable key={value} accessibilityRole="radio"
+                accessibilityLabel={value === 'local' ? 'Salvar neste aparelho' : 'Salvar na conta'}
+                accessibilityState={{ checked: destino === value }} onPress={() => { setDestino(value); setCreationError(''); }}
+                style={[styles.atalho, destino === value && styles.atalhoAtivo]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: Space.sm }}>
+                  <Ionicons name={value === 'local' ? 'phone-portrait-outline' : 'cloud-outline'} size={18} color={Colors.gold200} />
+                  <KTText papel="apoio" color={destino === value ? Colors.gold100 : Colors.text1}>{value === 'local' ? 'Neste aparelho' : 'Na conta'}</KTText>
+                </View>
+              </Pressable>)}
+            </View>
+          </View> : null}
           {/* -------------------------------------------------------- nome */}
           <View style={styles.abertura}>
             <KTText papel="rotulo" color={Colors.text1}>Nome da mesa</KTText>
@@ -143,7 +197,7 @@ export default function AbrirMesa() {
           <View style={{ gap: Space.md }}>
             <KTText papel="rotulo" color={Colors.text1}>Quando vamos jogar?</KTText>
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              {[false, true].map(v => <Pressable key={String(v)} accessibilityRole="radio" accessibilityState={{ checked: agendar === v }} onPress={() => setAgendar(v)} style={[styles.atalho, agendar === v && styles.atalhoAtivo]}><KTText color={agendar === v ? Colors.gold100 : Colors.text1}>{v ? 'Agendar noite' : 'Jogar agora'}</KTText></Pressable>)}
+              {[false, true].map(v => <Pressable key={String(v)} accessibilityRole="radio" accessibilityState={{ checked: agendar === v }} onPress={() => setAgendar(v)} style={[styles.atalho, agendar === v && styles.atalhoAtivo]}><KTText color={agendar === v ? Colors.gold100 : Colors.text1}>{v ? 'Agendar noite' : destino === 'conta' ? 'Preparar hoje' : 'Jogar agora'}</KTText></Pressable>)}
             </View>
             {agendar && <>
               <KTText papel="apoio" color={Colors.text1}>Data e horário local</KTText>
@@ -256,7 +310,7 @@ export default function AbrirMesa() {
               <View style={{ flex: 1 }}>
                 <KTText papel="corpoForte" color={Colors.text1}>Permitir reentrada</KTText>
                 <KTText papel="apoio" color={Colors.text2}>
-                  Quem quebra pode comprar de novo, até duas vezes
+                  {reentrada ? `Até ${limiteReentradas || '0'} reentradas por jogador` : 'Sem reentradas nesta mesa'}
                 </KTText>
               </View>
               <View style={[styles.chave, reentrada && styles.chaveAtiva]}>
@@ -264,6 +318,12 @@ export default function AbrirMesa() {
               </View>
             </KTSurface>
           </Pressable>
+          {reentrada ? <View style={{ gap: Space.sm }}>
+            <KTText papel="apoio" color={Colors.text1}>Limite de reentradas por jogador</KTText>
+            <TextInput accessibilityLabel="Limite de reentradas por jogador" value={limiteReentradas}
+              onChangeText={setLimiteReentradas} keyboardType="number-pad" maxLength={3} style={styles.campoNome} />
+            {erroReentrada ? <KTText color={Colors.danger}>{erroReentrada}</KTText> : null}
+          </View> : null}
 
           <View style={{ height: Space.xxl }} />
         </ScrollView>
@@ -272,10 +332,11 @@ export default function AbrirMesa() {
             uma rolagem. */}
         <View style={styles.barra}>
           {!podeAbrir && <KTText papel="apoio" color={Colors.text1} style={{ marginBottom: Space.sm }}>
-            {!nome.trim() ? 'Nome da mesa obrigatório' : valor <= 0 ? 'Buy-in deve ser maior que zero' : erroAgenda || 'Confira a estrutura de blinds'}
+            {!nome.trim() ? 'Nome da mesa obrigatório' : valor <= 0 ? 'Buy-in deve ser maior que zero' : erroAgenda || erroReentrada || 'Confira a estrutura de blinds'}
           </KTText>}
+          {creationError ? <KTText accessibilityLiveRegion="polite" color={Colors.danger} style={{ marginBottom: Space.sm }}>{creationError}</KTText> : null}
           <KTButton
-            label={agendar ? 'Agendar noite' : 'Criar mesa'}
+            label={destino === 'conta' ? 'Criar mesa na conta' : agendar ? 'Agendar noite' : 'Criar mesa'}
             onPress={abrir}
             disabled={!podeAbrir}
             size="lg"

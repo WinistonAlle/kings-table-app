@@ -3,6 +3,29 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Criacao web na conta em 01/10/2026
+
+- `prepareCreationOperation` normaliza blinds/intervalos e valida payload
+  estrito. Capacidade sem limite e omitida, nunca enviada como null no create.
+  IDs separados de mesa e comando, revisao inicial zero, dono do provider
+  autenticado. Nao altera nem espelha stores operacionais locais.
+- Tela oferece destino local/conta sob flag. Depois de registrar, mantem a
+  mesma intencao e mostra resultado/fila; retry usa o mesmo ID. Mesa confirmada
+  fica em preparacao, sem iniciar relogio online. Mesas exibe criacoes sem
+  confirmacao e arquivo de tentativas rejeitadas, preservando payload.
+- Confirmacao perdida pode mostrar reconciliacao porque o catalogo avancou
+  antes do recibo. Atualizacao reenvia o comando idempotente original;
+  nenhum descarte automatico e permitido enquanto o envio for incerto.
+- Chromium com Auth/HTTP local e IndexedDB real validou RPC interrompido,
+  reload/reconexao, recibo perdido depois de commit, unica identidade/comando,
+  buy-in 73,29, cinco reentradas, blinds 30/60 e intervalo. Rejeicao SQL real
+  foi provocada alterando a requisicao no runner, sem adulterar a fila local.
+  Recusa/aceitacao de arquivo teve respostas controladas de window.confirm,
+  sem afirmar validacao visual do dialogo nativo. Conta B permaneceu isolada
+  e localStorage ficou identico. Capturas 1440/390 inspecionadas sem overflow.
+- CHECKLIST V32: UI implementada sob flag desativada. Remoto, quota fisica,
+  outros browsers, jogadores/relogio online, Realtime e migracao faltam.
+
 ## Edicao do agendamento online em 01/10/2026
 
 - `OnlinePlanning` edita data/horario, local (200 caracteres) e limite de vagas
@@ -405,8 +428,8 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   duas contas passou isolamento, escrita negada e reenvio apos resposta perdida
   depois de commit real. O runner HTTP usa IndexedDB simulado e remove suas
   fixtures no fim.
-- Esta e uma fundacao, nao uma mesa sincronizada entregue: o transporte nao
-  esta ligado ao fluxo de criacao da interface. Faltam a maior parte dos
+- Na entrega de 24/09, esta era apenas uma fundacao, sem fluxo de criacao
+  na interface. V32 posteriormente integra criacao web sob flag. Faltam
   comandos de torneio e jogadores, relogio, ligas, migracao de dados locais, reconciliacao
   e validacao no navegador com o dominio inteiro. A migracao nova existe
   somente no banco local; nenhum `db push` foi feito e a flag de presets

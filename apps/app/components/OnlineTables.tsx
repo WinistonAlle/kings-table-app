@@ -8,6 +8,7 @@ import { useTournamentSync } from './TournamentSync';
 import type { TournamentSnapshot } from '@/lib/sync-tournament-reader';
 import { OnlinePlanning } from './OnlinePlanning';
 import { confirmarAcao } from '@/lib/confirmar';
+import { UnconfirmedCreations } from './OnlineCreation';
 
 const status = { upcoming: 'Agendada', running: 'Em andamento', paused: 'Pausada',
   finished: 'Encerrada', cancelled: 'Cancelada' };
@@ -69,7 +70,8 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
     {sync.state.error ? <KTText papel="apoio" color={Colors.danger}>
       {sync.state.error === 'local_storage' ? 'Não foi possível acessar as mesas salvas neste navegador.'
         : 'Atualização indisponível. Exibindo a última lista salva.'}</KTText> : null}
-    {!tables.length && !busy ? <KTText papel="apoio" color={Colors.text2}>
+    <UnconfirmedCreations sync={sync} />
+    {!tables.length && !busy && !sync.state.views.some(view => view.pending.length || view.awaitingCatalog) ? <KTText papel="apoio" color={Colors.text2}>
       {sync.state.error ? 'Nenhuma mesa salva disponível para consulta.'
         : search || filter !== 'todas' ? 'Nenhuma mesa da conta corresponde aos filtros.' : 'Nenhuma mesa na conta.'}</KTText> : null}
     {tables.map(table => <View key={table.id} style={styles.row}>

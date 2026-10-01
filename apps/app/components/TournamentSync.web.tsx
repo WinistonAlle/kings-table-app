@@ -9,6 +9,7 @@ import type { SyncOperation } from '@/lib/sync-operation';
 import type { TournamentResolutionRequest } from '@/lib/sync-outbox';
 
 export type TournamentSyncValue = {
+  ownerId: string;
   state: TournamentSessionState;
   refresh: () => Promise<void>;
   read: (id: string) => Promise<TournamentSnapshot | null>;
@@ -62,7 +63,7 @@ export function TournamentSyncProvider({ children, ownerId, stopRef }: {
     if (!session.current) throw new Error('A consulta das mesas ainda nao esta pronta. Tente novamente.');
     return session.current;
   };
-  return <Context.Provider value={{ state,
+  return <Context.Provider value={{ ownerId, state,
     refresh: async () => {
       if (!session.current || state.error === 'local_storage') setAttempt(value => value + 1);
       else await session.current.synchronize(true);
