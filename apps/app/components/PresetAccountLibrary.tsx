@@ -12,7 +12,7 @@ import { usePresetSync } from './PresetSync';
 import { KTText } from './ui/Text';
 import { KTButton } from './ui/Button';
 
-export function PresetAccountLibrary({onSelect,onError}:{onSelect:(levels:BlindLevel[])=>void;onError:(message:string)=>void}) {
+export function PresetAccountLibrary({onSelect,onError,selectionDisabled=false,confirmedOnly=false}:{onSelect:(levels:BlindLevel[])=>void;onError:(message:string)=>void;selectionDisabled?:boolean;confirmedOnly?:boolean}) {
   const sync=usePresetSync();
   if(!sync)return null;
   const {state}=sync;
@@ -26,12 +26,13 @@ export function PresetAccountLibrary({onSelect,onError}:{onSelect:(levels:BlindL
     {state.phase==='idle'||state.phase==='syncing'?<View style={{flexDirection:'row',alignItems:'center',gap:8}}><ActivityIndicator color={Colors.gold200}/><KTText papel="apoio" color={Colors.text1}>Atualizando biblioteca…</KTText></View>:null}
     {state.error?<KTText accessibilityLiveRegion="polite" color={Colors.danger}>{state.error==='local_storage'?'Não foi possível acessar a biblioteca local. Confira o armazenamento do navegador e feche outras abas do King’s Table antes de atualizar.':'Não foi possível atualizar a conta. As alterações pendentes continuam salvas.'}</KTText>:null}
     {!rows.length&&state.phase==='ready'?<KTText papel="apoio" color={Colors.text1}>Nenhuma estrutura salva na conta.</KTText>:null}
-    {rows.map(row=><PresetAccountRow key={row.id} row={row} sync={sync} onSelect={onSelect} onError={onError}/>)}
+    {rows.map(row=><PresetAccountRow key={row.id} row={row} sync={sync} onSelect={onSelect} onError={onError}
+      selectionDisabled={selectionDisabled} confirmedOnly={confirmedOnly}/>)}
   </View>;
 }
 
-function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number];sync:PresetSyncValue;
-  onSelect:(levels:BlindLevel[])=>void;onError:(message:string)=>void}) {
+function PresetAccountRow({row,sync,onSelect,onError,selectionDisabled,confirmedOnly}:{row:PresetLibrary[number];sync:PresetSyncValue;
+  onSelect:(levels:BlindLevel[])=>void;onError:(message:string)=>void;selectionDisabled:boolean;confirmedOnly:boolean}) {
       const [review,setReview]=useState(false);
       const [history,setHistory]=useState(false);
       const [copyName,setCopyName]=useState('');
@@ -86,7 +87,8 @@ function PresetAccountRow({row,sync,onSelect,onError}:{row:PresetLibrary[number]
           </Pressable>:null}
         </View>
         {issue?<KTText papel="apoio" color={Colors.danger}>{issue.message}</KTText>:null}
-        {!removed&&payload&&(row.confirmed||row.pending.length)?<KTButton label={`Usar ${name}`} variant="fantasma" disabled={row.reconciliationNeeded||busy}
+        {!removed&&payload&&(row.confirmed||row.pending.length)?<KTButton label={`Usar ${name}`} variant="fantasma" disabled={selectionDisabled||row.reconciliationNeeded||busy
+          ||confirmedOnly&&(!row.confirmed||row.confirmed.deleted||!!row.pending.length||!sync.available||sync.state.phase!=='ready')}
           onPress={()=>onSelect(payload.levels.map(level=>({...level})))} />:null}
         {row.reconciliationNeeded?<KTButton label={review?'Fechar revisão':'Revisar alteração'} variant="fantasma" disabled={busy}
           onPress={()=>{setReview(!review);if(!review){setCopyName(`${copySource?.name??'Estrutura'} (cópia)`);setError(null);}}} />:null}

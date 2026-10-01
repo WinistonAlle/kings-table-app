@@ -11,6 +11,7 @@ import type { TournamentCatalogView } from '@/lib/sync-tournament-model';
 import type { BlindLevel } from '@/types';
 import type { TournamentSyncValue } from './TournamentSync.web';
 import { StructureEditor } from './StructureEditor';
+import { PresetAccountLibrary } from './PresetAccountLibrary';
 import { KTButton } from './ui/Button';
 import { KTText } from './ui/Text';
 
@@ -63,6 +64,12 @@ export function OnlineStructure({ snapshot, view, sync, otherEditing, onDirtyCha
     {!structure.success ? <KTText papel="apoio" color={Colors.danger}>Estrutura indisponível. Atualize os detalhes.</KTText> : null}
     {!upcoming ? <KTText papel="apoio" color={Colors.text2}>Estrutura protegida após o início da noite.</KTText> : null}
     {draft ? <>
+      <PresetAccountLibrary confirmedOnly selectionDisabled={saving || retry || !ready} onError={setMessage}
+        onSelect={selected => {
+          if (!ready || saving || retry) return;
+          confirmarAcao('Substituir os níveis desta edição pela estrutura salva? A mesa só será alterada quando você salvar.',
+            () => { setDraft(selected.map(level => ({ ...level }))); setMessage(''); });
+        }} />
       <StructureEditor levels={draft} onChange={setDraft} disabled={saving || retry || !ready} />
       <View style={styles.heading}>
         <KTButton label={saving ? 'Registrando estrutura…' : retry ? 'Tentar registrar estrutura novamente' : 'Salvar estrutura na conta'}

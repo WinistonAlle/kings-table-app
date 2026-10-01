@@ -4,6 +4,20 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Estruturas salvas no editor online em 01/10/2026
+
+- Biblioteca da conta reutilizada no editor da mesa existente. Selecao exige
+  estrutura confirmada, sem pendencias/conflito, biblioteca pronta e mesa
+  editavel. Criacao preserva o comportamento anterior da biblioteca.
+- Substituir niveis pede confirmacao e altera somente o rascunho. Copia dos
+  niveis permite personalizar esta mesa sem modificar a estrutura original.
+- V42: Chromium com Auth/HTTP/IndexedDB locais reais conferiu recusa/aceite,
+  independencia entre mesa e preset, pendencia de preset bloqueada/retry,
+  cancelamento sem alterar mesa e isolamento A/B apos reload. Capturas
+  390/1440 inspecionadas sem overflow; suite completa e tipos passaram.
+- Salvar o rascunho como nova estrutura diretamente deste editor ainda falta;
+  esse salvamento ja existe na criacao de mesa. Flags normais desligadas.
+
 ## Editor da estrutura online em 01/10/2026
 
 - `OnlineStructure` conecta a estrutura da mesa existente ao editor de niveis
@@ -21,7 +35,7 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   Revisao/auditoria final 6; stores locais identicos apos hidratacao.
   Troca para conta B seguida de reload nao levou mesa nem rascunho A.
 - Ainda faltam troca de conta sem recarga/resposta tardia durante logout,
-  presets na edicao, mudanca durante partida, quota fisica, outros browsers
+  salvar novo preset nesta edicao, mudanca durante partida, quota fisica, outros browsers
   e validacao remota. Flag normal continua desligada.
 
 ## Base de edicao da estrutura online em 01/10/2026
@@ -40,7 +54,7 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   comando em Auth/JWT/PostgREST reais locais, com resposta perdida apos commit,
   retry e leitura do novo tempo pausado. Falhas nao criam revisoes/recibos.
 - CHECKLIST V39 delimita cobertura da base; editor e browser posteriores em
-  V40. Alteracao ao vivo durante partida, presets na edicao e remoto faltam.
+  V40; selecao de presets em V42. Alteracao ao vivo durante partida e remoto faltam.
   Flag permanece desligada. Nenhuma migracao foi enviada ao projeto remoto.
 
 ## Convidados da conta em 01/10/2026
