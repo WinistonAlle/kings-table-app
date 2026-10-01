@@ -6,6 +6,8 @@ import { loadAccountData } from '@/lib/account-storage';
 import { PresetSyncProvider } from './PresetSync';
 import { TournamentSyncProvider } from './TournamentSync';
 import { waitForLocalSaves } from '@/lib/armazenamento';
+import { AccessTimeoutError, waitForAccess } from '@/lib/access-deadline';
+import { KTButton } from './ui/Button';
 
 const Account = createContext<User | null>(null);
 export const useAccount = () => useContext(Account);
@@ -17,7 +19,7 @@ function siteUrl() {
 
 export function AuthGate({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [preview, setPreview] = useState(false);
   const loadedAccount = useRef<string | null>(null);
@@ -26,34 +28,49 @@ export function AuthGate({ children }: { children: ReactNode }) {
   useEffect(() => {
     let alive = true;
     let verification = 0;
+    let request = new AbortController();
+    const fail = (reason: unknown) => setError(reason instanceof AccessTimeoutError
+      ? 'A verificação demorou mais que o esperado. Confira sua conexão e tente novamente.'
+      : 'Não foi possível verificar seu acesso.');
     const stopSessions = () => { stopSync.current?.(); stopTournamentSync.current?.(); };
     if (['localhost', '127.0.0.1'].includes(window.location.hostname)
       && (new URLSearchParams(window.location.search).get('teste') === '1' || sessionStorage.getItem('kt-test-access') === '1')) {
       sessionStorage.setItem('kt-test-access', '1');
-      void loadAccountData('preview-local').then(() => { if (alive) setPreview(true); }).catch(() => { if (alive) setError(true); });
-      return () => { alive = false; };
+      void waitForAccess(() => loadAccountData('preview-local'), request.signal)
+        .then(() => { if (alive) setPreview(true); }).catch(reason => { if (alive) fail(reason); });
+      return () => { alive = false; request.abort(); };
     }
     async function verify() {
       const current = ++verification;
+      request.abort(); request = new AbortController();
+      const signal = request.signal;
       try {
-        const { data, error: authError } = await supabase.auth.getUser();
+        const { data, error: authError } = await waitForAccess(async () => {
+          const result = await supabase.auth.getUser();
+          signal.throwIfAborted();
+          if (!alive || current !== verification) throw new DOMException('Verification superseded', 'AbortError');
+          if (result.data.user) {
+            if (loadedAccount.current !== result.data.user.id) { stopSessions(); setUser(null); }
+            await loadAccountData(result.data.user.id);
+            signal.throwIfAborted();
+          }
+          return result;
+        }, signal);
         if (!alive || current !== verification) return;
         if (!data.user) {
           stopSessions();
           setUser(null);
-          if (authError && authError.status !== 401 && authError.status !== 403 && authError.name !== 'AuthSessionMissingError') { setError(true); return; }
+          if (authError && authError.status !== 401 && authError.status !== 403 && authError.name !== 'AuthSessionMissingError') { fail(authError); return; }
           if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
-          else setError(true);
+          else fail(authError);
           return;
         }
-        if (loadedAccount.current !== data.user.id) { stopSessions(); setUser(null); }
-        await loadAccountData(data.user.id);
         if (alive && current === verification) {
           loadedAccount.current = data.user.id;
           setUser(data.user);
-          setError(false);
+          setError(null);
         }
-      } catch { if (alive && current === verification) { stopSessions(); setUser(null); setError(true); } }
+      } catch (reason) { if (alive && current === verification) { request.abort(); stopSessions(); setUser(null); fail(reason); } }
     }
     void verify();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -61,6 +78,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         stopSessions();
         alive = false;
         ++verification;
+        request.abort();
         loadedAccount.current = null;
         setUser(null);
         if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
@@ -75,12 +93,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
       setTimeout(() => { if (alive) void verify(); }, 0);
     });
     window.addEventListener('focus', verify);
-    return () => { alive = false; stopSessions(); subscription.unsubscribe(); window.removeEventListener('focus', verify); };
+    return () => { alive = false; request.abort(); stopSessions(); subscription.unsubscribe(); window.removeEventListener('focus', verify); };
   }, [attempt]);
 
-  if (!user && !preview) return <View style={{ flex: 1, minHeight: '100%', backgroundColor: '#080808', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
+  if (!user && !preview) return <View style={{ flex: 1, minHeight: '100%', backgroundColor: '#080808', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 24 }}>
     <Text style={{ color: '#d3b27e', fontSize: 24, fontWeight: '700' }}>King’s Table</Text>
-    {error ? <><Text style={{ color: '#bab8b5' }}>Não foi possível verificar seu acesso.</Text><Pressable onPress={() => { setError(false); setAttempt(attempt + 1); }}><Text style={{ color: '#d3b27e' }}>Tentar novamente</Text></Pressable></> : <ActivityIndicator color="#d3b27e" accessibilityLabel="Verificando acesso" />}
+    {error ? <><Text accessibilityLiveRegion="polite" style={{ color: '#bab8b5', maxWidth: 360, textAlign: 'center', lineHeight: 24 }}>{error}</Text><KTButton label="Tentar novamente" style={{ alignSelf: 'center' }} onPress={() => { setError(null); setAttempt(value => value + 1); }} /></> : <ActivityIndicator color="#d3b27e" accessibilityLabel="Verificando acesso" />}
   </View>;
   return <Account.Provider value={user}>
     {preview ? <View style={{ flex: 1 }}>

@@ -4,6 +4,22 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Espera limitada no acesso web em 01/10/2026
+
+- Verificacao de identidade e hidratacao da conta tem limite de espera de
+  12 s na interface, inclusive no teste local. Falha mostra explicacao e
+  botao centralizado de tentar novamente, sem abrir dados protegidos.
+- Troca de verificacao, desmontagem e logout invalidam a espera anterior.
+  O pedido do SDK pode terminar depois; sua resposta antiga nao libera a
+  conta nem inicia hidratacao apos o timeout. Nao e cancelamento HTTP do SDK.
+- Chromium com login real no Supabase local: resposta HTTP 200 mantida
+  pendente, timeout, liberacao atrasada ignorada, retry recuperado; erro HTTP
+  503 bloqueado e recuperado. Cookies e localStorage permaneceram iguais.
+  Capturas 390/1440 inspecionadas, botao centralizado e sem overflow mobile.
+- Teste unitario integrado a suite cobre sucesso, erro, deadline, resposta
+  tardia e cancelamento. CHECKLIST V37 registra limites: nao prova causa
+  unica do relato original, fontes travadas, SMTP, remoto ou outros browsers.
+
 ## Transicoes do relogio online em 01/10/2026
 
 - Tela distingue primeira leitura, espera da virada e estrutura concluida.

@@ -104,6 +104,20 @@ O link PKCE deve ser aberto no mesmo navegador onde o fluxo foi iniciado.
 
 ## Verificacao
 
+- Em 01/10, o gate web passou a limitar a espera por identidade e hidratacao
+  a 12 s, com mensagem de erro e retry. Abortar a espera invalida o resultado,
+  sem afirmar que a chamada do SDK foi cancelada. Identidade antiga nao abre
+  a conta depois do limite. O modo de teste local tambem tem espera limitada.
+- Runner `browser-access-deadline-code.js` no Chromium, com contas temporarias
+  e login por senha reais no Supabase local: HTTP 200 retido ate o timeout,
+  liberacao atrasada sem desbloquear UI, retry recuperado; HTTP 503 bloqueado
+  e retry recuperado. Cookies e localStorage identicos apos hidratacao.
+  Capturas mobile/desktop inspecionadas. Isto nao valida cadastro por e-mail,
+  SMTP, expiracao real de JWT, remoto, outros browsers ou fontes travadas.
+  As afirmacoes historicas sobre ausencia de contas ficticias abaixo dizem
+  respeito a etapa original; as contas temporarias desta verificacao sao
+  somente locais e removidas ao terminar.
+
 - Revisao de concorrencia em 16/09: carregamento dos tres stores serializado,
   falha de hidratacao bloqueia acesso e verificacoes Auth antigas nao liberam
   a UI. teste-contas cobre leitura lenta, falha e recuperacao sem apagar dados.
