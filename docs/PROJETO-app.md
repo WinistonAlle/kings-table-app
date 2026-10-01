@@ -4,6 +4,21 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Base de retry estavel para salvar presets em 01/10/2026
+
+- `SyncOutbox.enqueuePreset` aceita um comando preparado uma unica vez e
+  reserva a revisao em transacao atomica. Retry do mesmo comando reutiliza a
+  entrada original; conteudo diferente no mesmo ID e revisao disputada recusados.
+  `PresetSyncSession.enqueue` exige autoria da sessao e preserva abort/stop.
+- Testes simulados incluem duas conexoes, tombstone, payload/identidade,
+  rollback de quota e falha de confirmacao local depois da fila gravada.
+  Duas abas Chromium com IndexedDB real conferiram uma unica reserva/revisao,
+  retry, escopo e reload. Banco de QA separado removido ao terminar.
+- Prova separada com Auth/JWT/HTTP locais reais e IndexedDB simulado conferiu
+  sessao enfileirando/repetindo comando confirmado sem aumentar revisao.
+  V43 delimita cobertura. Ainda falta conectar esta API ao salvamento pelo
+  editor e testar esse fluxo de interface; nao substitui `save` existente.
+
 ## Estruturas salvas no editor online em 01/10/2026
 
 - Biblioteca da conta reutilizada no editor da mesa existente. Selecao exige

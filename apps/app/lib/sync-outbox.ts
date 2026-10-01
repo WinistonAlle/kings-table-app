@@ -2,7 +2,7 @@ import { openDB, type DBSchema, type IDBPDatabase, type IDBPTransaction } from '
 import { z } from 'zod';
 import { novaIdentidade } from './identidade';
 import { createOperation, operationContent, operationSchema, parseOperation, type SyncOperation } from './sync-operation';
-import { applyPresetOperation, preparePresetPayload, presetBaseSchema, projectPreset, type PresetBase } from './sync-preset-model';
+import { applyPresetOperation, preparePresetPayload, presetPayloadSchema, presetBaseSchema, projectPreset, type PresetBase } from './sync-preset-model';
 import { tournamentSummarySchema, type TournamentSummary } from './sync-tournament-catalog';
 import { parseTournamentSnapshot, type TournamentSnapshot } from './sync-tournament-reader';
 import { projectTournamentCatalog, type TournamentCatalogView } from './sync-tournament-model';
@@ -156,6 +156,24 @@ export class SyncOutbox {
   async enqueue(value: SyncOperation): Promise<OutboxEntry> {
     const operation = parseOperation(value);
     return this.write(transaction => this.add(transaction, operation));
+  }
+
+  async enqueuePreset(value: SyncOperation): Promise<OutboxEntry> {
+    const operation = parseOperation(value);
+    if (operation.entity !== 'preset') throw new Error('Comando nao pertence a uma estrutura.');
+    const payload = operation.kind === 'preset.save' ? presetPayloadSchema.parse(operation.payload) : null;
+    if (operation.kind === 'preset.remove' && Object.keys(operation.payload).length) throw new Error('Remocao invalida.');
+    return this.write(async tx => {
+      const store = tx.objectStore('operations');
+      if (await store.get([operation.ownerId, operation.id])) return this.add(tx, operation);
+      const stored = await tx.objectStore('presetBases').get([operation.ownerId, operation.entityId]);
+      const entries = (await store.index('entity').getAll([operation.ownerId, 'preset', operation.entityId])).map(parseEntry);
+      const view = projectPreset(stored ? presetBaseSchema.parse(stored) : null, entries);
+      if (view.reconciliationNeeded) throw new Error('Revise as alteracoes pendentes antes de continuar.');
+      if (view.projected?.deleted || (!payload && !view.projected)) throw new Error('Estrutura removida ou inexistente.');
+      if (operation.expectedRevision !== (view.projected?.revision ?? 0)) throw new Error('A estrutura mudou. Atualize antes de registrar.');
+      return this.add(tx, operation);
+    });
   }
 
   async enqueueTournament(value: SyncOperation): Promise<OutboxEntry> {

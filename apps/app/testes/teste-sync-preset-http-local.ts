@@ -129,6 +129,16 @@ async function main() {
       assert.equal(row.confirmed?.payload?.name,'Coordinated HTTP');
       assert.equal(row.pending.length,0);
       assert.equal((await readPresets(signal)).find(base=>base.id===secondPresetId)?.payload?.name,'Coordinated HTTP');
+      const stable = createOperation({ ownerId: users[0], entityId: secondPresetId, entity: 'preset',
+        kind: 'preset.save', expectedRevision: 2, payload: { ...op.payload, name: 'Stable HTTP retry' } });
+      await coordinated.enqueue(stable);
+      await coordinated.synchronize();
+      await coordinated.enqueue(stable);
+      await coordinated.synchronize();
+      const retried = coordinated.snapshot().library.find(row => row.id === secondPresetId)!;
+      assert.equal(retried.confirmed?.revision, 3);
+      assert.equal(retried.pending.length, 0);
+      assert.equal((await readPresets(signal)).find(base => base.id === secondPresetId)?.revision, 3);
     } finally { coordinated.stop(); }
     console.log('PASS: local signup/password JWT, HTTP transport/reader, keyset pages, isolation, conflict, tombstone cache and sender recovery after real commit (IndexedDB simulated).');
   } finally {

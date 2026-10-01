@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { SyncSender, type OperationTransport } from './sync-sender';
 import type { SyncOutbox } from './sync-outbox';
 import type { PresetBase } from './sync-preset-model';
+import type { SyncOperation } from './sync-operation';
 
 export type PresetLibrary = Awaited<ReturnType<SyncOutbox['presetViews']>>;
 export type PresetSessionState = {
@@ -52,6 +53,15 @@ export class PresetSyncSession {
     this.controller.signal.throwIfAborted();
     await this.outbox.mutatePreset(this.ownerId, id, mutation);
     // A command committed before stop remains durable for that account, not sent here.
+    this.controller.signal.throwIfAborted();
+    if (this.inFlight) this.repeat = true;
+    await this.refreshLocal();
+  }
+
+  async enqueue(operation: SyncOperation): Promise<void> {
+    this.controller.signal.throwIfAborted();
+    if (operation.ownerId !== this.ownerId || operation.entity !== 'preset') throw new Error('Comando de outra conta ou entidade.');
+    await this.outbox.enqueuePreset(operation);
     this.controller.signal.throwIfAborted();
     if (this.inFlight) this.repeat = true;
     await this.refreshLocal();
