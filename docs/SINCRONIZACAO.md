@@ -3,6 +3,42 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Consulta das mesas da conta em 01/10/2026
+
+- `TournamentSyncProvider` web coordena catalogo e detalhes pelo dono verificado
+  no AuthGate. Provider nativo e modo teste continuam locais. A flag
+  `EXPO_PUBLIC_TOURNAMENT_SYNC_ENABLED=1` habilita a consulta; padrao desativado.
+- AuthGate possui encerramentos independentes para presets e mesas. Logout,
+  troca de conta, verificacao malsucedida e desmontagem encerram ambos.
+  O provider aguarda leituras/envios antes de fechar o IndexedDB.
+- Mesas apresenta lista da conta separada das mesas deste aparelho, busca e
+  filtros, revisao e data dos dados, estados de carregamento/ausencia/erro,
+  atualizacao explicita e consulta de jogadores/pagamentos/premios somente leitura.
+  Cache da revisao atual pode ser mostrado apos erro; detalhe ultrapassado pelo
+  catalogo fica oculto ate atualizar. Fechar consulta invalida resposta tardia.
+- Nenhuma leitura substitui o store operacional nem importa assentos, historico
+  financeiro ou auditoria. Escritas pelas telas, reconciliacao completa, migracao
+  do legado, Realtime e relogio online ainda precisam de implementacao.
+- Chrome com Auth/HTTP locais e IndexedDB real: contas A/B receberam apenas
+  suas mesas e jogadores. Falha de REST manteve detalhes salvos; reload com
+  REST bloqueado recuperou catalogo/detalhes e retry voltou a atualizar.
+  Consultas preservaram igualdade exata do localStorage da conta. Troca de
+  conta seguida de navegacao mostrou somente B; isto nao cobre troca sem
+  recarga nem resposta tardia durante logout do provider no navegador.
+- Capturas 1440x900 e 390x844 inspecionadas, sem overflow horizontal. Suite
+  completa e TypeScript passaram. Teste usou export isolado com flag habilitada;
+  o modo dev do toolchain atual priorizou .env.local sobre os overrides de QA.
+  Nao modificar .env de producao para reproduzir o teste. Escritas concorrentes
+  pelas telas, quota real, remoto e outros navegadores seguem pendentes.
+- Ao alternar configuracoes no export, usar `--clear`: o cache tambem pode
+  reutilizar constantes da configuracao anterior. Conferir o endpoint no bundle
+  antes de atualizar public/app. O export normal deve ficar sem endpoint local
+  de QA e com a flag desativada. Nao copiar o export isolado para o site.
+- Export normal com cache limpo conferido sem endpoint de QA e atualizado
+  em public/app. Build do site passou. Contas e mesas temporarias removidas;
+  previews normais restaurados nas portas 3001/8081.
+
+
 ## Leitura de detalhes pela sessao em 01/10/2026
 
 - `TournamentSyncSession.refreshTournament` recebe um leitor vinculado a conta,
@@ -19,7 +55,7 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   e saida durante a leitura. Auth/HTTP local confirmou leitura coordenada e
   cache apos comando de planejamento real. Suite completa e TypeScript
   passaram. O IndexedDB no teste HTTP e simulado; isto nao valida o fluxo
-  de detalhes no navegador. A UI ainda nao usa esta API.
+  de detalhes no navegador. A integracao web posterior esta registrada acima.
 - Apos restabelecer o acesso a pasta, o preview em localhost:3001/app?teste=1
   saiu de "Verificando acesso" e apresentou o Inicio no Chrome. Capturas
   1440x900 e 390x844 inspecionadas; controles visiveis sem cortes aparentes.

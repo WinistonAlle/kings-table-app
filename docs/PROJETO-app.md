@@ -4,6 +4,21 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Consulta de mesas online em 01/10/2026
+
+- A tela Mesas pode consultar o catalogo da conta e abrir jogadores,
+  pagamentos e resultados somente leitura, separado das mesas neste aparelho.
+  Provider por conta encerra ao sair; cache preserva dados apos erro de rede.
+- A flag `EXPO_PUBLIC_TOURNAMENT_SYNC_ENABLED=1` habilita a consulta web;
+  padrao continua desativado. Nativo e modo teste continuam locais.
+- Chrome com Auth/HTTP locais e IndexedDB real confirmou isolamento A/B,
+  leitura, cache apos reload com REST interrompido, retry e armazenamento
+  local inalterado. Capturas desktop/mobile inspecionadas. Evidencias e
+  limitacoes em CHECKLIST V29 e SINCRONIZACAO.md.
+- Edicao sincronizada, reconciliacao do legado e cobertura integral do
+  historico financeiro ainda faltam. Nao substituir o store local pelo
+  snapshot remoto incompleto. Nenhuma configuracao remota foi alterada.
+
 ## Copia Online Em 23/09/2026
 
 - A restauracao local agora escreve um diario com os tres arquivos anteriores

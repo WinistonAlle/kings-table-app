@@ -4,6 +4,7 @@ import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { loadAccountData } from '@/lib/account-storage';
 import { PresetSyncProvider } from './PresetSync';
+import { TournamentSyncProvider } from './TournamentSync';
 import { waitForLocalSaves } from '@/lib/armazenamento';
 
 const Account = createContext<User | null>(null);
@@ -21,9 +22,11 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const [preview, setPreview] = useState(false);
   const loadedAccount = useRef<string | null>(null);
   const stopSync = useRef<(() => void) | null>(null);
+  const stopTournamentSync = useRef<(() => void) | null>(null);
   useEffect(() => {
     let alive = true;
     let verification = 0;
+    const stopSessions = () => { stopSync.current?.(); stopTournamentSync.current?.(); };
     if (['localhost', '127.0.0.1'].includes(window.location.hostname)
       && (new URLSearchParams(window.location.search).get('teste') === '1' || sessionStorage.getItem('kt-test-access') === '1')) {
       sessionStorage.setItem('kt-test-access', '1');
@@ -36,26 +39,26 @@ export function AuthGate({ children }: { children: ReactNode }) {
         const { data, error: authError } = await supabase.auth.getUser();
         if (!alive || current !== verification) return;
         if (!data.user) {
-          stopSync.current?.();
+          stopSessions();
           setUser(null);
           if (authError && authError.status !== 401 && authError.status !== 403 && authError.name !== 'AuthSessionMissingError') { setError(true); return; }
           if (siteUrl()) window.location.replace(`${siteUrl()}/login`);
           else setError(true);
           return;
         }
-        if (loadedAccount.current !== data.user.id) { stopSync.current?.(); setUser(null); }
+        if (loadedAccount.current !== data.user.id) { stopSessions(); setUser(null); }
         await loadAccountData(data.user.id);
         if (alive && current === verification) {
           loadedAccount.current = data.user.id;
           setUser(data.user);
           setError(false);
         }
-      } catch { if (alive && current === verification) { stopSync.current?.(); setUser(null); setError(true); } }
+      } catch { if (alive && current === verification) { stopSessions(); setUser(null); setError(true); } }
     }
     void verify();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
-        stopSync.current?.();
+        stopSessions();
         alive = false;
         ++verification;
         loadedAccount.current = null;
@@ -64,7 +67,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         return;
       }
       if (event === 'SIGNED_IN' && loadedAccount.current !== session?.user.id) {
-        stopSync.current?.();
+        stopSessions();
         ++verification;
         loadedAccount.current = null;
         setUser(null);
@@ -72,7 +75,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
       setTimeout(() => { if (alive) void verify(); }, 0);
     });
     window.addEventListener('focus', verify);
-    return () => { alive = false; stopSync.current?.(); subscription.unsubscribe(); window.removeEventListener('focus', verify); };
+    return () => { alive = false; stopSessions(); subscription.unsubscribe(); window.removeEventListener('focus', verify); };
   }, [attempt]);
 
   if (!user && !preview) return <View style={{ flex: 1, minHeight: '100%', backgroundColor: '#080808', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
@@ -90,6 +93,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
         }}><Text style={{ color: '#bab8b5', fontSize: 12 }}>Sair do teste</Text></Pressable>
       </View>
       {children}
-    </View> : user ? <PresetSyncProvider key={user.id} ownerId={user.id} stopRef={stopSync}>{children}</PresetSyncProvider> : children}
+    </View> : user ? <PresetSyncProvider key={user.id} ownerId={user.id} stopRef={stopSync}>
+      <TournamentSyncProvider key={user.id} ownerId={user.id} stopRef={stopTournamentSync}>{children}</TournamentSyncProvider>
+    </PresetSyncProvider> : children}
   </Account.Provider>;
 }

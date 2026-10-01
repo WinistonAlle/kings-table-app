@@ -10,6 +10,8 @@ import { useTournamentStore } from '@/stores/tournamentStore';
 import { listarMesas, type FiltroMesa } from '@/lib/mesas';
 import { prizePool } from '@/lib/payouts';
 import { MesasHeader } from '@/components/MesasHeader';
+import { OnlineTables } from '@/components/OnlineTables';
+import { useTournamentSync } from '@/components/TournamentSync';
 
 const FILTROS: { valor: FiltroMesa; nome: string }[] = [
   { valor: 'todas', nome: 'Todas' }, { valor: 'abertas', nome: 'Abertas' }, { valor: 'encerradas', nome: 'Encerradas' },
@@ -20,6 +22,7 @@ export default function Historico() {
   const torneios = useTournamentStore(s => s.tournaments);
   const setActive = useTournamentStore(s => s.setActive);
   const compact = useWindowDimensions().width < 600;
+  const online = useTournamentSync();
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<FiltroMesa>('todas');
   const mesas = useMemo(() => listarMesas(torneios, filtro, busca), [torneios, filtro, busca]);
@@ -28,6 +31,8 @@ export default function Historico() {
     <ScrollView contentContainerStyle={styles.conteudo} keyboardShouldPersistTaps="handled">
       <View style={styles.busca}><Ionicons name="search-outline" size={20} color={Colors.text2} /><TextInput accessibilityLabel="Buscar mesa pelo nome" placeholder="Buscar uma mesa" placeholderTextColor={Colors.text2} value={busca} onChangeText={setBusca} style={styles.campo} />{busca ? <Pressable accessibilityRole="button" accessibilityLabel="Limpar busca" onPress={() => setBusca('')} hitSlop={10}><Ionicons name="close-circle" size={20} color={Colors.text1} /></Pressable> : null}</View>
       <View style={styles.filtros}>{FILTROS.map(f => <Pressable key={f.valor} accessibilityRole="button" accessibilityState={{ selected: filtro === f.valor }} onPress={() => setFiltro(f.valor)} style={[styles.filtro, filtro === f.valor && styles.selecionado]}><KTText papel="corpoForte" color={filtro === f.valor ? Colors.gold100 : Colors.text1}>{f.nome}</KTText></Pressable>)}</View>
+      <OnlineTables search={busca} filter={filtro} />
+      {online ? <KTText papel="subtitulo">Mesas neste aparelho</KTText> : null}
       <KTText papel="apoio" color={Colors.text2}>{mesas.length} {mesas.length === 1 ? 'mesa' : 'mesas'}</KTText>
       <View>{mesas.map(t => {
         const campeao = t.players.find(p => p.position === 1);
