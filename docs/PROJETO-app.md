@@ -4,6 +4,20 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Recuperacao do salvamento de presets no editor em 01/10/2026
+
+- V45 amplia V44 com Chromium/Auth/HTTP/IndexedDB locais reais. O runner
+  injeta uma unica falha na leitura da biblioteca depois da fila persistida;
+  nao simula escrita bem-sucedida. Nome, niveis, salvar mesa e cancelar ficam
+  protegidos; repetir reutiliza o mesmo ID e confirma somente um preset rev1.
+- Outra tentativa recebe commit HTTP real, mas a resposta e interrompida.
+  Reload, espera real de 31 s pelo lease e atualizacao recuperam a tentativa:
+  dois presets finais, ambos rev1, duas operacoes confirmadas; mesa rev2
+  permanece com os blinds originais. A falha de leitura e injetada, nao prova
+  quota fisica do navegador. Captura mobile do retry inspecionada.
+- Ainda faltam saida durante registro local, troca de conta sem reload,
+  outras abas/browsers e rollout remoto. Nao equivale a concluir F005.
+
 ## Salvar a estrutura da mesa na biblioteca em 01/10/2026
 
 - `SaveAccountStructure` permite nomear e guardar o rascunho como uma nova
@@ -14,9 +28,9 @@ atualizadas para nao contradizer as implementacoes mais recentes.
   da RPC, pendencia persistida no reload, retry com um unico preset rev1,
   reutilizacao e cancelamento sem alterar a mesa rev2. Outra conta apos
   reload nao ve o preset. Capturas 390/1440 inspecionadas sem overflow.
-- Ainda faltam falha de confirmacao IndexedDB na UI, resposta perdida deste
-  salvamento, saida durante envio e troca sem reload. Testes da base V43 nao
-  substituem esses cenarios de interface. Fixtures removidas; flags normais
+- Falha de leitura apos persistir a fila e resposta perdida deste salvamento
+  foram cobertas depois em V45. Saida durante envio e troca sem reload faltam.
+  Testes da base V43 nao substituem cenarios de interface. Flags normais
   desligadas e nenhuma mudanca aplicada ao remoto.
 
 ## Base de retry estavel para salvar presets em 01/10/2026
