@@ -3,6 +3,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Fonts, Radius, Space } from '@/constants/tokens';
 import { confirmarAcao } from '@/lib/confirmar';
+import { playerOperationLabel } from '@/lib/sync-tournament-players';
 import { planningFields, planningPayloadSchema, preparePlanningOperation, type PlanningDraft } from '@/lib/sync-tournament-planning';
 import type { SyncOperation } from '@/lib/sync-operation';
 import type { OutboxEntry } from '@/lib/sync-outbox';
@@ -18,7 +19,7 @@ function fields(snapshot: TournamentSnapshot) {
 function Attempt({ entry }: { entry: OutboxEntry }) {
   const parsed = entry.operation.kind === 'tournament.update' ? planningPayloadSchema.safeParse(entry.operation.payload) : null;
   return <View style={styles.attempt}>
-    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
+    <KTText papel="apoio" color={Colors.text1}>{parsed?.success ? 'Agendamento' : playerOperationLabel(entry.operation) ?? 'Alteração da mesa'} · {new Date(entry.operation.createdAt).toLocaleString('pt-BR')}</KTText>
     {parsed?.success ? <KTText papel="apoio" color={Colors.text1}>
       {new Date(parsed.data.startTime).toLocaleString('pt-BR')} · {parsed.data.location || 'Local a combinar'} · {parsed.data.capacity ? `${parsed.data.capacity} vagas` : 'Sem limite de vagas'}
     </KTText> : null}
@@ -28,9 +29,9 @@ function Attempt({ entry }: { entry: OutboxEntry }) {
   </View>;
 }
 
-export function OnlinePlanning({ snapshot, view, sync, onDirtyChange }: {
+export function OnlinePlanning({ snapshot, view, sync, onDirtyChange, otherEditing = false }: {
   snapshot: TournamentSnapshot; view: TournamentCatalogView; sync: TournamentSyncValue;
-  onDirtyChange: (dirty: boolean) => void;
+  onDirtyChange: (dirty: boolean) => void; otherEditing?: boolean;
 }) {
   const initial = fields(snapshot);
   const [draft, setDraft] = useState<PlanningDraft>(initial ?? { day: '', time: '', location: '', capacity: '' });
@@ -54,7 +55,7 @@ export function OnlinePlanning({ snapshot, view, sync, onDirtyChange }: {
   }, [snapshot, editing]);
   const current = snapshot.tournament.revision === view.confirmed?.revision;
   const ready = current && !view.pending.length && !view.awaitingCatalog && !view.reconciliationNeeded
-    && snapshot.tournament.status === 'upcoming' && !snapshot.tournament.deleted_at && !!initial;
+    && snapshot.tournament.status === 'upcoming' && !snapshot.tournament.deleted_at && !!initial && !otherEditing;
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
   const definitive = ['conflict', 'rejected'].includes(view.pending[0]?.status)
     && view.pending.every(entry => ['queued', 'conflict', 'rejected'].includes(entry.status));
@@ -122,7 +123,7 @@ export function OnlinePlanning({ snapshot, view, sync, onDirtyChange }: {
       </View>
     </View> : ready ? <KTButton label="Editar agendamento online" variant="fantasma" size="sm" disabled={saving || busy}
       icone={<Ionicons name="create-outline" size={18} color={Colors.gold200} />}
-      onPress={() => { setEditing(true); setMessage(''); }} /> : null}
+      onPress={() => { onDirtyChange(true); setEditing(true); setMessage(''); }} /> : null}
     {view.awaitingCatalog ? <KTText papel="apoio" color={Colors.gold200}>Envio confirmado. Aguardando atualização dos dados da conta.</KTText> : null}
     {view.pending.map(entry => <Attempt key={entry.operation.id} entry={entry} />)}
     {definitive ? <>

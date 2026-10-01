@@ -14,6 +14,7 @@ const LADOS: Record<Tamanho, number> = { sm: Space.lg, md: Space.xl, lg: Space.x
 
 interface ButtonProps {
   label: string;
+  accessibilityLabel?: string;
   onPress: () => void;
   variant?: Variante;
   size?: Tamanho;
@@ -26,6 +27,7 @@ interface ButtonProps {
 
 export function KTButton({
   label,
+  accessibilityLabel,
   onPress,
   variant = 'ouro',
   size = 'md',
@@ -40,7 +42,7 @@ export function KTButton({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={label}
+      accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ disabled: !!disabled }}
       onPress={onPress}
       disabled={disabled}

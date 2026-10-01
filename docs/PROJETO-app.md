@@ -4,6 +4,24 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Jogadores da conta em 01/10/2026
+
+- Consulta web agora permite adicionar/renomear jogadores, retirar entrada
+  sem historico antes do inicio, registrar/corrigir reentradas e add-ons e
+  marcar pagamento pendente, confirmado ou em revisao. Acoes financeiras
+  mostram o total em centavos antes da confirmacao. Dados locais preservados.
+- Acoes usam revisao dos detalhes e identidades estaveis; filas pendentes,
+  detalhes antigos e edicao do agendamento bloqueiam novas alteracoes.
+  Formulario de nome bloqueia a edicao paralela do agendamento. Atualizar,
+  trocar ou fechar consulta protege campos nao registrados.
+- Chromium com Auth/HTTP e IndexedDB locais reais confirmou comandos/eventos,
+  persistencia da fila apos reload, recibo perdido sem duplicacao, conflito
+  real com outro cliente, decisao explicita e arquivo da tentativa. Capturas
+  1440/390 inspecionadas. CHECKLIST V33 detalha cobertura e limites.
+- Flag continua desligada. Falta UI de convites/eliminacoes/relogio online,
+  historico financeiro completo, custos de recompra independentes, recebimento
+  parcial, remoto, outros browsers e quota fisica. Nao e sincronizacao completa.
+
 ## Criacao de mesas na conta em 01/10/2026
 
 - Criacao web permite escolher aparelho ou conta quando a integracao online
@@ -17,8 +35,8 @@ atualizadas para nao contradizer as implementacoes mais recentes.
 - Chromium com Auth/HTTP local e IndexedDB real validou interrupcao de RPC,
   recarga, confirmacao perdida apos gravacao real, retry sem duplicacao,
   configuracao e isolamento A/B. CHECKLIST V32 registra o escopo e limites.
-- Flag permanece desligada. Jogadores/relogio online ainda precisam ser
-  integrados; remoto, outros navegadores e quota fisica nao foram validados.
+- Flag permanece desligada. V33 integra parte da gestao de jogadores;
+  relogio online, remoto, outros navegadores e quota fisica ainda faltam.
 
 ## Agendamento online em 01/10/2026
 

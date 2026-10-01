@@ -3,6 +3,38 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Gestao web de jogadores em 01/10/2026
+
+- `OnlinePlayers` integra `player.add/update/remove/payment.set/entries.adjust`
+  aos comandos existentes. Helpers validam nome/duplicidade, vagas reservadas,
+  estado da mesa, limite de reentrada e total em centavos. Revisao exata dos
+  detalhes, dono do snapshot, UUID separado por jogador/comando. Servidor
+  continua responsavel por provas financeiras e concorrencia de vagas.
+- Lista expande acoes por jogador; nome em formulario separado, compras e
+  estado do pagamento com confirmacao do valor. Correcoes exigem pagamento
+  pendente; retirada exige preparacao sem historico. Cada add-on usa o buy-in
+  atual, sem simular regra independente ainda nao existente. Reentrada neste
+  contrato registra compra, sem desfazer eliminacao automaticamente.
+- Comandos incertos mantem ID/payload para retry; fila persistida e resultado
+  confirmado ficam separados. Falha de RPC preserva a fila apos reload.
+  Conflito definitivo usa a decisao/arquivo ja existente em `OnlinePlanning`;
+  tentativas agora mostram o tipo de acao do jogador. Rascunhos de agendamento
+  e jogador bloqueiam edicao paralela, refresh/fechamento protegem os campos.
+- Chromium com Auth/HTTP/IndexedDB locais reais: nomes, retirada, confirmacao
+  recusada/aceita, compras/correcao, pagamento confirmado voltando a pendente
+  apos compra, correcoes pagas bloqueadas, RPC interrompido/reload/retry,
+  recibo perdido apos commit e conflito por cliente concorrente passaram.
+  Estado final revisao 14, quatro jogadores, tres eventos de compra e tres
+  eventos de pagamento; um comando reenviado confirmado e tentativa de nome
+  conflitante arquivada. Conta B isolada e localStorage identico. Confirmacoes
+  usam respostas controladas de window.confirm, sem validar dialogo nativo.
+- Capturas 1440/390 inspecionadas sem overflow. Identidades diferentes dos
+  paineis corrigem duplicacao no refresh; runner verifica um painel de cada
+  por revisao. Tipos/suite passaram. CHECKLIST V33 registra implementacao sob
+  flag desligada. Faltam outros browsers, remoto, quota fisica, entrada tardia
+  na UI em torneio rodando, comprovantes na UI, historico completo, convites,
+  eliminacoes e relogio sincronizado. Nenhuma migracao/remoto alterado.
+
 ## Criacao web na conta em 01/10/2026
 
 - `prepareCreationOperation` normaliza blinds/intervalos e valida payload
@@ -23,8 +55,9 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   Recusa/aceitacao de arquivo teve respostas controladas de window.confirm,
   sem afirmar validacao visual do dialogo nativo. Conta B permaneceu isolada
   e localStorage ficou identico. Capturas 1440/390 inspecionadas sem overflow.
-- CHECKLIST V32: UI implementada sob flag desativada. Remoto, quota fisica,
-  outros browsers, jogadores/relogio online, Realtime e migracao faltam.
+- CHECKLIST V32: UI implementada sob flag desativada. V33 integra parte dos
+  jogadores; remoto, quota fisica, outros browsers, relogio, Realtime e
+  migracao faltam.
 
 ## Edicao do agendamento online em 01/10/2026
 

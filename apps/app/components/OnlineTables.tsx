@@ -9,10 +9,10 @@ import type { TournamentSnapshot } from '@/lib/sync-tournament-reader';
 import { OnlinePlanning } from './OnlinePlanning';
 import { confirmarAcao } from '@/lib/confirmar';
 import { UnconfirmedCreations } from './OnlineCreation';
+import { OnlinePlayers } from './OnlinePlayers';
 
 const status = { upcoming: 'Agendada', running: 'Em andamento', paused: 'Pausada',
   finished: 'Encerrada', cancelled: 'Cancelada' };
-const payment = { pending: 'Pendente', confirmed: 'Confirmado', disputed: 'Em revisão' };
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const count = (value: number, singular: string, plural: string) => `${value} ${value === 1 ? singular : plural}`;
 
@@ -22,7 +22,8 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   const [details, setDetails] = useState<TournamentSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
+  const [planningDirty, setPlanningDirty] = useState(false);
+  const [playersDirty, setPlayersDirty] = useState(false);
   const sequence = useRef(0);
   useEffect(() => () => { sequence.current++; }, []);
   if (!sync) return null;
@@ -55,7 +56,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   }
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
   const leaveDraft = (action: () => void) => {
-    if (dirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
+    if (planningDirty || playersDirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
     else action();
   };
   return <View style={styles.section}>
@@ -100,7 +101,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
           <Ionicons name="close-outline" size={24} color={Colors.text1} />
         </Pressable>
       </View>
-      <KTText papel="apoio" color={Colors.gold200}>Mesa da conta · Jogadores e resultados somente leitura</KTText>
+      <KTText papel="apoio" color={Colors.gold200}>Mesa da conta · Resultados somente leitura</KTText>
       {loading ? <ActivityIndicator accessibilityLabel="Carregando mesa" color={Colors.gold300} /> : null}
       {error ? <KTText papel="apoio" color={Colors.danger}>{error}</KTText> : null}
       {!loading && !detail && !error ? <KTText papel="apoio" color={Colors.text1}>A mesa mudou. Atualize os detalhes.</KTText> : null}
@@ -108,17 +109,13 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
         onPress={() => leaveDraft(() => { void open(summary.id); })}
         icone={<Ionicons name="refresh-outline" size={18} color={Colors.gold200} />} /> : null}
       {details && details.tournament.id === selected && selectedView ? <OnlinePlanning
-        key={selected} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setDirty} /> : null}
+        key={`planning-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlanningDirty} otherEditing={playersDirty} /> : null}
+      {details && details.tournament.id === selected && selectedView ? <OnlinePlayers
+        key={`players-${selected}`} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setPlayersDirty}
+        onRefresh={() => open(details.tournament.id)} otherEditing={planningDirty} /> : null}
       {detail ? <>
         <KTText papel="apoio" color={Colors.text1}>{count(detail.players.length, 'jogador', 'jogadores')} · {count(detail.invites.filter(invite => !invite.deleted_at).length, 'convidado', 'convidados')}</KTText>
         <KTText papel="apoio" color={Colors.text2}>Revisão {detail.tournament.revision} · {new Date(detail.tournament.updated_at).toLocaleString('pt-BR')}</KTText>
-        <KTText papel="corpoForte">Jogadores</KTText>
-        {!detail.players.length ? <KTText papel="apoio" color={Colors.text2}>Nenhum jogador registrado.</KTText> : null}
-        {detail.players.map(player => <View key={player.id} style={styles.player}>
-          <KTText papel="corpoForte">{player.display_name}</KTText>
-          <KTText papel="apoio" color={Colors.text1}>{count(player.buy_ins, 'entrada', 'entradas')} · {count(player.re_entries, 'reentrada', 'reentradas')} · {count(player.add_ons, 'add-on', 'add-ons')}</KTText>
-          <KTText papel="apoio" color={Colors.text1}>Pagamento: {payment[player.payment_status]}{player.position ? ` · ${player.position}º lugar` : ''}{player.prize !== null ? ` · Prêmio ${money(player.prize)}` : ''}</KTText>
-        </View>)}
       </> : null}
     </View> : null}
   </View>;
@@ -132,5 +129,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1, minWidth: 0, gap: 6 },
   inspect: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   detail: { paddingVertical: Space.lg, gap: Space.md },
-  player: { paddingVertical: Space.sm, gap: 6, borderBottomWidth: 1, borderColor: Colors.border },
 });
