@@ -5,12 +5,16 @@ import { TournamentSyncSession, type TournamentSessionState } from '@/lib/sync-t
 import { createTournamentCatalogReader } from '@/lib/sync-tournament-catalog';
 import { createTournamentReader, type TournamentSnapshot } from '@/lib/sync-tournament-reader';
 import { createTournamentTransport } from '@/lib/sync-tournament-transport';
+import type { SyncOperation } from '@/lib/sync-operation';
+import type { TournamentResolutionRequest } from '@/lib/sync-outbox';
 
 export type TournamentSyncValue = {
   state: TournamentSessionState;
   refresh: () => Promise<void>;
   read: (id: string) => Promise<TournamentSnapshot | null>;
   cached: (id: string) => Promise<TournamentSnapshot | null>;
+  send: (operation: SyncOperation) => Promise<void>;
+  resolve: (id: string, request: TournamentResolutionRequest) => Promise<void>;
 };
 const Context = createContext<TournamentSyncValue | null>(null);
 export const useTournamentSync = () => useContext(Context);
@@ -65,5 +69,11 @@ export function TournamentSyncProvider({ children, ownerId, stopRef }: {
     },
     read: id => active().refreshTournament(id),
     cached: id => active().cachedTournament(id),
+    send: async operation => {
+      const controller = active();
+      await controller.enqueue(operation);
+      await controller.synchronize(true);
+    },
+    resolve: (id, request) => active().resolve(id, request),
   }}>{children}</Context.Provider>;
 }

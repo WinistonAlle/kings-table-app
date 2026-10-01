@@ -6,6 +6,8 @@ import { KTText } from './ui/Text';
 import { KTButton } from './ui/Button';
 import { useTournamentSync } from './TournamentSync';
 import type { TournamentSnapshot } from '@/lib/sync-tournament-reader';
+import { OnlinePlanning } from './OnlinePlanning';
+import { confirmarAcao } from '@/lib/confirmar';
 
 const status = { upcoming: 'Agendada', running: 'Em andamento', paused: 'Pausada',
   finished: 'Encerrada', cancelled: 'Cancelada' };
@@ -19,6 +21,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
   const [details, setDetails] = useState<TournamentSnapshot | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
   const sequence = useRef(0);
   useEffect(() => () => { sequence.current++; }, []);
   if (!sync) return null;
@@ -27,6 +30,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
     && (filter === 'todas' || (filter === 'abertas'
       ? ['upcoming', 'running', 'paused'].includes(table.status) : table.status === 'finished')));
   const summary = tables.find(table => table.id === selected);
+  const selectedView = sync.state.views.find(view => view.id === selected);
   const detail = summary && details?.tournament.id === summary.id
     && details.tournament.revision === summary.revision ? details : null;
 
@@ -49,6 +53,10 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
     } finally { if (request === sequence.current) setLoading(false); }
   }
   const busy = sync.state.phase === 'syncing' || sync.state.phase === 'idle';
+  const leaveDraft = (action: () => void) => {
+    if (dirty) confirmarAcao('Sair desta edição? Os campos ainda não registrados serão descartados. Alterações já registradas na fila serão preservadas.', action);
+    else action();
+  };
   return <View style={styles.section}>
     <View style={styles.heading}>
       <KTText papel="subtitulo">Mesas da conta</KTText>
@@ -78,7 +86,7 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={`Consultar ${table.name}`}
         accessibilityState={{ selected: selected === table.id, disabled: loading && selected === table.id }}
-        disabled={loading && selected === table.id} onPress={() => { void open(table.id); }} style={styles.inspect}>
+        disabled={loading && selected === table.id} onPress={() => leaveDraft(() => { void open(table.id); })} style={styles.inspect}>
         <Ionicons name="chevron-forward" size={22} color={Colors.gold200} />
       </Pressable>
     </View>)}
@@ -86,17 +94,19 @@ export function OnlineTables({ search, filter }: { search: string; filter: 'toda
       <View style={styles.heading}>
         <KTText papel="subtitulo" style={{ flex: 1 }}>{summary.name}</KTText>
         <Pressable accessibilityRole="button" accessibilityLabel="Fechar consulta" style={styles.inspect}
-          onPress={() => { sequence.current++; setSelected(null); setDetails(null); setLoading(false); setError(null); }}>
+          onPress={() => leaveDraft(() => { sequence.current++; setSelected(null); setDetails(null); setLoading(false); setError(null); })}>
           <Ionicons name="close-outline" size={24} color={Colors.text1} />
         </Pressable>
       </View>
-      <KTText papel="apoio" color={Colors.gold200}>Consulta da conta · Somente leitura</KTText>
+      <KTText papel="apoio" color={Colors.gold200}>Mesa da conta · Jogadores e resultados somente leitura</KTText>
       {loading ? <ActivityIndicator accessibilityLabel="Carregando mesa" color={Colors.gold300} /> : null}
       {error ? <KTText papel="apoio" color={Colors.danger}>{error}</KTText> : null}
       {!loading && !detail && !error ? <KTText papel="apoio" color={Colors.text1}>A mesa mudou. Atualize os detalhes.</KTText> : null}
       {!loading ? <KTButton label="Atualizar detalhes" variant="fantasma" size="sm"
-        onPress={() => { void open(summary.id); }}
+        onPress={() => leaveDraft(() => { void open(summary.id); })}
         icone={<Ionicons name="refresh-outline" size={18} color={Colors.gold200} />} /> : null}
+      {details && details.tournament.id === selected && selectedView ? <OnlinePlanning
+        key={selected} snapshot={details} view={selectedView} sync={sync} onDirtyChange={setDirty} /> : null}
       {detail ? <>
         <KTText papel="apoio" color={Colors.text1}>{count(detail.players.length, 'jogador', 'jogadores')} · {count(detail.invites.filter(invite => !invite.deleted_at).length, 'convidado', 'convidados')}</KTText>
         <KTText papel="apoio" color={Colors.text2}>Revisão {detail.tournament.revision} · {new Date(detail.tournament.updated_at).toLocaleString('pt-BR')}</KTText>

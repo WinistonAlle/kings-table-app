@@ -5,6 +5,7 @@ export type TournamentCatalogView = {
   id: string;
   confirmed: TournamentSummary | null;
   pending: OutboxEntry[];
+  archived: OutboxEntry[];
   projectedRevision: number | null;
   projectedDeleted: boolean;
   awaitingCatalog: boolean;
@@ -43,6 +44,7 @@ export function projectTournamentCatalog(confirmed: TournamentSummary | null,
   return {
     id, confirmed,
     pending: sorted.filter(entry => entry.status !== 'confirmed' && entry.status !== 'cancelled'),
+    archived: sorted.filter(entry => entry.status === 'cancelled'),
     projectedRevision: exists ? revision : null, projectedDeleted: deleted,
     awaitingCatalog, reconciliationNeeded,
   };

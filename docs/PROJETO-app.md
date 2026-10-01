@@ -4,6 +4,21 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Agendamento online em 01/10/2026
+
+- Consulta da conta agora permite editar data, horario, local e limite de vagas
+  em mesas agendadas. Mostra fila pendente, conflito, decisao explicita de manter
+  versao da conta e tentativas arquivadas. Nova edicao exige detalhes atuais.
+- Protecao de campos ao atualizar/trocar/fechar consulta; retry preserva ID do
+  comando. Nenhuma escrita altera o store operacional local. Jogadores e
+  resultados remotos continuam somente leitura neste fluxo.
+- Chromium com Auth/HTTP local e IndexedDB real validou gravacao, recarga com
+  RPC indisponivel, reconexao sem duplicacao, conflito real, decisao e nova
+  edicao apos recuperacao. Capturas desktop/mobile inspecionadas. CHECKLIST V31
+  registra limites; UI segue sob flag desativada no preview normal.
+- Ainda faltam edicao integral, Realtime, remoto, outros browsers e protecao de
+  rascunho ao navegar fora da tela. Nao anunciar sincronizacao como concluida.
+
 ## Recuperacao de conflitos online em 01/10/2026
 
 - Nucleo da fila permite manter explicitamente a versao da conta apos
@@ -13,8 +28,8 @@ atualizadas para nao contradizer as implementacoes mais recentes.
 - Decisao valida apenas com base/fila revisadas ainda iguais; isolamento por
   conta, transacao atomica, abort ao sair e espera antes de fechar armazenamento.
 - Testes simulados e Chromium com duas abas/IndexedDB real passaram para o
-  escopo descrito em CHECKLIST V30. UI de revisao/decisao e edicao sincronizada
-  ainda faltam; nenhuma funcao online nova foi ativada no preview normal.
+  escopo descrito em CHECKLIST V30. V31 integra a decisao ao agendamento;
+  edicao integral ainda falta. Preview normal permanece com a flag desligada.
 
 ## Consulta de mesas online em 01/10/2026
 

@@ -3,6 +3,36 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Edicao do agendamento online em 01/10/2026
+
+- `OnlinePlanning` edita data/horario, local (200 caracteres) e limite de vagas
+  de mesas agendadas da conta. Payload estrito usa UTC e capacidade nula para
+  sem limite; considera jogadores e convites confirmados ainda sem check-in.
+  Nenhuma escrita passa pelo store local nem altera buy-in/blinds neste fluxo.
+- Comando usa a revisao dos detalhes carregados; nova edicao fica bloqueada
+  com fila pendente, reconciliacao ou detalhes ultrapassados. A identidade do
+  comando fica retida em falha de confirmacao local; retry nao cria outro ID.
+  Envio confirmado e cache atualizado sao estados distintos. Falha de RPC
+  preserva fila e dados confirmados; recarga/reconexao retomam o envio.
+- UI mostra tentativas pendentes, oferece `Manter versao da conta` somente
+  apos resposta definitiva e atualizacao bem-sucedida, exige confirmacao e
+  permite consultar tentativas arquivadas com os campos de agendamento.
+  Atualizar, trocar ou fechar a consulta pede confirmacao para descartar campos
+  nao registrados. Ainda falta protecao do rascunho ao navegar fora da tela.
+- Chromium com Auth/HTTP local e IndexedDB real: validacao de vagas, gravacao,
+  RPC interrompido, reload/retry, mudanca concorrente por outro cliente real,
+  conflito, recusa/aceitacao da decisao e edicao posterior passaram. Revisao
+  final 5 comprovou nenhuma duplicacao no cenario; igualdade exata de
+  localStorage confirmou preservacao dos stores separados. Runner controla
+  respostas de `window.confirm`; nao e verificacao do dialogo nativo em si.
+- Capturas 1440x900 e 390x844 inspecionadas; sem overflow horizontal. Suite,
+  TypeScript e exports passaram. Teste isolado usa flag e API locais; contas e
+  mesas temporarias removidas. `.env.local` e projeto remoto intactos.
+- Flag permanece desativada por padrao. Integracao de jogadores/convites,
+  edicao completa, migracao do legado, Realtime, quota real, outros browsers e
+  validacao remota continuam pendentes. Esta etapa substitui apenas a limitacao
+  de agendamento somente leitura descrita nas entregas anteriores.
+
 ## Recuperacao da fila de mesas em 01/10/2026
 
 - `resolveTournament` aceita apenas a decisao explicita `keep_remote`. A base
@@ -24,9 +54,9 @@ Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
   Chromium com IndexedDB real confirmou duas abas concorrentes (uma vence),
   preservacao de historico, isolamento e recarga. Runner reproduzivel em
   `testes/browser-tournament-resolution-code.js`, recebendo bundle da fila.
-- Esta etapa implementa o nucleo. Tela de revisao/decisao, integracao com
-  edicao online, corrida Auth/HTTP real, quota fisica e outros navegadores
-  ainda faltam. A consulta atual permanece somente leitura sob a flag.
+- Esta etapa implementou o nucleo. V31 posteriormente integra a decisao ao
+  agendamento online com corrida Auth/HTTP real. Reconciliacao integral,
+  quota fisica e outros navegadores ainda faltam.
 
 ## Consulta das mesas da conta em 01/10/2026
 
