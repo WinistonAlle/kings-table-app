@@ -78,8 +78,10 @@ export function OnlineClock({ snapshot, view, sync, otherEditing, onBusyChange, 
   const running = snapshot.tournament.status === 'running';
   const state = snapshot.tournament.status === 'finished' ? 'Noite encerrada'
     : snapshot.tournament.status === 'upcoming' ? 'Em preparação'
-      : clock?.handForHand ? 'Hand-for-hand · Congelado'
-        : clock?.isRunning ? 'Em andamento' : seconds === 0 ? 'Estrutura concluída' : 'Pausado';
+      : !clock ? 'Conferindo relógio'
+        : clock.handForHand ? 'Hand-for-hand · Congelado'
+          : clock.isRunning ? seconds === 0 ? 'Aguardando próximo nível' : 'Em andamento'
+            : seconds === 0 ? 'Estrutura concluída' : 'Pausado';
 
   async function send(action?: AccountClockAction) {
     if (busy.current || (!operation.current && (!ready || !clock || !action))) return;
@@ -116,6 +118,8 @@ export function OnlineClock({ snapshot, view, sync, otherEditing, onBusyChange, 
       {level && !level.isBreak ? <KTText papel="numero">{level.smallBlind.toLocaleString('pt-BR')} / {level.bigBlind.toLocaleString('pt-BR')} · Ante {level.ante.toLocaleString('pt-BR')}</KTText> : null}
       <KTText papel="apoio" color={Colors.text1}>{next ? next.isBreak ? 'A seguir: intervalo'
         : `A seguir: ${next.smallBlind.toLocaleString('pt-BR')} / ${next.bigBlind.toLocaleString('pt-BR')} · Ante ${next.ante.toLocaleString('pt-BR')}` : 'Último nível da estrutura'}</KTText>
+      {running && clock && !clock.isRunning && seconds === 0 && !clock.handForHand ?
+        <KTText papel="apoio" color={Colors.text1}>O tempo da estrutura terminou. A partida continua até o resultado final.</KTText> : null}
     </> : null}
     {error || stale ? <KTText papel="apoio" color={Colors.warn}>Sem confirmação recente. O tempo exibido é estimado; atualize antes de controlar.</KTText>
       : !matches || !current ? <KTText papel="apoio" color={Colors.warn}>A mesa mudou. Atualize os detalhes para alinhar o relógio.</KTText> : null}

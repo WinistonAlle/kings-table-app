@@ -3,6 +3,26 @@
 Contrato de implementacao, 16/09/2026. Nao representa recurso entregue.
 Referencias de escopo: CHECKLIST.md, especialmente D03, F018/F019 e F082.
 
+## Viradas e timeout web em 01/10/2026
+
+- Runner `browser-tournament-clock-boundary-code.js` usa Auth, HTTP e
+  IndexedDB reais locais, estrutura 1 min + intervalo 1 min + blind 1 min.
+  Nao altera timestamps do servidor nem relogio do navegador. Revisao fica
+  4 durante as tres transicoes readonly; partida continua running ao esgotar.
+- Leitura abortada tres segundos antes do limite gerou uma tentativa,
+  tempo zero sem antecipar estrutura e controles bloqueados. Atualizacao
+  recuperou intervalo real e virada seguinte. Reload voltou ao nivel 2.
+  Fim exibiu 00:00, retomada desativada e texto distinguindo estrutura/partida.
+- Leitura HTTP sem resposta por 14 s excedeu deadline de 12 s da sessao,
+  mostrando aviso e impedindo reset; recuperacao explicita passou. Requests
+  de comandos nao foram bloqueados neste cenario; apenas leitura do relogio.
+- Resultado do runner: tres transicoes, uma falha no limite e uma leitura
+  atrasada, localStorage igual e revisao 4. Capturas mobile/desktop inspecionadas;
+  artefatos finais tambem mostram estado stale depois da remocao da sessao QA.
+  Contas/mesas temporarias e runner com credenciais removidos. V36 fecha as
+  verificacoes de virada/fim visual e timeout web faltantes em V34, nao TV,
+  audio, segundo plano real, quota, Realtime, remoto ou demais navegadores.
+
 ## Contrato de inicio sem jogador em 01/10/2026
 
 - `20261001181551_require_player_before_tournament_start.sql` atualiza apenas

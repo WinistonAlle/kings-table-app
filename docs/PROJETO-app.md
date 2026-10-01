@@ -4,6 +4,23 @@ Checklist rastreavel do escopo completo: [CHECKLIST.md](CHECKLIST.md).
 As secoes datadas preservam entregas anteriores; pendencias abaixo foram
 atualizadas para nao contradizer as implementacoes mais recentes.
 
+## Transicoes do relogio online em 01/10/2026
+
+- Tela distingue primeira leitura, espera da virada e estrutura concluida.
+  Ao esgotar o ultimo nivel, informa que a partida ainda continua; nao
+  encerra jogadores, calcula premios nem tenta retomar tempo zero.
+- Chromium com Auth/HTTP e IndexedDB locais reais acompanhou tres niveis de
+  um minuto, incluindo intervalo, sem acelerar tempo nem alterar a ancora.
+  Falha de leitura na virada manteve nivel confirmado anterior e controles
+  bloqueados; recuperacao leu intervalo e blind seguintes do servidor.
+  Reload preservou nivel, fim ficou em 00:00 e revisao permaneceu 4.
+- Requisicao real mantida pendente por mais de 12 s comprovou timeout,
+  aviso/bloqueio e recuperacao. Uma tentativa na falha do limite e uma leitura
+  atrasada, sem loop agressivo. LocalStorage permaneceu identico apos
+  hidratacao. Capturas 390/1440 inspecionadas; CHECKLIST V36 delimita cobertura.
+- Flag permanece desligada. Faltam segundo plano real/dispositivo, TV/audio
+  online, Realtime, remoto e outros browsers. Nao e sincronizacao completa.
+
 ## Inicio protegido no servidor em 01/10/2026
 
 - Comando `tournament.start` agora exige ao menos um jogador registrado e
